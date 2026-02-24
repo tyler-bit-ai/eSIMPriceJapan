@@ -1,4 +1,5 @@
-const pageSize = 20;
+﻿const pageSize = 20;
+const dataUrl = './data/latest.csv';
 let state = {
   items: [],
   filtered: [],
@@ -107,86 +108,85 @@ function carrierLabel(carrier) {
   if (carrier && carrier.skt) out.push('SKT');
   if (carrier && carrier.kt) out.push('KT');
   if (carrier && carrier.lgu) out.push('LGU+');
-  return out.length ? out.join(', ') : 'unknown';
+  return out.length ? out.join(', ') : '미상';
 }
 
-function toQuery() {
-  const params = new URLSearchParams();
-  const q = el.searchInput.value.trim();
-  if (q) params.set('q', q);
-  if (el.networkFilter.value) params.set('network', el.networkFilter.value);
-  if (el.dataFilter.value) params.set('dataAmount', el.dataFilter.value);
-  if (el.usageFilter.value) params.set('usage', el.usageFilter.value);
-  if (el.activationFilter.value) params.set('activation', el.activationFilter.value);
-  if (el.carrierFilter.value) params.set('carrier', el.carrierFilter.value);
-  if (el.minPrice.value) params.set('minPrice', el.minPrice.value);
-  if (el.maxPrice.value) params.set('maxPrice', el.maxPrice.value);
-  if (el.sortKey.value) params.set('sort', el.sortKey.value);
-  return params.toString();
-}
-
-function getFilenameFromDisposition(contentDisposition) {
-  if (!contentDisposition) return null;
-  const match = contentDisposition.match(/filename=\"([^\"]+)\"/i);
-  if (!match || !match[1]) return null;
-  return match[1];
-}
-
-async function saveWithPicker(blob, suggestedName) {
-  if (!('showSaveFilePicker' in window)) return false;
-  const handle = await window.showSaveFilePicker({
-    suggestedName,
-    types: [
-      {
-        description: 'Excel Workbook',
-        accept: {
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-        },
-      },
-    ],
-  });
-  const writable = await handle.createWritable();
-  await writable.write(blob);
-  await writable.close();
-  return true;
-}
-
-async function downloadFilteredExcel() {
-  const qs = toQuery();
-  const url = qs ? `/api/export.xlsx?${qs}` : '/api/export.xlsx';
-
+function parseJsonField(value, fallback) {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
   try {
-    el.downloadExcelBtn.disabled = true;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) {
-      let message = `HTTP ${res.status}`;
-      try {
-        const body = await res.json();
-        if (body && body.message) message = body.message;
-      } catch (_) {
-        // noop
-      }
-      throw new Error(message);
+    return JSON.parse(value);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function normalizeItem(row) {
+  const priceRaw = row.price_jpy ?? row.price ?? '';
+  const priceNum = Number(String(priceRaw).replace(/[^0-9.-]/g, ''));
+  return {
+    title: row.title || '',
+    price_jpy: Number.isFinite(priceNum) ? priceNum : null,
+    validity: row.validity || null,
+    usage_validity: row.usage_validity || row.validity || null,
+    activation_validity: row.activation_validity || null,
+    network_type: row.network_type || 'unknown',
+    carrier_support_kr: parseJsonField(row.carrier_support_kr, { skt: false, kt: false, lgu: false }),
+    data_amount: row.data_amount || null,
+    product_url: row.product_url || null,
+    asin: row.asin || null,
+    seller: row.seller || null,
+    brand: row.brand || null,
+  };
+}
+
+function applyFilters(items) {
+  const q = el.searchInput.value.trim().toLowerCase();
+  const network = el.networkFilter.value;
+  const dataAmount = el.dataFilter.value;
+  const usage = el.usageFilter.value;
+  const activation = el.activationFilter.value;
+  const carrier = el.carrierFilter.value;
+  const minPrice = el.minPrice.value ? Number(el.minPrice.value) : null;
+  const maxPrice = el.maxPrice.value ? Number(el.maxPrice.value) : null;
+  const sort = el.sortKey.value || 'priceAsc';
+
+  const filtered = items.filter((it) => {
+    if (network && it.network_type !== network) return false;
+    if (dataAmount && (it.data_amount || '') !== dataAmount) return false;
+    if (usage && (it.usage_validity || '') !== usage) return false;
+    if (activation && (it.activation_validity || '') !== activation) return false;
+
+    if (carrier === 'skt' && !it.carrier_support_kr.skt) return false;
+    if (carrier === 'kt' && !it.carrier_support_kr.kt) return false;
+    if (carrier === 'lgu' && !it.carrier_support_kr.lgu) return false;
+    if (carrier === 'any' && !(it.carrier_support_kr.skt || it.carrier_support_kr.kt || it.carrier_support_kr.lgu)) {
+      return false;
     }
 
-    const blob = await res.blob();
-    const suggestedName = getFilenameFromDisposition(res.headers.get('content-disposition')) || 'filtered.xlsx';
-    const saved = await saveWithPicker(blob, suggestedName);
-    if (saved) return;
+    if (Number.isFinite(minPrice) && Number.isFinite(it.price_jpy) && it.price_jpy < minPrice) return false;
+    if (Number.isFinite(maxPrice) && Number.isFinite(it.price_jpy) && it.price_jpy > maxPrice) return false;
 
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = suggestedName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objectUrl);
-  } catch (err) {
-    alert(`엑셀 다운로드 실패: ${err.message}`);
-  } finally {
-    el.downloadExcelBtn.disabled = false;
+    if (!q) return true;
+    const bag = [it.title, it.seller, it.brand, it.network_type, it.data_amount, it.usage_validity, it.activation_validity]
+      .join(' ')
+      .toLowerCase();
+    return bag.includes(q);
+  });
+
+  if (sort === 'priceDesc') {
+    filtered.sort((a, b) => (b.price_jpy ?? -1) - (a.price_jpy ?? -1));
+  } else if (sort === 'usageAsc') {
+    const toDays = (value) => {
+      const m = String(value || '').match(/(\d{1,4})\s*일/);
+      return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+    };
+    filtered.sort((a, b) => toDays(a.usage_validity) - toDays(b.usage_validity));
+  } else {
+    filtered.sort((a, b) => (a.price_jpy ?? Number.MAX_SAFE_INTEGER) - (b.price_jpy ?? Number.MAX_SAFE_INTEGER));
   }
+
+  return filtered;
 }
 
 function renderKpis(summary) {
@@ -197,7 +197,7 @@ function renderKpis(summary) {
   const kpis = [
     ['필터 결과', `${total.toLocaleString('ko-KR')}개`],
     ['최저 / 중앙 / 평균', `${yen(summary.priceMin)} / ${yen(summary.priceMedian)} / ${yen(summary.priceAvg)}`],
-    ['최고 가격', yen(summary.priceMax)],
+    ['최고 가격', `${yen(summary.priceMax)}`],
     ['로밍 / 로컬', `${roamingPct}% / ${localPct}%`],
     ['무제한 비중', `${unlimitedPct}%`],
     ['SKT 명시', `${summary.carrierTrue.skt}`],
@@ -206,7 +206,12 @@ function renderKpis(summary) {
   ];
 
   el.kpis.innerHTML = kpis
-    .map(([label, value]) => `<div class="kpi"><label>${safe(label)}</label><strong>${safe(value)}</strong></div>`)
+    .map(([label, value]) => `
+      <div class="kpi">
+        <span class="kpiLabel">${safe(label)}</span>
+        <strong class="kpiValue">${safe(value)}</strong>
+      </div>
+    `)
     .join('');
 }
 
@@ -246,10 +251,10 @@ function renderFilterOptions(items) {
     activation: el.activationFilter.value,
   };
 
-  el.networkFilter.innerHTML = '<option value="">네트워크 전체</option>' + networkOptions.map((v) => `<option>${safe(v)}</option>`).join('');
-  el.dataFilter.innerHTML = '<option value="">데이터 전체</option>' + dataOptions.map((v) => `<option>${safe(v)}</option>`).join('');
-  el.usageFilter.innerHTML = '<option value="">사용기간 전체</option>' + usageOptions.map((v) => `<option>${safe(v)}</option>`).join('');
-  el.activationFilter.innerHTML = '<option value="">활성화기간 전체</option>' + activationOptions.map((v) => `<option>${safe(v)}</option>`).join('');
+  el.networkFilter.innerHTML = '<option value="">전체</option>' + networkOptions.map((v) => `<option>${safe(v)}</option>`).join('');
+  el.dataFilter.innerHTML = '<option value="">전체</option>' + dataOptions.map((v) => `<option>${safe(v)}</option>`).join('');
+  el.usageFilter.innerHTML = '<option value="">전체</option>' + usageOptions.map((v) => `<option>${safe(v)}</option>`).join('');
+  el.activationFilter.innerHTML = '<option value="">전체</option>' + activationOptions.map((v) => `<option>${safe(v)}</option>`).join('');
 
   el.networkFilter.value = keep.network;
   el.dataFilter.value = keep.data;
@@ -289,34 +294,47 @@ function renderTable() {
   el.nextPage.disabled = state.currentPage >= totalPages;
 }
 
-async function loadData() {
-  const qs = toQuery();
-  const url = qs ? `/api/latest?${qs}` : '/api/latest';
-  const res = await fetch(url, { cache: 'no-store' });
-  const data = await res.json();
+function updateDashboard() {
+  state.filtered = applyFilters(state.items);
+  renderFilterOptions(state.items);
+  renderKpis(summarize(state.filtered));
+  renderBars(el.dataAmountBars, summarize(state.filtered).byDataAmount);
+  renderBars(el.networkBars, summarize(state.filtered).byNetwork);
+  renderBars(el.activationBars, summarize(state.filtered).byActivation);
+  renderTable();
+}
 
-  if (!data.found) {
-    state.items = [];
-    state.filtered = [];
-    el.metaText.textContent = data.message || '데이터가 없습니다.';
-    renderKpis(summarize([]));
-    renderBars(el.dataAmountBars, {});
-    renderBars(el.networkBars, {});
-    renderBars(el.activationBars, {});
-    renderTable();
-    return;
+async function loadData() {
+  const res = await fetch(dataUrl, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`CSV 로드 실패 (${res.status})`);
   }
 
-  state.items = data.items;
-  state.filtered = data.items;
-  state.totalBeforeFilter = data.totalBeforeFilter || data.items.length;
-  state.file = data.file;
-  state.generatedAt = data.generatedAt;
+  const lastModified = res.headers.get('last-modified');
+  const text = await res.text();
+  const cleaned = text.replace(/^\uFEFF/, '');
+
+  const parsed = Papa.parse(cleaned, {
+    header: true,
+    skipEmptyLines: true,
+  });
+
+  if (parsed.errors && parsed.errors.length) {
+    throw new Error(parsed.errors[0].message || 'CSV 파싱 실패');
+  }
+
+  const items = (parsed.data || []).map(normalizeItem);
+
+  state.items = items;
+  state.filtered = items;
+  state.totalBeforeFilter = items.length;
+  state.file = 'data/latest.csv';
+  state.generatedAt = lastModified ? new Date(lastModified).toISOString() : null;
   state.currentPage = 1;
 
-  el.metaText.textContent = `파일: ${data.file} | 생성: ${isoToLocal(data.generatedAt)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  el.metaText.textContent = `파일: ${state.file} | 생성: ${isoToLocal(state.generatedAt)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
 
-  renderFilterOptions(data.items);
+  renderFilterOptions(state.items);
   const summary = summarize(state.filtered);
   renderKpis(summary);
   renderBars(el.dataAmountBars, summary.byDataAmount);
@@ -331,6 +349,15 @@ function triggerReload() {
   });
 }
 
+function downloadCsv() {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = 'latest.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 for (const input of [
   el.searchInput,
   el.networkFilter,
@@ -343,7 +370,10 @@ for (const input of [
   el.sortKey,
 ]) {
   const evt = input.tagName === 'INPUT' ? 'input' : 'change';
-  input.addEventListener(evt, triggerReload);
+  input.addEventListener(evt, () => {
+    state.currentPage = 1;
+    updateDashboard();
+  });
 }
 
 el.refreshBtn.addEventListener('click', triggerReload);
@@ -356,6 +386,6 @@ el.nextPage.addEventListener('click', () => {
   state.currentPage = Math.min(totalPages, state.currentPage + 1);
   renderTable();
 });
-el.downloadExcelBtn.addEventListener('click', downloadFilteredExcel);
+el.downloadExcelBtn.addEventListener('click', downloadCsv);
 
 triggerReload();

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
@@ -24,27 +24,57 @@
     <section id="kpis" class="kpis"></section>
 
     <section class="card">
-      <h2>필터</h2>
+      <div class="cardHead">
+        <h2>필터</h2>
+        <span class="subtle">필터 변경 시 즉시 반영됩니다.</span>
+      </div>
       <div class="toolbar">
-        <input id="searchInput" type="text" placeholder="상품명/셀러/브랜드 검색" />
-        <select id="networkFilter"><option value="">네트워크 전체</option></select>
-        <select id="dataFilter"><option value="">데이터 전체</option></select>
-        <select id="usageFilter"><option value="">사용기간 전체</option></select>
-        <select id="activationFilter"><option value="">활성화기간 전체</option></select>
-        <select id="carrierFilter">
-          <option value="">통신사 전체</option>
-          <option value="any">통신사 명시 상품</option>
-          <option value="skt">SKT 지원</option>
-          <option value="kt">KT 지원</option>
-          <option value="lgu">LGU+ 지원</option>
-        </select>
-        <input id="minPrice" type="number" min="0" step="1" placeholder="최소 가격 (JPY)" />
-        <input id="maxPrice" type="number" min="0" step="1" placeholder="최대 가격 (JPY)" />
-        <select id="sortKey">
-          <option value="priceAsc">가격 낮은순</option>
-          <option value="priceDesc">가격 높은순</option>
-          <option value="usageAsc">사용기간 짧은순</option>
-        </select>
+        <label class="field field--search">
+          <span>상품명/셀러/브랜드</span>
+          <input id="searchInput" type="text" placeholder="키워드 입력" />
+        </label>
+        <label class="field">
+          <span>네트워크</span>
+          <select id="networkFilter"><option value="">전체</option></select>
+        </label>
+        <label class="field">
+          <span>데이터</span>
+          <select id="dataFilter"><option value="">전체</option></select>
+        </label>
+        <label class="field">
+          <span>사용기간</span>
+          <select id="usageFilter"><option value="">전체</option></select>
+        </label>
+        <label class="field">
+          <span>활성화기한</span>
+          <select id="activationFilter"><option value="">전체</option></select>
+        </label>
+        <label class="field">
+          <span>한국 통신사</span>
+          <select id="carrierFilter">
+            <option value="">전체</option>
+            <option value="any">통신사 명시 상품</option>
+            <option value="skt">SKT 지원</option>
+            <option value="kt">KT 지원</option>
+            <option value="lgu">LGU+ 지원</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>최소 가격 (JPY)</span>
+          <input id="minPrice" type="number" min="0" step="1" placeholder="0" />
+        </label>
+        <label class="field">
+          <span>최대 가격 (JPY)</span>
+          <input id="maxPrice" type="number" min="0" step="1" placeholder="예: 5000" />
+        </label>
+        <label class="field">
+          <span>정렬</span>
+          <select id="sortKey">
+            <option value="priceAsc">가격 낮은 순</option>
+            <option value="priceDesc">가격 높은 순</option>
+            <option value="usageAsc">사용기간 짧은 순</option>
+          </select>
+        </label>
       </div>
     </section>
 
@@ -54,19 +84,19 @@
         <div id="dataAmountBars" class="bars"></div>
       </article>
       <article class="card">
-        <h2>네트워크 비중</h2>
+        <h2>네트워크 비율</h2>
         <div id="networkBars" class="bars"></div>
       </article>
       <article class="card">
-        <h2>활성화 유효기간 분포</h2>
+        <h2>활성화 기한 분포</h2>
         <div id="activationBars" class="bars"></div>
       </article>
     </section>
 
     <section class="card">
       <div class="detailHead">
-        <h2>상세 항목</h2>
-        <button id="downloadExcelBtn" class="btn ghost">엑셀 다운로드</button>
+        <h2>상세 목록</h2>
+        <button id="downloadExcelBtn" class="btn ghost">CSV 다운로드</button>
       </div>
       <div class="tableWrap">
         <table>
@@ -77,7 +107,7 @@
               <th>네트워크</th>
               <th>데이터</th>
               <th>사용기간</th>
-              <th>활성화기간</th>
+              <th>활성화기한</th>
               <th>통신사 지원</th>
               <th>셀러</th>
               <th>브랜드</th>
@@ -94,6 +124,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
