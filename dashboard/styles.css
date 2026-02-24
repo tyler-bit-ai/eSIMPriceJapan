@@ -1,0 +1,255 @@
+:root {
+  --bg: #f1f4ef;
+  --ink: #1e2a2a;
+  --card: rgba(255, 255, 255, 0.78);
+  --line: rgba(24, 33, 33, 0.16);
+  --accent: #ef5d2f;
+  --accent2: #1f9d8a;
+  --muted: #5d6969;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Noto Sans KR", sans-serif;
+  background:
+    radial-gradient(circle at 10% 0%, #ffd5bb 0%, transparent 45%),
+    radial-gradient(circle at 90% 15%, #c4ece2 0%, transparent 40%),
+    var(--bg);
+}
+
+.noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,0,0,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.layout {
+  width: min(1240px, 94vw);
+  margin: 28px auto 40px;
+  display: grid;
+  gap: 16px;
+}
+
+.hero, .card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  backdrop-filter: blur(8px);
+  background: var(--card);
+  box-shadow: 0 12px 26px rgba(0,0,0,.08);
+}
+
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px;
+}
+
+.kicker {
+  margin: 0;
+  font: 700 12px/1 "Space Grotesk", sans-serif;
+  letter-spacing: .14em;
+  color: var(--accent);
+}
+
+h1 {
+  margin: 8px 0 6px;
+  font: 700 clamp(24px, 4vw, 38px)/1.1 "Space Grotesk", sans-serif;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font: 700 20px/1.1 "Space Grotesk", sans-serif;
+}
+
+.meta {
+  margin: 0;
+  color: var(--muted);
+}
+
+.card { padding: 18px; }
+
+.detailHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.detailHead h2 {
+  margin: 0;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255,255,255,.9);
+}
+
+.kpi label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.kpi strong {
+  display: block;
+  margin-top: 6px;
+  font: 700 22px/1.1 "Space Grotesk", sans-serif;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 2fr repeat(4, 1fr) 1.2fr 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+input, select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  font: inherit;
+  background: #fff;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.bars {
+  display: grid;
+  gap: 8px;
+}
+
+.barRow { display: grid; gap: 4px; }
+
+.barHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #dbe4e2;
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+.empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tableWrap {
+  overflow: auto;
+  max-height: 60vh;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+table {
+  width: 100%;
+  min-width: 1060px;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th, td {
+  padding: 10px;
+  font-size: 13px;
+  text-align: left;
+  border-bottom: 1px solid #ececec;
+  vertical-align: top;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7fbf9;
+}
+
+.titleCell {
+  max-width: 450px;
+  line-height: 1.4;
+}
+
+.titleLink {
+  color: #0f6f63;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(15, 111, 99, 0.25);
+}
+
+.titleLink:hover {
+  text-decoration: underline;
+  border-bottom-color: rgba(15, 111, 99, 0.6);
+}
+
+.pagination {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn.ghost {
+  background: #e5ecea;
+  color: var(--ink);
+}
+
+.btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+@media (max-width: 1060px) {
+  .toolbar {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+}
