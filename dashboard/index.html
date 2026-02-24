@@ -7,7 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script>
+    if (location.pathname.endsWith('/dashboard')) {
+      location.replace(location.pathname + '/');
+    }
+  </script>
 </head>
 <body>
   <div class="noise"></div>
@@ -125,6 +130,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
