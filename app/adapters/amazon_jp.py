@@ -11,10 +11,13 @@ from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from app.adapters.base import MarketplaceAdapter
 from app.extractors.heuristics import (
     extract_asin,
+    extract_bestseller_badge,
+    extract_bestseller_rank,
     extract_carrier_support_kr,
     extract_data_amount,
     extract_network_type,
     extract_price_jpy_with_evidence,
+    extract_sales_last_month,
     extract_validity_split,
     parse_price_text,
 )
@@ -109,6 +112,11 @@ class AmazonJPAdapter(MarketplaceAdapter):
                         if amount is not None and (currency == "JPY" or currency is None):
                             search_price_jpy = amount
 
+                    card_text = card.get_text(" ", strip=True)
+                    sales = extract_sales_last_month([card_text])
+                    badge_texts = [n.get_text(" ", strip=True) for n in card.select(".a-badge-label, .a-badge-text")]
+                    search_badge, _ = extract_bestseller_badge(badge_texts + [card_text])
+
                     seen.add(full)
                     if asin:
                         seen_asins.add(asin)
@@ -118,6 +126,9 @@ class AmazonJPAdapter(MarketplaceAdapter):
                             asin=asin,
                             search_price_jpy=search_price_jpy,
                             search_price_text=price_text,
+                            search_sales_last_month_min=sales.min_count,
+                            search_sales_last_month_text=sales.text,
+                            search_bestseller_badge=search_badge,
                         )
                     )
                     if len(unique) >= limit:
@@ -208,8 +219,6 @@ class AmazonJPAdapter(MarketplaceAdapter):
             validity_split = extract_validity_split(validity_texts)
             if validity_split.usage_evidence:
                 evidence["usage_validity"] = validity_split.usage_evidence
-            if validity_split.activation_evidence:
-                evidence["activation_validity"] = validity_split.activation_evidence
 
             data_amount = extract_data_amount(text_blocks)
             if data_amount.evidence:
@@ -224,6 +233,26 @@ class AmazonJPAdapter(MarketplaceAdapter):
             carrier_support, carrier_ev = extract_carrier_support_kr(text_blocks)
             if carrier_ev:
                 evidence["carrier_support_kr"] = carrier_ev
+
+            sales = extract_sales_last_month(validity_texts)
+            if sales.min_count is None and stub.search_sales_last_month_min is not None:
+                sales.min_count = stub.search_sales_last_month_min
+                sales.text = stub.search_sales_last_month_text
+                sales.evidence = [f"search_result_fallback: {stub.search_sales_last_month_text or stub.search_sales_last_month_min}"]
+            if sales.evidence:
+                evidence["sales_last_month"] = sales.evidence
+
+            rank_candidates = self._collect_rank_text_candidates(soup)
+            rank = extract_bestseller_rank(rank_candidates)
+            if rank.evidence:
+                evidence["bestseller_rank"] = rank.evidence
+
+            badge_texts = self._collect_badge_text_candidates(soup)
+            bestseller_badge, badge_ev = extract_bestseller_badge(badge_texts + validity_texts)
+            if bestseller_badge is None:
+                bestseller_badge = stub.search_bestseller_badge
+            if badge_ev:
+                evidence["bestseller_badge"] = badge_ev
 
             seller = self._extract_text_selectors(
                 soup,
@@ -245,11 +274,16 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 title=title,
                 price_jpy=price.value if isinstance(price.value, int) else None,
                 usage_validity=validity_split.usage_validity,
-                activation_validity=validity_split.activation_validity,
-                validity=validity_split.usage_validity or validity_split.activation_validity,
+                validity=validity_split.usage_validity,
                 network_type=network_type,
                 carrier_support_kr=carrier_support,
                 data_amount=data_amount.value if isinstance(data_amount.value, str) else None,
+                sales_last_month_min=sales.min_count,
+                sales_last_month_text=sales.text,
+                bestseller_badge=bestseller_badge,
+                bestseller_rank=rank.rank,
+                bestseller_category=rank.category,
+                bestseller_rank_text=rank.text,
                 product_url=stub.product_url,
                 asin=asin,
                 seller=seller,
@@ -313,6 +347,39 @@ class AmazonJPAdapter(MarketplaceAdapter):
                     candidates.append(text)
 
         return candidates[:12]
+
+    def _collect_rank_text_candidates(self, soup: BeautifulSoup) -> list[str]:
+        candidates: list[str] = []
+        selectors = [
+            "#productDetails_detailBullets_sections1 tr",
+            "#detailBullets_feature_div li",
+            "#detailBulletsWrapper_feature_div li",
+            "#prodDetails",
+        ]
+        for selector in selectors:
+            for node in soup.select(selector):
+                text = node.get_text(" ", strip=True)
+                if "売れ筋ランキング" in text or "Best Sellers Rank" in text:
+                    candidates.append(text)
+        page_text = soup.get_text(" ", strip=True)
+        if page_text and ("売れ筋ランキング" in page_text or "Best Sellers Rank" in page_text):
+            candidates.append(page_text[:2000])
+        return candidates[:10]
+
+    def _collect_badge_text_candidates(self, soup: BeautifulSoup) -> list[str]:
+        badges: list[str] = []
+        selectors = [
+            "#acBadge_feature_div",
+            ".ac-badge-text",
+            ".a-badge-text",
+            ".badge-text",
+        ]
+        for selector in selectors:
+            for node in soup.select(selector):
+                text = node.get_text(" ", strip=True)
+                if text:
+                    badges.append(text)
+        return badges
 
     def _extract_text_selectors(self, soup: BeautifulSoup, selectors: list[str]) -> str | None:
         for selector in selectors:

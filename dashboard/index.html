@@ -51,8 +51,11 @@
           <select id="usageFilter"><option value="">전체</option></select>
         </label>
         <label class="field">
-          <span>활성화기한</span>
-          <select id="activationFilter"><option value="">전체</option></select>
+          <span>베스트셀러</span>
+          <select id="bestsellerFilter">
+            <option value="">전체</option>
+            <option value="true">베스트셀러만</option>
+          </select>
         </label>
         <label class="field">
           <span>한국 통신사</span>
@@ -78,6 +81,9 @@
             <option value="priceAsc">가격 낮은 순</option>
             <option value="priceDesc">가격 높은 순</option>
             <option value="usageAsc">사용기간 짧은 순</option>
+            <option value="salesDesc">판매량 높은 순</option>
+            <option value="salesAsc">판매량 낮은 순</option>
+            <option value="rankAsc">판매순위 높은 순</option>
           </select>
         </label>
       </div>
@@ -93,8 +99,8 @@
         <div id="networkBars" class="bars"></div>
       </article>
       <article class="card">
-        <h2>활성화 기한 분포</h2>
-        <div id="activationBars" class="bars"></div>
+        <h2>베스트셀러 분포</h2>
+        <div id="bestsellerBars" class="bars"></div>
       </article>
     </section>
 
@@ -112,7 +118,9 @@
               <th>네트워크</th>
               <th>데이터</th>
               <th>사용기간</th>
-              <th>활성화기한</th>
+              <th>최근1개월 구매수(하한)</th>
+              <th>판매순위</th>
+              <th>베스트셀러</th>
               <th>통신사 지원</th>
               <th>셀러</th>
               <th>브랜드</th>

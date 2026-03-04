@@ -29,6 +29,21 @@ class ValidityExtraction:
     activation_evidence: list[str]
 
 
+@dataclass
+class SalesExtraction:
+    min_count: int | None
+    text: str | None
+    evidence: list[str]
+
+
+@dataclass
+class RankExtraction:
+    rank: int | None
+    category: str | None
+    text: str | None
+    evidence: list[str]
+
+
 def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
@@ -270,3 +285,69 @@ def extract_asin(url: str) -> str | None:
     if match:
         return match.group(1)
     return None
+
+
+def extract_sales_last_month(texts: list[str]) -> SalesExtraction:
+    patterns = [
+        re.compile(r"過去1か月で\s*([0-9][0-9,]*(?:\.[0-9]+)?(?:万)?)\s*点以上購入されました"),
+        re.compile(r"過去1か月で\s*([0-9][0-9,]*(?:\.[0-9]+)?(?:万)?)\s*回以上購入されました"),
+        re.compile(r"([0-9][0-9,]*(?:\.[0-9]+)?(?:万)?)\s*点以上購入されました"),
+    ]
+    for raw in texts:
+        text = normalize_text(raw)
+        for pattern in patterns:
+            match = pattern.search(text)
+            if not match:
+                continue
+            parsed = _parse_jp_count(match.group(1))
+            if parsed is None:
+                continue
+            return SalesExtraction(min_count=parsed, text=match.group(0), evidence=[text[:180]])
+    return SalesExtraction(min_count=None, text=None, evidence=[])
+
+
+def extract_bestseller_rank(texts: list[str]) -> RankExtraction:
+    for raw in texts:
+        text = normalize_text(raw)
+        if "売れ筋ランキング" not in text and "Best Sellers Rank" not in text:
+            continue
+
+        rank_match = re.search(r"(?:#|：|\s)([0-9][0-9,]*)\s*(?:位|in)", text)
+        if not rank_match:
+            rank_match = re.search(r"([0-9][0-9,]*)\s*位", text)
+        if not rank_match:
+            continue
+
+        rank = int(rank_match.group(1).replace(",", ""))
+        category = None
+        cat_match = re.search(r"(?:売れ筋ランキング[:：]?\s*[#0-9,位]+\s*)([^#\(\)]+)", text)
+        if cat_match:
+            category = normalize_text(cat_match.group(1)).strip(" >-")
+            if not category:
+                category = None
+
+        return RankExtraction(rank=rank, category=category, text=text[:180], evidence=[text[:180]])
+
+    return RankExtraction(rank=None, category=None, text=None, evidence=[])
+
+
+def extract_bestseller_badge(texts: list[str]) -> tuple[bool | None, list[str]]:
+    for raw in texts:
+        text = normalize_text(raw)
+        if "ベストセラー" in text:
+            return True, [text[:180]]
+    return None, []
+
+
+def _parse_jp_count(raw: str) -> int | None:
+    token = raw.replace(",", "").strip()
+    if token.endswith("万"):
+        number = token[:-1]
+        try:
+            return int(float(number) * 10000)
+        except ValueError:
+            return None
+    try:
+        return int(float(token))
+    except ValueError:
+        return None

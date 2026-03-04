@@ -57,20 +57,23 @@ python -m http.server 4173
 - 검색어(상품명/셀러/브랜드)
 - 네트워크(local/roaming)
 - 데이터 용량(`unlimited`, `NGB`)
-- 사용기간 / 활성화기한
+- 사용기간 / 베스트셀러 여부
 - 통신사 지원(SKT/KT/LGU+)
 - 가격 범위
+- 정렬: 가격, 사용기간, 판매량, 판매순위
 
 ## Output Schema
 주요 필드:
-- `title`, `price_jpy`, `validity`, `usage_validity`, `activation_validity`, `network_type`
+- `title`, `price_jpy`, `validity`, `usage_validity`, `network_type`
 - `carrier_support_kr` (`skt`, `kt`, `lgu`: true/false/null)
-- `data_amount`, `product_url`, `asin`, `seller`, `brand`, `evidence`
+- `data_amount`, `sales_last_month_min`, `sales_last_month_text`
+- `bestseller_badge`, `bestseller_rank`, `bestseller_category`, `bestseller_rank_text`
+- `product_url`, `asin`, `seller`, `brand`, `evidence`
 
 JSONL 예시:
 ```json
-{"title":"Korea eSIM 7일 3GB","price_jpy":1980,"usage_validity":"7일","activation_validity":"30일","network_type":"roaming","carrier_support_kr":{"skt":true,"kt":null,"lgu":null},"data_amount":"3GB","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF12","asin":"B0ABCDEF12","seller":"Example Store","brand":"Example"}
-{"title":"Korea eSIM 30일 unlimited","price_jpy":3980,"usage_validity":"30일","activation_validity":"120일","network_type":"local","carrier_support_kr":{"skt":null,"kt":true,"lgu":true},"data_amount":"unlimited","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF34","asin":"B0ABCDEF34","seller":"Another Store","brand":"Another"}
+{"title":"Korea eSIM 7일 3GB","price_jpy":1980,"usage_validity":"7일","network_type":"roaming","carrier_support_kr":{"skt":true,"kt":null,"lgu":null},"data_amount":"3GB","sales_last_month_min":500,"sales_last_month_text":"過去1か月で500点以上購入されました","bestseller_badge":true,"bestseller_rank":1234,"bestseller_category":"家電＆カメラ","bestseller_rank_text":"売れ筋ランキング: 1,234位 家電＆カメラ","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF12","asin":"B0ABCDEF12","seller":"Example Store","brand":"Example"}
+{"title":"Korea eSIM 30일 unlimited","price_jpy":3980,"usage_validity":"30일","network_type":"local","carrier_support_kr":{"skt":null,"kt":true,"lgu":true},"data_amount":"unlimited","sales_last_month_min":null,"sales_last_month_text":null,"bestseller_badge":null,"bestseller_rank":null,"bestseller_category":null,"bestseller_rank_text":null,"product_url":"https://www.amazon.co.jp/dp/B0ABCDEF34","asin":"B0ABCDEF34","seller":"Another Store","brand":"Another"}
 ```
 
 ## Tests

@@ -23,6 +23,9 @@ class ProductStub(BaseModel):
     asin: Optional[str] = None
     search_price_jpy: Optional[int] = None
     search_price_text: Optional[str] = None
+    search_sales_last_month_min: Optional[int] = None
+    search_sales_last_month_text: Optional[str] = None
+    search_bestseller_badge: Optional[bool] = None
 
 
 class ProductDetail(BaseModel):
@@ -30,10 +33,15 @@ class ProductDetail(BaseModel):
     price_jpy: Optional[int] = None
     validity: Optional[str] = None
     usage_validity: Optional[str] = None
-    activation_validity: Optional[str] = None
     network_type: NetworkType = NetworkType.unknown
     carrier_support_kr: CarrierSupportKR = Field(default_factory=CarrierSupportKR)
     data_amount: Optional[str] = None
+    sales_last_month_min: Optional[int] = None
+    sales_last_month_text: Optional[str] = None
+    bestseller_badge: Optional[bool] = None
+    bestseller_rank: Optional[int] = None
+    bestseller_category: Optional[str] = None
+    bestseller_rank_text: Optional[str] = None
     product_url: HttpUrl
     asin: Optional[str] = None
     seller: Optional[str] = None

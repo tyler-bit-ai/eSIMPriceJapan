@@ -15,12 +15,12 @@ const el = {
   kpis: document.getElementById('kpis'),
   dataAmountBars: document.getElementById('dataAmountBars'),
   networkBars: document.getElementById('networkBars'),
-  activationBars: document.getElementById('activationBars'),
+  bestsellerBars: document.getElementById('bestsellerBars'),
   searchInput: document.getElementById('searchInput'),
   networkFilter: document.getElementById('networkFilter'),
   dataFilter: document.getElementById('dataFilter'),
   usageFilter: document.getElementById('usageFilter'),
-  activationFilter: document.getElementById('activationFilter'),
+  bestsellerFilter: document.getElementById('bestsellerFilter'),
   carrierFilter: document.getElementById('carrierFilter'),
   minPrice: document.getElementById('minPrice'),
   maxPrice: document.getElementById('maxPrice'),
@@ -68,6 +68,9 @@ function summarize(items) {
   const localCount = items.filter((it) => it.network_type === 'local').length;
   const roamingCount = items.filter((it) => it.network_type === 'roaming').length;
   const unlimitedCount = items.filter((it) => String(it.data_amount || '').toLowerCase() === 'unlimited').length;
+  const salesAvailableCount = items.filter((it) => Number.isFinite(it.sales_last_month_min)).length;
+  const rankAvailableCount = items.filter((it) => Number.isFinite(it.bestseller_rank)).length;
+  const badgeTrueCount = items.filter((it) => it.bestseller_badge === true).length;
 
   const carrierTrue = {
     skt: items.filter((it) => it.carrier_support_kr && it.carrier_support_kr.skt).length,
@@ -77,14 +80,17 @@ function summarize(items) {
 
   const byDataAmount = {};
   const byNetwork = {};
-  const byActivation = {};
+  const byBestseller = { '베스트셀러': 0, '기타/미상': 0 };
   for (const it of items) {
     const d = it.data_amount || 'unknown';
     const n = it.network_type || 'unknown';
-    const a = it.activation_validity || 'unknown';
     byDataAmount[d] = (byDataAmount[d] || 0) + 1;
     byNetwork[n] = (byNetwork[n] || 0) + 1;
-    byActivation[a] = (byActivation[a] || 0) + 1;
+    if (it.bestseller_badge === true) {
+      byBestseller['베스트셀러'] += 1;
+    } else {
+      byBestseller['기타/미상'] += 1;
+    }
   }
 
   return {
@@ -96,10 +102,13 @@ function summarize(items) {
     roamingCount,
     localCount,
     unlimitedCount,
+    salesAvailableCount,
+    rankAvailableCount,
+    badgeTrueCount,
     carrierTrue,
     byDataAmount,
     byNetwork,
-    byActivation,
+    byBestseller,
   };
 }
 
@@ -121,18 +130,34 @@ function parseJsonField(value, fallback) {
   }
 }
 
+function toNumberOrNull(value) {
+  const n = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+function toBooleanOrNull(value) {
+  if (value === true || value === false) return value;
+  const s = String(value ?? '').trim().toLowerCase();
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  return null;
+}
+
 function normalizeItem(row) {
-  const priceRaw = row.price_jpy ?? row.price ?? '';
-  const priceNum = Number(String(priceRaw).replace(/[^0-9.-]/g, ''));
   return {
     title: row.title || '',
-    price_jpy: Number.isFinite(priceNum) ? priceNum : null,
+    price_jpy: toNumberOrNull(row.price_jpy ?? row.price),
     validity: row.validity || null,
     usage_validity: row.usage_validity || row.validity || null,
-    activation_validity: row.activation_validity || null,
     network_type: row.network_type || 'unknown',
     carrier_support_kr: parseJsonField(row.carrier_support_kr, { skt: false, kt: false, lgu: false }),
     data_amount: row.data_amount || null,
+    sales_last_month_min: toNumberOrNull(row.sales_last_month_min),
+    sales_last_month_text: row.sales_last_month_text || null,
+    bestseller_badge: toBooleanOrNull(row.bestseller_badge),
+    bestseller_rank: toNumberOrNull(row.bestseller_rank),
+    bestseller_category: row.bestseller_category || null,
+    bestseller_rank_text: row.bestseller_rank_text || null,
     product_url: row.product_url || null,
     asin: row.asin || null,
     seller: row.seller || null,
@@ -140,12 +165,21 @@ function normalizeItem(row) {
   };
 }
 
+function compareNullableNumber(a, b, direction) {
+  const aMissing = !Number.isFinite(a);
+  const bMissing = !Number.isFinite(b);
+  if (aMissing && bMissing) return 0;
+  if (aMissing) return 1;
+  if (bMissing) return -1;
+  return direction === 'asc' ? a - b : b - a;
+}
+
 function applyFilters(items) {
   const q = el.searchInput.value.trim().toLowerCase();
   const network = el.networkFilter.value;
   const dataAmount = el.dataFilter.value;
   const usage = el.usageFilter.value;
-  const activation = el.activationFilter.value;
+  const bestsellerOnly = el.bestsellerFilter.value === 'true';
   const carrier = el.carrierFilter.value;
   const minPrice = el.minPrice.value ? Number(el.minPrice.value) : null;
   const maxPrice = el.maxPrice.value ? Number(el.maxPrice.value) : null;
@@ -155,7 +189,7 @@ function applyFilters(items) {
     if (network && it.network_type !== network) return false;
     if (dataAmount && (it.data_amount || '') !== dataAmount) return false;
     if (usage && (it.usage_validity || '') !== usage) return false;
-    if (activation && (it.activation_validity || '') !== activation) return false;
+    if (bestsellerOnly && it.bestseller_badge !== true) return false;
 
     if (carrier === 'skt' && !it.carrier_support_kr.skt) return false;
     if (carrier === 'kt' && !it.carrier_support_kr.kt) return false;
@@ -168,22 +202,38 @@ function applyFilters(items) {
     if (Number.isFinite(maxPrice) && Number.isFinite(it.price_jpy) && it.price_jpy > maxPrice) return false;
 
     if (!q) return true;
-    const bag = [it.title, it.seller, it.brand, it.network_type, it.data_amount, it.usage_validity, it.activation_validity]
+    const bag = [
+      it.title,
+      it.seller,
+      it.brand,
+      it.network_type,
+      it.data_amount,
+      it.usage_validity,
+      it.sales_last_month_text,
+      it.bestseller_category,
+      it.bestseller_rank_text,
+    ]
       .join(' ')
       .toLowerCase();
     return bag.includes(q);
   });
 
   if (sort === 'priceDesc') {
-    filtered.sort((a, b) => (b.price_jpy ?? -1) - (a.price_jpy ?? -1));
+    filtered.sort((a, b) => compareNullableNumber(a.price_jpy, b.price_jpy, 'desc'));
   } else if (sort === 'usageAsc') {
     const toDays = (value) => {
       const m = String(value || '').match(/(\d{1,4})\s*일/);
       return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
     };
     filtered.sort((a, b) => toDays(a.usage_validity) - toDays(b.usage_validity));
+  } else if (sort === 'salesDesc') {
+    filtered.sort((a, b) => compareNullableNumber(a.sales_last_month_min, b.sales_last_month_min, 'desc'));
+  } else if (sort === 'salesAsc') {
+    filtered.sort((a, b) => compareNullableNumber(a.sales_last_month_min, b.sales_last_month_min, 'asc'));
+  } else if (sort === 'rankAsc') {
+    filtered.sort((a, b) => compareNullableNumber(a.bestseller_rank, b.bestseller_rank, 'asc'));
   } else {
-    filtered.sort((a, b) => (a.price_jpy ?? Number.MAX_SAFE_INTEGER) - (b.price_jpy ?? Number.MAX_SAFE_INTEGER));
+    filtered.sort((a, b) => compareNullableNumber(a.price_jpy, b.price_jpy, 'asc'));
   }
 
   return filtered;
@@ -200,9 +250,9 @@ function renderKpis(summary) {
     ['최고 가격', `${yen(summary.priceMax)}`],
     ['로밍 / 로컬', `${roamingPct}% / ${localPct}%`],
     ['무제한 비중', `${unlimitedPct}%`],
-    ['SKT 명시', `${summary.carrierTrue.skt}`],
-    ['KT 명시', `${summary.carrierTrue.kt}`],
-    ['LGU+ 명시', `${summary.carrierTrue.lgu}`],
+    ['판매량 추출', `${summary.salesAvailableCount}`],
+    ['순위 추출', `${summary.rankAvailableCount}`],
+    ['베스트셀러 배지', `${summary.badgeTrueCount}`],
   ];
 
   el.kpis.innerHTML = kpis
@@ -242,24 +292,20 @@ function renderFilterOptions(items) {
   const networkOptions = unique(items.map((it) => it.network_type));
   const dataOptions = unique(items.map((it) => it.data_amount));
   const usageOptions = unique(items.map((it) => it.usage_validity));
-  const activationOptions = unique(items.map((it) => it.activation_validity));
 
   const keep = {
     network: el.networkFilter.value,
     data: el.dataFilter.value,
     usage: el.usageFilter.value,
-    activation: el.activationFilter.value,
   };
 
   el.networkFilter.innerHTML = '<option value="">전체</option>' + networkOptions.map((v) => `<option>${safe(v)}</option>`).join('');
   el.dataFilter.innerHTML = '<option value="">전체</option>' + dataOptions.map((v) => `<option>${safe(v)}</option>`).join('');
   el.usageFilter.innerHTML = '<option value="">전체</option>' + usageOptions.map((v) => `<option>${safe(v)}</option>`).join('');
-  el.activationFilter.innerHTML = '<option value="">전체</option>' + activationOptions.map((v) => `<option>${safe(v)}</option>`).join('');
 
   el.networkFilter.value = keep.network;
   el.dataFilter.value = keep.data;
   el.usageFilter.value = keep.usage;
-  el.activationFilter.value = keep.activation;
 }
 
 function renderTable() {
@@ -281,7 +327,9 @@ function renderTable() {
         <td>${safe(row.network_type)}</td>
         <td>${safe(row.data_amount)}</td>
         <td>${safe(row.usage_validity)}</td>
-        <td>${safe(row.activation_validity)}</td>
+        <td>${safe(row.sales_last_month_min)}</td>
+        <td>${safe(row.bestseller_rank)}</td>
+        <td>${row.bestseller_badge === true ? 'Y' : '-'}</td>
         <td>${safe(carrierLabel(row.carrier_support_kr))}</td>
         <td>${safe(row.seller)}</td>
         <td>${safe(row.brand)}</td>
@@ -297,10 +345,11 @@ function renderTable() {
 function updateDashboard() {
   state.filtered = applyFilters(state.items);
   renderFilterOptions(state.items);
-  renderKpis(summarize(state.filtered));
-  renderBars(el.dataAmountBars, summarize(state.filtered).byDataAmount);
-  renderBars(el.networkBars, summarize(state.filtered).byNetwork);
-  renderBars(el.activationBars, summarize(state.filtered).byActivation);
+  const summary = summarize(state.filtered);
+  renderKpis(summary);
+  renderBars(el.dataAmountBars, summary.byDataAmount);
+  renderBars(el.networkBars, summary.byNetwork);
+  renderBars(el.bestsellerBars, summary.byBestseller);
   renderTable();
 }
 
@@ -334,13 +383,7 @@ async function loadData() {
 
   el.metaText.textContent = `파일: ${state.file} | 생성: ${isoToLocal(state.generatedAt)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
 
-  renderFilterOptions(state.items);
-  const summary = summarize(state.filtered);
-  renderKpis(summary);
-  renderBars(el.dataAmountBars, summary.byDataAmount);
-  renderBars(el.networkBars, summary.byNetwork);
-  renderBars(el.activationBars, summary.byActivation);
-  renderTable();
+  updateDashboard();
 }
 
 function triggerReload() {
@@ -363,7 +406,7 @@ for (const input of [
   el.networkFilter,
   el.dataFilter,
   el.usageFilter,
-  el.activationFilter,
+  el.bestsellerFilter,
   el.carrierFilter,
   el.minPrice,
   el.maxPrice,

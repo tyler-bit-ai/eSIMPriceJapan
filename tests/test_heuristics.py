@@ -1,9 +1,12 @@
 from app.extractors.heuristics import (
+    extract_bestseller_badge,
+    extract_bestseller_rank,
     extract_carrier_support_kr,
     extract_data_amount,
     extract_network_type,
     extract_price_jpy,
     extract_price_jpy_with_evidence,
+    extract_sales_last_month,
     extract_validity,
     extract_validity_split,
     parse_price_text,
@@ -96,3 +99,24 @@ def test_extract_data_amount():
 def test_extract_data_amount_unlimited_jp_to_en():
     res = extract_data_amount(["高速データ通信 無制限"])
     assert res.value == "unlimited"
+
+
+def test_extract_sales_last_month_count():
+    sales = extract_sales_last_month(["この商品は過去1か月で500点以上購入されました"])
+    assert sales.min_count == 500
+
+
+def test_extract_sales_last_month_man_unit():
+    sales = extract_sales_last_month(["過去1か月で1.2万点以上購入されました"])
+    assert sales.min_count == 12000
+
+
+def test_extract_bestseller_rank():
+    rank = extract_bestseller_rank(["売れ筋ランキング: 1,234位 家電＆カメラ"])
+    assert rank.rank == 1234
+
+
+def test_extract_bestseller_badge():
+    badge, evidence = extract_bestseller_badge(["ベストセラー", "その他"])
+    assert badge is True
+    assert evidence
