@@ -1,4 +1,5 @@
 const pageSize = 20;
+const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
 let state = {
   items: [],
   filtered: [],
@@ -7,6 +8,58 @@ let state = {
   generatedAt: null,
   totalBeforeFilter: 0,
 };
+
+function parseJsonl(text) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch (_) {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
+function extractDays(value) {
+  if (!value) return null;
+  const m = String(value).match(/(\d{1,4})\s*일/);
+  return m ? Number(m[1]) : null;
+}
+
+function normalizeCarrier(carrierSupport) {
+  const c = carrierSupport && typeof carrierSupport === 'object' ? carrierSupport : {};
+  return {
+    skt: c.skt === true,
+    kt: c.kt === true,
+    lgu: c.lgu === true,
+  };
+}
+
+function normalizeItem(raw) {
+  const carrier = normalizeCarrier(raw.carrier_support_kr);
+  return {
+    title: raw.title || '',
+    product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
+    price_jpy: Number.isFinite(Number(raw.price_jpy)) ? Number(raw.price_jpy) : null,
+    monthly_sold_count: Number.isFinite(Number(raw.monthly_sold_count)) ? Number(raw.monthly_sold_count) : null,
+    is_bestseller: typeof raw.is_bestseller === 'boolean' ? raw.is_bestseller : null,
+    bestseller_rank: Number.isFinite(Number(raw.bestseller_rank)) ? Number(raw.bestseller_rank) : null,
+    network_type: raw.network_type || 'unknown',
+    data_amount: raw.data_amount || null,
+    usage_validity: raw.usage_validity || raw.validity || null,
+    activation_validity: raw.activation_validity || null,
+    seller: raw.seller || null,
+    brand: raw.brand || null,
+    asin: raw.asin || null,
+    carrier_support_kr: carrier,
+    usage_days: extractDays(raw.usage_validity || raw.validity || null),
+    activation_days: extractDays(raw.activation_validity || null),
+  };
+}
 
 const el = {
   metaText: document.getElementById('metaText'),
@@ -152,6 +205,16 @@ async function saveWithPicker(blob, suggestedName) {
 }
 
 async function downloadFilteredExcel() {
+  if (IS_GITHUB_PAGES) {
+    const a = document.createElement('a');
+    a.href = './data/latest.csv';
+    a.download = 'latest.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  }
+
   const qs = toQuery();
   const url = qs ? `/api/export.xlsx?${qs}` : '/api/export.xlsx';
 
@@ -293,6 +356,11 @@ function renderTable() {
 }
 
 async function loadData() {
+  if (IS_GITHUB_PAGES) {
+    await loadDataStatic();
+    return;
+  }
+
   const qs = toQuery();
   const url = qs ? `/api/latest?${qs}` : '/api/latest';
   const res = await fetch(url, { cache: 'no-store' });
@@ -326,7 +394,97 @@ async function loadData() {
   renderTable();
 }
 
+function applyLocalFilters(items) {
+  const q = el.searchInput.value.trim().toLowerCase();
+  const network = String(el.networkFilter.value || '').trim();
+  const dataAmount = String(el.dataFilter.value || '').trim();
+  const usage = String(el.usageFilter.value || '').trim();
+  const carrier = String(el.carrierFilter.value || '').trim();
+  const minPrice = el.minPrice.value ? Number(el.minPrice.value) : null;
+  const maxPrice = el.maxPrice.value ? Number(el.maxPrice.value) : null;
+  const sort = String(el.sortKey.value || 'priceAsc').trim();
+
+  const filtered = items.filter((it) => {
+    if (network && it.network_type !== network) return false;
+    if (dataAmount && (it.data_amount || '') !== dataAmount) return false;
+    if (usage && (it.usage_validity || '') !== usage) return false;
+
+    if (carrier === 'skt' && !it.carrier_support_kr.skt) return false;
+    if (carrier === 'kt' && !it.carrier_support_kr.kt) return false;
+    if (carrier === 'lgu' && !it.carrier_support_kr.lgu) return false;
+    if (carrier === 'any' && !(it.carrier_support_kr.skt || it.carrier_support_kr.kt || it.carrier_support_kr.lgu)) {
+      return false;
+    }
+
+    if (Number.isFinite(minPrice) && Number.isFinite(it.price_jpy) && it.price_jpy < minPrice) return false;
+    if (Number.isFinite(maxPrice) && Number.isFinite(it.price_jpy) && it.price_jpy > maxPrice) return false;
+
+    if (!q) return true;
+    const bag = [it.title, it.seller, it.brand, it.network_type, it.data_amount, it.usage_validity, it.activation_validity]
+      .join(' ')
+      .toLowerCase();
+    return bag.includes(q);
+  });
+
+  if (sort === 'priceDesc') {
+    filtered.sort((a, b) => (b.price_jpy ?? -1) - (a.price_jpy ?? -1));
+  } else if (sort === 'salesDesc') {
+    filtered.sort((a, b) => {
+      const aSales = Number.isFinite(a.monthly_sold_count) ? a.monthly_sold_count : -1;
+      const bSales = Number.isFinite(b.monthly_sold_count) ? b.monthly_sold_count : -1;
+      if (bSales !== aSales) return bSales - aSales;
+
+      const aBest = a.is_bestseller === true ? 1 : 0;
+      const bBest = b.is_bestseller === true ? 1 : 0;
+      if (bBest !== aBest) return bBest - aBest;
+
+      const aRank = Number.isFinite(a.bestseller_rank) ? a.bestseller_rank : Number.MAX_SAFE_INTEGER;
+      const bRank = Number.isFinite(b.bestseller_rank) ? b.bestseller_rank : Number.MAX_SAFE_INTEGER;
+      if (aRank !== bRank) return aRank - bRank;
+
+      return (a.price_jpy ?? Number.MAX_SAFE_INTEGER) - (b.price_jpy ?? Number.MAX_SAFE_INTEGER);
+    });
+  } else if (sort === 'usageAsc') {
+    filtered.sort((a, b) => (a.usage_days ?? Number.MAX_SAFE_INTEGER) - (b.usage_days ?? Number.MAX_SAFE_INTEGER));
+  } else {
+    filtered.sort((a, b) => (a.price_jpy ?? Number.MAX_SAFE_INTEGER) - (b.price_jpy ?? Number.MAX_SAFE_INTEGER));
+  }
+
+  return filtered;
+}
+
+function renderLocalView() {
+  state.filtered = applyLocalFilters(state.items);
+  state.currentPage = 1;
+  const summary = summarize(state.filtered);
+  renderKpis(summary);
+  renderBars(el.dataAmountBars, summary.byDataAmount);
+  renderBars(el.networkBars, summary.byNetwork);
+  renderTable();
+}
+
+async function loadDataStatic() {
+  const res = await fetch('./data/latest.jsonl', { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`정적 데이터 로드 실패: HTTP ${res.status}`);
+  }
+  const raw = await res.text();
+  const items = parseJsonl(raw).map(normalizeItem);
+
+  state.items = items;
+  state.totalBeforeFilter = items.length;
+  state.file = 'dashboard/data/latest.jsonl';
+  state.generatedAt = null;
+  el.metaText.textContent = `파일: ${state.file} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  renderFilterOptions(state.items);
+  renderLocalView();
+}
+
 function triggerReload() {
+  if (IS_GITHUB_PAGES && state.items.length > 0) {
+    renderLocalView();
+    return;
+  }
   loadData().catch((err) => {
     el.metaText.textContent = `로드 실패: ${err.message}`;
   });
@@ -346,7 +504,15 @@ for (const input of [
   input.addEventListener(evt, triggerReload);
 }
 
-el.refreshBtn.addEventListener('click', triggerReload);
+if (IS_GITHUB_PAGES) {
+  el.refreshBtn.addEventListener('click', () => {
+    loadData().catch((err) => {
+      el.metaText.textContent = `로드 실패: ${err.message}`;
+    });
+  });
+} else {
+  el.refreshBtn.addEventListener('click', triggerReload);
+}
 el.prevPage.addEventListener('click', () => {
   state.currentPage = Math.max(1, state.currentPage - 1);
   renderTable();
