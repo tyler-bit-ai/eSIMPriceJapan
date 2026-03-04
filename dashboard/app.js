@@ -470,12 +470,24 @@ async function loadDataStatic() {
   }
   const raw = await res.text();
   const items = parseJsonl(raw).map(normalizeItem);
+  let metadata = null;
+  try {
+    const metaRes = await fetch('./data/metadata.json', { cache: 'no-store' });
+    if (metaRes.ok) {
+      metadata = await metaRes.json();
+    }
+  } catch (_) {
+    metadata = null;
+  }
 
   state.items = items;
   state.totalBeforeFilter = items.length;
-  state.file = 'dashboard/data/latest.jsonl';
-  state.generatedAt = null;
-  el.metaText.textContent = `파일: ${state.file} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  state.file = (metadata && metadata.source) ? metadata.source : 'dashboard/data/latest.jsonl';
+  state.generatedAt = metadata && metadata.crawled_at ? metadata.crawled_at : null;
+
+  const crawledText = state.generatedAt ? isoToLocal(state.generatedAt) : '-';
+  const publishedText = metadata && metadata.published_at ? isoToLocal(metadata.published_at) : '-';
+  el.metaText.textContent = `파일: ${state.file} | 추출: ${crawledText} | 반영: ${publishedText} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
   renderFilterOptions(state.items);
   renderLocalView();
 }

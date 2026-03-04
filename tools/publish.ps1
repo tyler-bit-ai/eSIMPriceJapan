@@ -19,5 +19,17 @@ $dest = Join-Path $DataDir 'latest.csv'
 Copy-Item $results $dest -Force
 $destJsonl = Join-Path $DataDir 'latest.jsonl'
 Copy-Item $resultsJsonl $destJsonl -Force
+$lineCount = (Get-Content $resultsJsonl | Where-Object { $_.Trim() -ne '' } | Measure-Object -Line).Lines
+$crawledAt = (Get-Item $resultsJsonl).LastWriteTimeUtc.ToString('o')
+$publishedAt = (Get-Date).ToUniversalTime().ToString('o')
+$meta = @{
+  source = $resultsJsonl
+  crawled_at = $crawledAt
+  published_at = $publishedAt
+  item_count = $lineCount
+}
+$metaPath = Join-Path $DataDir 'metadata.json'
+$meta | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8
 Write-Host "Copied $results -> $dest"
 Write-Host "Copied $resultsJsonl -> $destJsonl"
+Write-Host "Wrote metadata -> $metaPath"
