@@ -1,6 +1,6 @@
 ﻿{
-    "crawled_at":  "2026-03-04T14:05:21.9216814Z",
-    "published_at":  "2026-03-04T14:05:22.5352787Z",
-    "source":  "C:\\Codex\\eSIMPriceJapan_repo\\out_quick_test\\results.jsonl",
-    "item_count":  1
+    "crawled_at":  "2026-03-04T13:19:19.1635898Z",
+    "published_at":  "2026-03-04T14:05:39.3261645Z",
+    "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\out_200_v5\\results.jsonl",
+    "item_count":  200
 }
