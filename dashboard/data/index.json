@@ -6,6 +6,17 @@
                },
     "runs":  [
                  {
+                     "id":  "20260304T140521Z_out_quick_test",
+                     "label":  "2026-03-04 23:05 | out_quick_test | 1 items",
+                     "source":  "C:\\Codex\\eSIMPriceJapan_repo\\out_quick_test\\results.jsonl",
+                     "crawled_at":  "2026-03-04T14:05:21.9216814Z",
+                     "published_at":  "2026-03-04T14:05:22.5352787Z",
+                     "item_count":  1,
+                     "csv":  "runs/20260304T140521Z_out_quick_test.csv",
+                     "jsonl":  "runs/20260304T140521Z_out_quick_test.jsonl",
+                     "metadata":  "metadata.json"
+                 },
+                 {
                      "id":  "20260304T131919Z_out_200_v5",
                      "label":  "2026-03-04 22:19 | out_200_v5 | 200 items",
                      "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\out_200_v5\\results.jsonl",

@@ -25,6 +25,11 @@ playwright install chromium
 python -m app crawl --site amazon_jp --query "eSIM 韓国" --limit 50 --out .\out
 ```
 
+### One-click (crawl + publish + git push)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Query "eSIM 韓国" -Limit 200 -OutDir .\out_auto
+```
+
 ### Smoke (E2E-lite)
 ```powershell
 python -m app crawl --site amazon_jp --query "eSIM 韓国" --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\out_smoke
