@@ -7,6 +7,9 @@ let state = {
   file: null,
   generatedAt: null,
   totalBeforeFilter: 0,
+  datasets: [],
+  selectedDatasetId: null,
+  selectedCsvPath: './data/latest.csv',
 };
 
 function parseJsonl(text) {
@@ -64,6 +67,7 @@ function normalizeItem(raw) {
 const el = {
   metaText: document.getElementById('metaText'),
   refreshBtn: document.getElementById('refreshBtn'),
+  datasetSelect: document.getElementById('datasetSelect'),
   kpis: document.getElementById('kpis'),
   dataAmountBars: document.getElementById('dataAmountBars'),
   networkBars: document.getElementById('networkBars'),
@@ -81,6 +85,24 @@ const el = {
   nextPage: document.getElementById('nextPage'),
   downloadExcelBtn: document.getElementById('downloadExcelBtn'),
 };
+
+function formatDatasetLabel(entry) {
+  const crawled = entry && entry.crawled_at ? isoToLocal(entry.crawled_at) : '-';
+  const count = Number.isFinite(Number(entry && entry.item_count)) ? Number(entry.item_count).toLocaleString('ko-KR') : '-';
+  const source = (entry && entry.source) ? String(entry.source).split(/[\\/]/).pop() : (entry && entry.id ? entry.id : 'dataset');
+  return `${crawled} | ${source} | ${count}개`;
+}
+
+function populateDatasetOptions(datasets) {
+  if (!el.datasetSelect) return;
+  if (!datasets.length) {
+    el.datasetSelect.innerHTML = '<option value="">최신 데이터</option>';
+    return;
+  }
+  el.datasetSelect.innerHTML = datasets
+    .map((d) => `<option value="${safe(String(d.id || ''))}">${safe(formatDatasetLabel(d))}</option>`)
+    .join('');
+}
 
 function yen(n) {
   if (n === null || n === undefined || Number.isNaN(n)) return '-';
@@ -207,8 +229,9 @@ async function saveWithPicker(blob, suggestedName) {
 async function downloadFilteredExcel() {
   if (IS_GITHUB_PAGES) {
     const a = document.createElement('a');
-    a.href = './data/latest.csv';
-    a.download = 'latest.csv';
+    a.href = state.selectedCsvPath || './data/latest.csv';
+    const filename = (a.href.split('/').pop() || 'latest.csv').split('?')[0];
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -463,33 +486,94 @@ function renderLocalView() {
   renderTable();
 }
 
-async function loadDataStatic() {
-  const res = await fetch('./data/latest.jsonl', { cache: 'no-store' });
+function resolveDataPath(pathValue, fallbackPath) {
+  if (!pathValue) return fallbackPath;
+  const trimmed = String(pathValue).trim();
+  if (trimmed.startsWith('./')) return trimmed;
+  if (trimmed.startsWith('/')) return `.${trimmed}`;
+  return `./data/${trimmed}`;
+}
+
+async function loadDatasetIndex() {
+  try {
+    const res = await fetch('./data/index.json', { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const runs = Array.isArray(data.runs) ? data.runs : [];
+    return runs;
+  } catch (_) {
+    return [];
+  }
+}
+
+async function loadDataStaticFromRecord(record) {
+  const jsonlPath = resolveDataPath(record && record.jsonl, './data/latest.jsonl');
+  const csvPath = resolveDataPath(record && record.csv, './data/latest.csv');
+  const metaPath = resolveDataPath(record && record.metadata, './data/metadata.json');
+
+  const res = await fetch(jsonlPath, { cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`정적 데이터 로드 실패: HTTP ${res.status}`);
   }
   const raw = await res.text();
   const items = parseJsonl(raw).map(normalizeItem);
+
   let metadata = null;
-  try {
-    const metaRes = await fetch('./data/metadata.json', { cache: 'no-store' });
-    if (metaRes.ok) {
-      metadata = await metaRes.json();
+  if (record && (record.crawled_at || record.published_at || record.source || record.item_count)) {
+    metadata = {
+      source: record.source || jsonlPath,
+      crawled_at: record.crawled_at || null,
+      published_at: record.published_at || null,
+      item_count: record.item_count || items.length,
+    };
+  } else {
+    try {
+      const metaRes = await fetch(metaPath, { cache: 'no-store' });
+      if (metaRes.ok) {
+        metadata = await metaRes.json();
+      }
+    } catch (_) {
+      metadata = null;
     }
-  } catch (_) {
-    metadata = null;
   }
 
   state.items = items;
   state.totalBeforeFilter = items.length;
-  state.file = (metadata && metadata.source) ? metadata.source : 'dashboard/data/latest.jsonl';
+  state.file = (metadata && metadata.source) ? metadata.source : jsonlPath;
   state.generatedAt = metadata && metadata.crawled_at ? metadata.crawled_at : null;
+  state.selectedCsvPath = csvPath;
 
   const crawledText = state.generatedAt ? isoToLocal(state.generatedAt) : '-';
   const publishedText = metadata && metadata.published_at ? isoToLocal(metadata.published_at) : '-';
   el.metaText.textContent = `파일: ${state.file} | 추출: ${crawledText} | 반영: ${publishedText} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
   renderFilterOptions(state.items);
   renderLocalView();
+}
+
+async function loadDataStatic() {
+  const datasets = await loadDatasetIndex();
+  state.datasets = datasets;
+  populateDatasetOptions(datasets);
+
+  if (datasets.length) {
+    const selectedId = state.selectedDatasetId && datasets.some((d) => d.id === state.selectedDatasetId)
+      ? state.selectedDatasetId
+      : String(datasets[0].id);
+    state.selectedDatasetId = selectedId;
+    if (el.datasetSelect) {
+      el.datasetSelect.value = selectedId;
+    }
+    const selected = datasets.find((d) => String(d.id) === String(selectedId)) || datasets[0];
+    await loadDataStaticFromRecord(selected);
+    return;
+  }
+
+  state.selectedDatasetId = null;
+  if (el.datasetSelect) {
+    el.datasetSelect.innerHTML = '<option value="">latest.jsonl</option>';
+    el.datasetSelect.value = '';
+  }
+  await loadDataStaticFromRecord(null);
 }
 
 function triggerReload() {
@@ -514,6 +598,16 @@ for (const input of [
 ]) {
   const evt = input.tagName === 'INPUT' ? 'input' : 'change';
   input.addEventListener(evt, triggerReload);
+}
+
+if (el.datasetSelect) {
+  el.datasetSelect.addEventListener('change', () => {
+    if (!IS_GITHUB_PAGES) return;
+    state.selectedDatasetId = el.datasetSelect.value || null;
+    loadData().catch((err) => {
+      el.metaText.textContent = `로드 실패: ${err.message}`;
+    });
+  });
 }
 
 if (IS_GITHUB_PAGES) {

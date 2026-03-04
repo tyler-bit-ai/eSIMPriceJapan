@@ -1,0 +1,20 @@
+﻿{
+    "latest":  {
+                   "csv":  "latest.csv",
+                   "jsonl":  "latest.jsonl",
+                   "metadata":  "metadata.json"
+               },
+    "runs":  [
+                 {
+                     "id":  "20260304T131919Z_out_200_v5",
+                     "label":  "2026-03-04 22:19 | out_200_v5 | 200 items",
+                     "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\out_200_v5\\results.jsonl",
+                     "crawled_at":  "2026-03-04T13:19:19.1635898Z",
+                     "published_at":  "2026-03-04T14:01:44.2027711Z",
+                     "item_count":  200,
+                     "csv":  "runs/20260304T131919Z_out_200_v5.csv",
+                     "jsonl":  "runs/20260304T131919Z_out_200_v5.jsonl",
+                     "metadata":  "metadata.json"
+                 }
+             ]
+}
