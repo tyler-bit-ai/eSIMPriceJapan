@@ -44,6 +44,9 @@ function normalizeItem(raw) {
     title: raw.title || '',
     product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
     price_jpy: Number.isFinite(Number(raw.price_jpy)) ? Number(raw.price_jpy) : null,
+    monthly_sold_count: Number.isFinite(Number(raw.monthly_sold_count)) ? Number(raw.monthly_sold_count) : null,
+    is_bestseller: typeof raw.is_bestseller === 'boolean' ? raw.is_bestseller : null,
+    bestseller_rank: Number.isFinite(Number(raw.bestseller_rank)) ? Number(raw.bestseller_rank) : null,
     network_type: raw.network_type || 'unknown',
     data_amount: raw.data_amount || null,
     usage_validity: raw.usage_validity || raw.validity || null,
@@ -98,6 +101,9 @@ function summarize(items) {
     kt: items.filter((it) => it.carrier_support_kr.kt).length,
     lgu: items.filter((it) => it.carrier_support_kr.lgu).length,
   };
+  const salesKnownCount = items.filter((it) => Number.isFinite(it.monthly_sold_count)).length;
+  const bestsellerBadgeCount = items.filter((it) => it.is_bestseller === true).length;
+  const bestsellerRankKnownCount = items.filter((it) => Number.isFinite(it.bestseller_rank)).length;
 
   const byDataAmount = {};
   const byUsageValidity = {};
@@ -122,6 +128,9 @@ function summarize(items) {
     localCount,
     unlimitedCount,
     carrierTrue,
+    salesKnownCount,
+    bestsellerBadgeCount,
+    bestsellerRankKnownCount,
     byDataAmount,
     byUsageValidity,
     byActivationValidity,
@@ -137,6 +146,9 @@ function sendExcel(res, items) {
   const rows = items.map((it) => ({
     title: it.title || '',
     price_jpy: it.price_jpy ?? '',
+    monthly_sold_count: it.monthly_sold_count ?? '',
+    is_bestseller: it.is_bestseller === null ? '' : (it.is_bestseller ? 'true' : 'false'),
+    bestseller_rank: it.bestseller_rank ?? '',
     network_type: it.network_type || '',
     data_amount: it.data_amount || '',
     usage_validity: it.usage_validity || '',
@@ -154,6 +166,9 @@ function sendExcel(res, items) {
     header: [
       'title',
       'price_jpy',
+      'monthly_sold_count',
+      'is_bestseller',
+      'bestseller_rank',
       'network_type',
       'data_amount',
       'usage_validity',
@@ -238,6 +253,22 @@ function applyFilters(items, queryObj) {
 
   if (sort === 'priceDesc') {
     filtered.sort((a, b) => (b.price_jpy ?? -1) - (a.price_jpy ?? -1));
+  } else if (sort === 'salesDesc') {
+    filtered.sort((a, b) => {
+      const aSales = Number.isFinite(a.monthly_sold_count) ? a.monthly_sold_count : -1;
+      const bSales = Number.isFinite(b.monthly_sold_count) ? b.monthly_sold_count : -1;
+      if (bSales !== aSales) return bSales - aSales;
+
+      const aBest = a.is_bestseller === true ? 1 : 0;
+      const bBest = b.is_bestseller === true ? 1 : 0;
+      if (bBest !== aBest) return bBest - aBest;
+
+      const aRank = Number.isFinite(a.bestseller_rank) ? a.bestseller_rank : Number.MAX_SAFE_INTEGER;
+      const bRank = Number.isFinite(b.bestseller_rank) ? b.bestseller_rank : Number.MAX_SAFE_INTEGER;
+      if (aRank !== bRank) return aRank - bRank;
+
+      return (a.price_jpy ?? Number.MAX_SAFE_INTEGER) - (b.price_jpy ?? Number.MAX_SAFE_INTEGER);
+    });
   } else if (sort === 'usageAsc') {
     filtered.sort((a, b) => (a.usage_days ?? Number.MAX_SAFE_INTEGER) - (b.usage_days ?? Number.MAX_SAFE_INTEGER));
   } else {

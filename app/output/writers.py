@@ -19,6 +19,9 @@ def write_csv(path: Path, items: list[ProductDetail]) -> None:
     fieldnames = [
         "title",
         "price_jpy",
+        "monthly_sold_count",
+        "is_bestseller",
+        "bestseller_rank",
         "validity",
         "usage_validity",
         "activation_validity",

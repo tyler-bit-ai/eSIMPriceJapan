@@ -19,6 +19,9 @@ class FakeAdapter(MarketplaceAdapter):
         return ProductDetail(
             title="sample esim",
             price_jpy=1200,
+            monthly_sold_count=300,
+            is_bestseller=True,
+            bestseller_rank=28,
             validity="7일",
             network_type="roaming",
             carrier_support_kr=CarrierSupportKR(skt=True, kt=None, lgu=None),

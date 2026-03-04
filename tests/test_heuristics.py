@@ -1,6 +1,9 @@
 from app.extractors.heuristics import (
+    extract_bestseller_badge,
+    extract_bestseller_rank,
     extract_carrier_support_kr,
     extract_data_amount,
+    extract_monthly_sold_count,
     extract_network_type,
     extract_price_jpy,
     extract_price_jpy_with_evidence,
@@ -80,6 +83,26 @@ def test_extract_network_type_local():
     assert net == NetworkType.local
 
 
+def test_extract_network_type_avoid_roaming_center_false_positive():
+    net, _ = extract_network_type(["現地空港サポート(SKTelecomローミングセンター)"])
+    assert net == NetworkType.unknown
+
+
+def test_extract_network_type_negated_roaming():
+    net, _ = extract_network_type(["このプランはローミング不要です"])
+    assert net == NetworkType.unknown
+
+
+def test_extract_network_type_conflicting_signals():
+    net, _ = extract_network_type(["現地回線対応、ただし国際ローミング設定が必要"])
+    assert net == NetworkType.unknown
+
+
+def test_extract_network_type_korean_carrier_line_is_unknown():
+    net, _ = extract_network_type(["韓国大手通信キャリア SKTelecom 公式認証正規品SIM"])
+    assert net == NetworkType.unknown
+
+
 def test_extract_carrier_support_kr():
     carriers, evidence = extract_carrier_support_kr(["韓国 SKT KT LG U+ 対応キャリア"])
     assert carriers.skt is True
@@ -96,3 +119,18 @@ def test_extract_data_amount():
 def test_extract_data_amount_unlimited_jp_to_en():
     res = extract_data_amount(["高速データ通信 無制限"])
     assert res.value == "unlimited"
+
+
+def test_extract_monthly_sold_count():
+    res = extract_monthly_sold_count(["過去1か月で4,000点以上購入されました"])
+    assert res.value == 4000
+
+
+def test_extract_bestseller_badge():
+    res = extract_bestseller_badge(["ベストセラー"])
+    assert res.value is True
+
+
+def test_extract_bestseller_rank():
+    res = extract_bestseller_rank(["Amazon 売れ筋ランキング: 家電＆カメラ 28位"])
+    assert res.value == 28

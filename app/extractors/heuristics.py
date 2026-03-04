@@ -17,7 +17,7 @@ VALIDITY_PATTERNS = [
 
 @dataclass
 class ExtractedValue:
-    value: str | int | None
+    value: str | int | bool | None
     evidence: list[str]
 
 
@@ -227,16 +227,83 @@ def _normalize_labeled_validity(value: str) -> str | None:
 
 
 def extract_network_type(texts: list[str]) -> tuple[NetworkType, list[str]]:
-    local_words = ("現地回線", "現地通信", "ローカル回線", "local")
-    roaming_words = ("ローミング", "国際ローミング", "roaming")
+    local_score = 0
+    roaming_score = 0
+    local_hits: list[str] = []
+    roaming_hits: list[str] = []
+
+    local_strong_patterns = [
+        re.compile(r"現地回線"),
+        re.compile(r"現地通信"),
+        re.compile(r"現地キャリア"),
+        re.compile(r"ローカル回線"),
+        re.compile(r"local\s+(?:network|carrier)", re.IGNORECASE),
+    ]
+    roaming_strong_patterns = [
+        re.compile(r"国際ローミング"),
+        re.compile(r"データローミング"),
+        re.compile(r"ローミング設定"),
+        re.compile(r"data\s+roaming", re.IGNORECASE),
+    ]
+    roaming_noise_patterns = [
+        re.compile(r"ローミングセンター"),
+        re.compile(r"roaming\s+center", re.IGNORECASE),
+    ]
+    roaming_negative_patterns = [
+        re.compile(r"ローミング不要"),
+        re.compile(r"非ローミング"),
+        re.compile(r"no\s+roaming", re.IGNORECASE),
+    ]
+    noise_penalty_applied = False
+    negative_penalty_applied = False
+
     for raw in texts:
         text = normalize_text(raw)
         lower = text.lower()
-        if any(word.lower() in lower for word in local_words):
-            return NetworkType.local, [text[:180]]
-        if any(word.lower() in lower for word in roaming_words):
-            return NetworkType.roaming, [text[:180]]
-    return NetworkType.unknown, []
+
+        has_local_strong = any(p.search(text) for p in local_strong_patterns)
+        has_roaming_strong = any(p.search(text) for p in roaming_strong_patterns)
+        has_roaming_noise = any(p.search(text) for p in roaming_noise_patterns)
+        has_roaming_negative = any(p.search(text) for p in roaming_negative_patterns)
+
+        if has_local_strong:
+            local_score += 3
+            local_hits.append(text[:180])
+        elif "ローカル" in text or re.search(r"\blocal\b", lower):
+            local_score += 1
+            local_hits.append(text[:180])
+
+        if has_roaming_negative and not negative_penalty_applied:
+            roaming_score -= 2
+            negative_penalty_applied = True
+
+        if has_roaming_strong and not has_roaming_negative:
+            roaming_score += 3
+            roaming_hits.append(text[:180])
+        elif ("ローミング" in text or re.search(r"\broaming\b", lower)) and not has_roaming_noise and not has_roaming_negative:
+            roaming_score += 1
+            roaming_hits.append(text[:180])
+        elif has_roaming_noise and ("ローミング" in text or re.search(r"\broaming\b", lower)) and not noise_penalty_applied:
+            roaming_score += 0
+            noise_penalty_applied = True
+
+    local_threshold = 2
+    roaming_threshold = 2
+    if local_score >= local_threshold and roaming_score <= 1:
+        evidence = local_hits[:2] + [f"score: local={local_score}, roaming={roaming_score}"]
+        return NetworkType.local, evidence
+    if roaming_score >= roaming_threshold and local_score <= 1:
+        evidence = roaming_hits[:2] + [f"score: local={local_score}, roaming={roaming_score}"]
+        return NetworkType.roaming, evidence
+
+    evidence = []
+    if local_hits:
+        evidence.append(f"local_signal: {local_hits[0]}")
+    if roaming_hits:
+        evidence.append(f"roaming_signal: {roaming_hits[0]}")
+    if local_score != 0 or roaming_score != 0:
+        evidence.append(f"insufficient_or_conflicting_signals(local={local_score}, roaming={roaming_score})")
+    return NetworkType.unknown, evidence
 
 
 def extract_carrier_support_kr(texts: list[str]) -> tuple[CarrierSupportKR, list[str]]:
@@ -270,3 +337,47 @@ def extract_asin(url: str) -> str | None:
     if match:
         return match.group(1)
     return None
+
+
+def extract_monthly_sold_count(texts: list[str]) -> ExtractedValue:
+    patterns = [
+        re.compile(r"過去1か月で\s*([0-9][0-9,]*)\s*点以上購入されました"),
+        re.compile(r"([0-9][0-9,]*)\s*点以上購入されました"),
+        re.compile(r"([0-9][0-9,]*)\+?\s*bought in past month", re.IGNORECASE),
+    ]
+    for raw in texts:
+        text = normalize_text(raw)
+        for pat in patterns:
+            m = pat.search(text)
+            if not m:
+                continue
+            return ExtractedValue(int(m.group(1).replace(",", "")), [text[:180]])
+    return ExtractedValue(None, [])
+
+
+def extract_bestseller_badge(texts: list[str]) -> ExtractedValue:
+    for raw in texts:
+        text = normalize_text(raw)
+        lower = text.lower()
+        if "ベストセラー" in text or "best seller" in lower:
+            return ExtractedValue(True, [text[:180]])
+    return ExtractedValue(None, [])
+
+
+def extract_bestseller_rank(texts: list[str]) -> ExtractedValue:
+    best_rank: int | None = None
+    best_evidence: str | None = None
+    for raw in texts:
+        text = normalize_text(raw)
+        if "売れ筋ランキング" not in text and "best sellers rank" not in text.lower():
+            continue
+
+        for m in re.finditer(r"([0-9][0-9,]*)\s*位", text):
+            rank = int(m.group(1).replace(",", ""))
+            if best_rank is None or rank < best_rank:
+                best_rank = rank
+                best_evidence = text[:180]
+
+    if best_rank is not None:
+        return ExtractedValue(best_rank, [best_evidence] if best_evidence else [])
+    return ExtractedValue(None, [])

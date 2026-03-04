@@ -23,11 +23,16 @@ class ProductStub(BaseModel):
     asin: Optional[str] = None
     search_price_jpy: Optional[int] = None
     search_price_text: Optional[str] = None
+    search_monthly_sold_count: Optional[int] = None
+    search_is_bestseller: Optional[bool] = None
 
 
 class ProductDetail(BaseModel):
     title: Optional[str] = None
     price_jpy: Optional[int] = None
+    monthly_sold_count: Optional[int] = None
+    is_bestseller: Optional[bool] = None
+    bestseller_rank: Optional[int] = None
     validity: Optional[str] = None
     usage_validity: Optional[str] = None
     activation_validity: Optional[str] = None

@@ -11,8 +11,11 @@ from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from app.adapters.base import MarketplaceAdapter
 from app.extractors.heuristics import (
     extract_asin,
+    extract_bestseller_badge,
+    extract_bestseller_rank,
     extract_carrier_support_kr,
     extract_data_amount,
+    extract_monthly_sold_count,
     extract_network_type,
     extract_price_jpy_with_evidence,
     extract_validity_split,
@@ -108,6 +111,9 @@ class AmazonJPAdapter(MarketplaceAdapter):
                         amount, currency = parse_price_text(price_text)
                         if amount is not None and (currency == "JPY" or currency is None):
                             search_price_jpy = amount
+                    card_text = card.get_text(" ", strip=True)
+                    monthly_sold = extract_monthly_sold_count([card_text])
+                    bestseller_badge = extract_bestseller_badge([card_text])
 
                     seen.add(full)
                     if asin:
@@ -118,6 +124,8 @@ class AmazonJPAdapter(MarketplaceAdapter):
                             asin=asin,
                             search_price_jpy=search_price_jpy,
                             search_price_text=price_text,
+                            search_monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
+                            search_is_bestseller=bestseller_badge.value if isinstance(bestseller_badge.value, bool) else None,
                         )
                     )
                     if len(unique) >= limit:
@@ -215,7 +223,8 @@ class AmazonJPAdapter(MarketplaceAdapter):
             if data_amount.evidence:
                 evidence["data_amount"] = data_amount.evidence
 
-            network_type, network_ev = extract_network_type(text_blocks)
+            network_texts = [title] + text_blocks if title else text_blocks
+            network_type, network_ev = extract_network_type(network_texts)
             if network_ev:
                 evidence["network_type"] = network_ev
             else:
@@ -224,6 +233,24 @@ class AmazonJPAdapter(MarketplaceAdapter):
             carrier_support, carrier_ev = extract_carrier_support_kr(text_blocks)
             if carrier_ev:
                 evidence["carrier_support_kr"] = carrier_ev
+
+            monthly_sold = extract_monthly_sold_count(text_blocks)
+            if monthly_sold.evidence:
+                evidence["monthly_sold_count"] = monthly_sold.evidence
+            elif isinstance(stub.search_monthly_sold_count, int):
+                monthly_sold.value = stub.search_monthly_sold_count
+                evidence["monthly_sold_count"] = [f"search_result_fallback: {stub.search_monthly_sold_count}"]
+
+            bestseller_badge = extract_bestseller_badge(text_blocks)
+            if bestseller_badge.evidence:
+                evidence["is_bestseller"] = bestseller_badge.evidence
+            elif isinstance(stub.search_is_bestseller, bool):
+                bestseller_badge.value = stub.search_is_bestseller
+                evidence["is_bestseller"] = [f"search_result_fallback: {stub.search_is_bestseller}"]
+
+            bestseller_rank = extract_bestseller_rank(text_blocks)
+            if bestseller_rank.evidence:
+                evidence["bestseller_rank"] = bestseller_rank.evidence
 
             seller = self._extract_text_selectors(
                 soup,
@@ -244,6 +271,9 @@ class AmazonJPAdapter(MarketplaceAdapter):
             return ProductDetail(
                 title=title,
                 price_jpy=price.value if isinstance(price.value, int) else None,
+                monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
+                is_bestseller=bestseller_badge.value if isinstance(bestseller_badge.value, bool) else None,
+                bestseller_rank=bestseller_rank.value if isinstance(bestseller_rank.value, int) else None,
                 usage_validity=validity_split.usage_validity,
                 activation_validity=validity_split.activation_validity,
                 validity=validity_split.usage_validity or validity_split.activation_validity,
