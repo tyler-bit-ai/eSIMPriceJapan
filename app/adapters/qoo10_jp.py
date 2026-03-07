@@ -93,33 +93,77 @@ class Qoo10JPAdapter(MarketplaceAdapter):
             await page.goto(url, wait_until="domcontentloaded")
             await page.wait_for_timeout(2500)
 
-            html = await page.content()
-            soup = BeautifulSoup(html, "lxml")
-
             unique: list[ProductStub] = []
             seen_ids: set[str] = set()
             seen_urls: set[str] = set()
+            append_round = 0
 
-            for card in self._iter_search_cards(soup):
-                stub = self._parse_search_card(card, search_position=len(unique) + 1)
-                if not stub:
-                    continue
-                if stub.site_product_id and stub.site_product_id in seen_ids:
-                    continue
-                if str(stub.product_url) in seen_urls:
-                    continue
+            while len(unique) < limit:
+                html = await page.content()
+                soup = BeautifulSoup(html, "lxml")
 
-                if stub.site_product_id:
-                    seen_ids.add(stub.site_product_id)
-                seen_urls.add(str(stub.product_url))
-                unique.append(stub)
+                added_this_round = 0
+                for card in self._iter_search_cards(soup):
+                    stub = self._parse_search_card(card, search_position=len(unique) + 1)
+                    if not stub:
+                        continue
+                    if stub.site_product_id and stub.site_product_id in seen_ids:
+                        continue
+                    if str(stub.product_url) in seen_urls:
+                        continue
+
+                    if stub.site_product_id:
+                        seen_ids.add(stub.site_product_id)
+                    seen_urls.add(str(stub.product_url))
+                    unique.append(stub)
+                    added_this_round += 1
+                    if len(unique) >= limit:
+                        break
+
                 if len(unique) >= limit:
                     break
+
+                if added_this_round == 0 and append_round > 0:
+                    logger.info("qoo10 search stopped: no new items after append round %s", append_round)
+                    break
+
+                clicked_more = await self._click_more_results(page, append_round + 1)
+                if not clicked_more:
+                    break
+                append_round += 1
 
             logger.info("found %s qoo10 candidate products", len(unique))
             return unique
         finally:
             await page.close()
+
+    async def _click_more_results(self, page: Page, round_number: int) -> bool:
+        button = page.locator("#btn_more_item")
+        if await button.count() == 0:
+            return False
+        if not await button.is_visible():
+            return False
+        if not await button.is_enabled():
+            return False
+
+        before_rows = await page.locator("tr[goodscode]").count()
+        await button.click()
+        await page.wait_for_timeout(1800)
+
+        for _ in range(8):
+            current_rows = await page.locator("tr[goodscode]").count()
+            if current_rows > before_rows:
+                logger.info(
+                    "qoo10 search append round %s: rows %s -> %s",
+                    round_number,
+                    before_rows,
+                    current_rows,
+                )
+                return True
+            await page.wait_for_timeout(700)
+
+        logger.info("qoo10 search append round %s: no additional rows detected", round_number)
+        return False
 
     async def fetch_detail(self, stub: ProductStub) -> ProductDetail:
         page = await self._new_page()
