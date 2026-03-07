@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Amazon JP eSIM Dashboard</title>
+  <title>Japan eSIM Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -14,8 +14,15 @@
   <main class="layout">
     <header class="hero">
       <div>
-        <p class="kicker">AMAZON JP eSIM INSIGHT</p>
+        <p class="kicker">JAPAN MARKETPLACE eSIM INSIGHT</p>
         <h1>수집 결과 대시보드</h1>
+        <div class="datasetRow">
+          <label for="siteSelect">사이트</label>
+          <select id="siteSelect">
+            <option value="amazon_jp">Amazon JP</option>
+            <option value="qoo10_jp">Qoo10 JP</option>
+          </select>
+        </div>
         <div class="datasetRow">
           <label for="datasetSelect">데이터셋</label>
           <select id="datasetSelect">
@@ -45,12 +52,7 @@
         </select>
         <input id="minPrice" type="number" min="0" step="1" placeholder="최소 가격 (JPY)" />
         <input id="maxPrice" type="number" min="0" step="1" placeholder="최대 가격 (JPY)" />
-        <select id="sortKey">
-          <option value="priceAsc">가격 낮은순</option>
-          <option value="priceDesc">가격 높은순</option>
-          <option value="salesDesc">판매량 높은순</option>
-          <option value="usageAsc">사용기간 짧은순</option>
-        </select>
+        <select id="sortKey"></select>
       </div>
     </section>
 
@@ -63,6 +65,10 @@
         <h2>네트워크 비중</h2>
         <div id="networkBars" class="bars"></div>
       </article>
+      <article class="card" id="sellerBadgeCard">
+        <h2>셀러 배지 분포</h2>
+        <div id="sellerBadgeBars" class="bars"></div>
+      </article>
     </section>
 
     <section class="card">
@@ -72,22 +78,7 @@
       </div>
       <div class="tableWrap">
         <table>
-          <thead>
-            <tr>
-              <th>상품명</th>
-              <th>가격 (JPY)</th>
-              <th>판매량(최근 1개월)</th>
-              <th>베스트셀러</th>
-              <th>판매순위</th>
-              <th>네트워크</th>
-              <th>데이터</th>
-              <th>사용기간</th>
-              <th>활성화기간</th>
-              <th>통신사 지원</th>
-              <th>셀러</th>
-              <th>브랜드</th>
-            </tr>
-          </thead>
+          <thead id="tableHead"></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>

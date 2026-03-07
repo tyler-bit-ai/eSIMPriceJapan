@@ -1,12 +1,76 @@
 ﻿{
     "latest":  {
-                   "csv":  "latest.csv",
-                   "jsonl":  "latest.jsonl",
-                   "metadata":  "metadata.json"
+                   "qoo10_jp":  {
+                                    "site":  "qoo10_jp",
+                                    "csv":  "sites/qoo10_jp/latest.csv",
+                                    "jsonl":  "sites/qoo10_jp/latest.jsonl",
+                                    "metadata":  "sites/qoo10_jp/metadata.json",
+                                    "source":  ".\\out_smoke_qoo10\\results.jsonl",
+                                    "crawled_at":  "2026-03-07T03:32:26.1567062Z",
+                                    "published_at":  "2026-03-07T03:32:37.3067144Z",
+                                    "item_count":  5,
+                                    "query":  "eSIM 韓国",
+                                    "limit":  5
+                                },
+                   "amazon_jp":  {
+                                     "site":  "amazon_jp",
+                                     "csv":  "latest.csv",
+                                     "jsonl":  "latest.jsonl",
+                                     "metadata":  "metadata.json",
+                                     "source":  "",
+                                     "crawled_at":  "",
+                                     "published_at":  "",
+                                     "item_count":  null,
+                                     "query":  "",
+                                     "limit":  0
+                                 }
                },
     "runs":  [
                  {
+                     "id":  "20260307T033226Z_qoo10_jp_out_smoke_qoo10",
+                     "site":  "qoo10_jp",
+                     "label":  "2026-03-07 12:32 | qoo10_jp | out_smoke_qoo10 | 5 items",
+                     "source":  ".\\out_smoke_qoo10\\results.jsonl",
+                     "crawled_at":  "2026-03-07T03:32:26.1567062Z",
+                     "published_at":  "2026-03-07T03:32:37.3067144Z",
+                     "item_count":  5,
+                     "csv":  "runs/20260307T033226Z_qoo10_jp_out_smoke_qoo10.csv",
+                     "jsonl":  "runs/20260307T033226Z_qoo10_jp_out_smoke_qoo10.jsonl",
+                     "metadata":  "sites/qoo10_jp/metadata.json",
+                     "query":  "eSIM 韓国",
+                     "limit":  5
+                 },
+                 {
+                     "id":  "20260307T024505Z_qoo10_jp_out_smoke_qoo10",
+                     "site":  "qoo10_jp",
+                     "label":  "2026-03-07 11:45 | qoo10_jp | out_smoke_qoo10 | 5 items",
+                     "source":  ".\\out_smoke_qoo10\\results.jsonl",
+                     "crawled_at":  "2026-03-07T02:45:05.1966184Z",
+                     "published_at":  "2026-03-07T02:46:44.0112153Z",
+                     "item_count":  5,
+                     "csv":  "runs/20260307T024505Z_qoo10_jp_out_smoke_qoo10.csv",
+                     "jsonl":  "runs/20260307T024505Z_qoo10_jp_out_smoke_qoo10.jsonl",
+                     "metadata":  "sites/qoo10_jp/metadata.json",
+                     "query":  "eSIM 韓国",
+                     "limit":  5
+                 },
+                 {
+                     "id":  "20260307T024303Z_qoo10_jp_out_smoke_qoo10",
+                     "site":  "qoo10_jp",
+                     "label":  "2026-03-07 11:43 | qoo10_jp | out_smoke_qoo10 | 5 items",
+                     "source":  ".\\out_smoke_qoo10\\results.jsonl",
+                     "crawled_at":  "2026-03-07T02:43:03.8279667Z",
+                     "published_at":  "2026-03-07T02:43:18.5469061Z",
+                     "item_count":  5,
+                     "csv":  "runs/20260307T024303Z_qoo10_jp_out_smoke_qoo10.csv",
+                     "jsonl":  "runs/20260307T024303Z_qoo10_jp_out_smoke_qoo10.jsonl",
+                     "metadata":  "sites/qoo10_jp/metadata.json",
+                     "query":  "eSIM 韓国",
+                     "limit":  5
+                 },
+                 {
                      "id":  "20260304T131919Z_out_200_v5",
+                     "site":  "amazon_jp",
                      "label":  "2026-03-04 22:19 | out_200_v5 | 200 items",
                      "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\out_200_v5\\results.jsonl",
                      "crawled_at":  "2026-03-04T13:19:19.1635898Z",
@@ -14,10 +78,13 @@
                      "item_count":  200,
                      "csv":  "runs/20260304T131919Z_out_200_v5.csv",
                      "jsonl":  "runs/20260304T131919Z_out_200_v5.jsonl",
-                     "metadata":  "metadata.json"
+                     "metadata":  "metadata.json",
+                     "query":  "",
+                     "limit":  0
                  },
                  {
                      "id":  "20260304T140521Z_out_quick_test",
+                     "site":  "amazon_jp",
                      "label":  "2026-03-04 23:05 | out_quick_test | 1 items",
                      "source":  "C:\\Codex\\eSIMPriceJapan_repo\\out_quick_test\\results.jsonl",
                      "crawled_at":  "2026-03-04T14:05:21.9216814Z",
@@ -25,7 +92,9 @@
                      "item_count":  1,
                      "csv":  "runs/20260304T140521Z_out_quick_test.csv",
                      "jsonl":  "runs/20260304T140521Z_out_quick_test.jsonl",
-                     "metadata":  "metadata.json"
+                     "metadata":  "metadata.json",
+                     "query":  "",
+                     "limit":  0
                  }
              ]
 }

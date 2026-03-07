@@ -120,8 +120,10 @@ class AmazonJPAdapter(MarketplaceAdapter):
                         seen_asins.add(asin)
                     unique.append(
                         ProductStub(
+                            site=self.name,
                             product_url=full,
                             asin=asin,
+                            site_product_id=asin,
                             search_price_jpy=search_price_jpy,
                             search_price_text=price_text,
                             search_monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
@@ -153,7 +155,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
                         seen.add(full)
                         if asin:
                             seen_asins.add(asin)
-                        unique.append(ProductStub(product_url=full, asin=asin))
+                        unique.append(ProductStub(site=self.name, product_url=full, asin=asin, site_product_id=asin))
                         if len(unique) >= limit:
                             break
                     if len(unique) >= limit:
@@ -269,6 +271,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 asin = self._extract_asin_from_dom(soup)
 
             return ProductDetail(
+                site=self.name,
                 title=title,
                 price_jpy=price.value if isinstance(price.value, int) else None,
                 monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
@@ -282,6 +285,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 data_amount=data_amount.value if isinstance(data_amount.value, str) else None,
                 product_url=stub.product_url,
                 asin=asin,
+                site_product_id=asin,
                 seller=seller,
                 brand=brand,
                 evidence=evidence,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import typer
 
-from app.adapters.amazon_jp import AmazonJPAdapter
+from app.adapters.factory import create_adapter, get_supported_sites
 from app.output.writers import write_csv, write_failed_jsonl, write_jsonl
 from app.pipeline.crawler import CrawlPipeline
 from app.utils.logging import configure_logging
@@ -35,14 +35,17 @@ def crawl(
     """Crawl marketplace and export JSONL/CSV results."""
     configure_logging(verbose=verbose)
 
-    if site != "amazon_jp":
-        raise typer.BadParameter("Only --site amazon_jp is implemented for now")
+    supported_sites = get_supported_sites()
+    if site not in supported_sites:
+        supported = ", ".join(supported_sites)
+        raise typer.BadParameter(f"Unsupported --site {site}. Supported: {supported}")
 
     if min_delay > max_delay:
         raise typer.BadParameter("--min-delay must be <= --max-delay")
 
     asyncio.run(
         _run_crawl(
+            site=site,
             query=query,
             limit=limit,
             out=out,
@@ -55,6 +58,7 @@ def crawl(
 
 
 async def _run_crawl(
+    site: str,
     query: str,
     limit: int,
     out: Path,
@@ -66,7 +70,7 @@ async def _run_crawl(
     out.mkdir(parents=True, exist_ok=True)
     screenshot_dir = out / "screenshots"
 
-    adapter = await AmazonJPAdapter.create(screenshot_dir=screenshot_dir)
+    adapter = await create_adapter(site=site, screenshot_dir=screenshot_dir)
     try:
         pipeline = CrawlPipeline(
             adapter=adapter,

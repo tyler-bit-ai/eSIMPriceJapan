@@ -1,10 +1,10 @@
 # eSIMPriceCollector_Japan
 
-Amazon Japan에서 `eSIM 韓国` 검색 결과를 수집하는 프로덕션 지향 크롤러입니다.  
+Amazon Japan와 Qoo10 Japan에서 `eSIM 韓国` 검색 결과를 수집하는 프로덕션 지향 크롤러입니다.  
 어댑터 기반 구조로 라쿠텐 등 다른 마켓플레이스를 확장할 수 있습니다.
 
 ## Features
-- Playwright 기반 Amazon JP 검색/상세 수집
+- Playwright 기반 Amazon JP / Qoo10 JP 검색·상세 수집
 - 상위 N개 상품 수집 (`--limit`, 기본 50)
 - 필드 근거(`evidence`) 저장
 - 실패 URL/에러/스크린샷 기록 (`failed.jsonl`)
@@ -18,25 +18,29 @@ python -m venv .venv
 pip install -r requirements.txt
 pip install -r requirements-dev.txt
 playwright install chromium
+npm install
 ```
 
 ## Run
 ```powershell
 python -m app crawl --site amazon_jp --query "eSIM 韓国" --limit 50 --out .\out
+python -m app crawl --site qoo10_jp --query "eSIM 韓国" --limit 50 --out .\out_qoo10
 ```
 
 ### One-click (crawl + publish + git push)
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Query "eSIM 韓国" -Limit 200 -OutDir .\out_auto
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Query "eSIM 韓国" -Limit 50 -OutDir .\out_qoo10_auto
 ```
 
 ### Smoke (E2E-lite)
 ```powershell
 python -m app crawl --site amazon_jp --query "eSIM 韓国" --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\out_smoke
+python -m app crawl --site qoo10_jp --query "eSIM 韓国" --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\out_smoke_qoo10
 ```
 
 ## Dashboard
-최신 결과(`out_*/results.jsonl`)를 자동 탐색해 웹 대시보드로 보여줍니다.
+게시된 사이트별 latest/run 데이터를 읽어 웹 대시보드로 보여줍니다. 서버 모드에서는 레거시 Amazon latest도 fallback으로 읽습니다.
 
 ```powershell
 npm run dashboard
@@ -45,6 +49,7 @@ npm run dashboard
 브라우저에서 `http://localhost:4173` 접속.
 
 대시보드 필터:
+- 사이트 선택(Amazon JP / Qoo10 JP)
 - 검색어(상품명/셀러/브랜드)
 - 네트워크(local/roaming)
 - 데이터 용량(`unlimited`, `NGB`)
@@ -57,6 +62,7 @@ npm run dashboard
 
 ## Output Schema
 주요 필드:
+- `site`, `site_product_id`
 - `title`, `price_jpy`, `monthly_sold_count`, `is_bestseller`, `bestseller_rank`
 - `validity`(하위호환), `usage_validity`, `activation_validity`, `network_type`
 - `carrier_support_kr` (`skt`, `kt`, `lgu`: true/false/null)
@@ -64,8 +70,8 @@ npm run dashboard
 
 예시 JSONL:
 ```json
-{"title":"韓国 eSIM 7日 3GB","price_jpy":1980,"usage_validity":"7일","activation_validity":"30일","network_type":"roaming","carrier_support_kr":{"skt":true,"kt":null,"lgu":null},"data_amount":"3GB","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF12","asin":"B0ABCDEF12","seller":"Example Store","brand":"Example"}
-{"title":"韓国 eSIM 30日 unlimited","price_jpy":3980,"usage_validity":"30일","activation_validity":"120일","network_type":"local","carrier_support_kr":{"skt":null,"kt":true,"lgu":true},"data_amount":"unlimited","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF34","asin":"B0ABCDEF34","seller":"Another Store","brand":"Another"}
+{"site":"amazon_jp","title":"韓国 eSIM 7日 3GB","price_jpy":1980,"usage_validity":"7일","activation_validity":"30일","network_type":"roaming","carrier_support_kr":{"skt":true,"kt":null,"lgu":null},"data_amount":"3GB","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF12","asin":"B0ABCDEF12","site_product_id":"B0ABCDEF12","seller":"Example Store","brand":"Example"}
+{"site":"qoo10_jp","title":"韓国 eSIM 3日 unlimited","price_jpy":1080,"usage_validity":"3일","activation_validity":"90일","network_type":"unknown","carrier_support_kr":{"skt":true,"kt":true,"lgu":null},"data_amount":"unlimited","product_url":"https://www.qoo10.jp/item/ESIM/1133241666","asin":null,"site_product_id":"1133241666","seller":"Example Seller","brand":null}
 ```
 
 ## Tests
@@ -78,7 +84,7 @@ python -m pytest -q
 2. `search()`에서 URL/상품 식별자 스텁 반환.
 3. `fetch_detail()`에서 공통 모델(`ProductDetail`)로 매핑.
 4. 사이트별 셀렉터는 다중 후보 + 텍스트 패턴 fallback 유지.
-5. `app/cli.py`에서 `--site` 분기 추가.
+5. `app/adapters/factory.py`에 사이트 등록.
 
 ## Notes
 - 캡차 우회/계정 도용/공격적 차단 회피는 구현하지 않습니다.

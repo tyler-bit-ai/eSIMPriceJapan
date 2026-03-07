@@ -25,6 +25,12 @@ def test_parse_price_text_krw():
     assert currency == "KRW"
 
 
+def test_parse_price_text_yen_suffix():
+    amount, currency = parse_price_text("商品価格 1,080円")
+    assert amount == 1080
+    assert currency == "JPY"
+
+
 def test_extract_price_jpy_with_non_jpy_evidence():
     value, non_jpy = extract_price_jpy_with_evidence(["KRW14,210"], assume_jpy_on_unknown_currency=True)
     assert value.value is None
@@ -47,6 +53,12 @@ def test_extract_validity_split_usage_and_activation():
     )
     assert res.usage_validity == "3일"
     assert res.activation_validity == "30일"
+
+
+def test_extract_validity_split_hours_to_days():
+    res = extract_validity_split(["韓国eSIM 72時間 無制限 / 有効期限 90日"])
+    assert res.usage_validity == "3일"
+    assert res.activation_validity == "90일"
 
 
 def test_extract_validity_split_swap_if_inverted():
@@ -109,6 +121,13 @@ def test_extract_carrier_support_kr():
     assert carriers.kt is True
     assert carriers.lgu is True
     assert evidence
+
+
+def test_extract_carrier_support_kr_sk_telecom_variants():
+    carriers, _ = extract_carrier_support_kr(["Korea SK Telecom KT Japan Uplus 対応"])
+    assert carriers.skt is True
+    assert carriers.kt is True
+    assert carriers.lgu is True
 
 
 def test_extract_data_amount():

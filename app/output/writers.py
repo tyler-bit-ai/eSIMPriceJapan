@@ -17,8 +17,12 @@ def write_jsonl(path: Path, items: list[ProductDetail]) -> None:
 def write_csv(path: Path, items: list[ProductDetail]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
+        "site",
         "title",
         "price_jpy",
+        "review_count",
+        "seller_badge",
+        "search_position",
         "monthly_sold_count",
         "is_bestseller",
         "bestseller_rank",
@@ -30,6 +34,7 @@ def write_csv(path: Path, items: list[ProductDetail]) -> None:
         "data_amount",
         "product_url",
         "asin",
+        "site_product_id",
         "seller",
         "brand",
         "evidence",
