@@ -10,6 +10,10 @@
 
 * { box-sizing: border-box; }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   color: var(--ink);
@@ -51,6 +55,12 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 22px;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .kicker {
@@ -276,6 +286,107 @@ th {
   cursor: default;
 }
 
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(16, 24, 24, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+.modalCard {
+  width: min(860px, 100%);
+  max-height: min(84vh, 900px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+}
+
+.modalHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 22px 14px;
+  border-bottom: 1px solid rgba(24, 33, 33, 0.08);
+}
+
+.modalHead h2 {
+  margin: 6px 0 0;
+}
+
+.modalKicker {
+  margin: 0;
+  font: 700 11px/1 "Space Grotesk", sans-serif;
+  letter-spacing: .14em;
+  color: var(--accent);
+}
+
+.modalBody {
+  display: grid;
+  gap: 16px;
+  padding: 18px 22px 24px;
+  overflow: auto;
+  max-height: calc(84vh - 96px);
+}
+
+.helpSection {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(24, 33, 33, 0.08);
+  border-radius: 16px;
+  background: rgba(241, 244, 239, 0.74);
+}
+
+.helpSection h3 {
+  margin: 0;
+  font: 700 16px/1.15 "Space Grotesk", sans-serif;
+}
+
+.helpSection p,
+.helpSection li {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.helpList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.termGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.termCard {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(24, 33, 33, 0.08);
+}
+
+.termCard strong {
+  font: 700 14px/1.2 "Space Grotesk", sans-serif;
+}
+
+.termCard p {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 @media (max-width: 1060px) {
   .toolbar {
     grid-template-columns: 1fr 1fr 1fr;
@@ -285,6 +396,21 @@ th {
 @media (max-width: 680px) {
   .hero {
     flex-direction: column;
+  }
+
+  .heroActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .modalOverlay {
+    padding: 12px;
+  }
+
+  .modalHead,
+  .modalBody {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .toolbar {

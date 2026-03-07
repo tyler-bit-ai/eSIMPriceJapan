@@ -50,6 +50,56 @@ const SITE_CONFIG = {
     searchPlaceholder: '상품명/셀러/셀러 배지 검색',
   },
 };
+const HELP_CONTENT = {
+  common: {
+    summary: '이 대시보드는 일본 마켓플레이스에서 한국 eSIM 검색 결과를 수집하고, 핵심 정보를 정규화해 비교할 수 있도록 만든 분석 화면입니다.',
+    usage: [
+      '상단에서 사이트와 데이터셋을 선택하면 해당 수집 결과가 로드됩니다.',
+      '필터 영역에서 네트워크, 데이터 용량, 사용기간, 통신사 지원, 가격 범위를 조합해 원하는 상품만 볼 수 있습니다.',
+      '정렬 기준은 사이트마다 다르며, Qoo10은 리뷰 수와 검색 위치, Amazon은 판매량과 베스트셀러 지표를 더 많이 사용합니다.',
+      '상세 항목 표의 상품명을 누르면 원본 상품 페이지로 이동하고, 현재 화면 기준으로 엑셀 다운로드도 가능합니다.',
+    ],
+    notes: [
+      '`unknown`은 정보가 없거나, 신호가 서로 충돌하거나, 추론 근거가 충분하지 않다는 뜻입니다.',
+      '`usage_validity`는 실제 사용 가능 기간, `activation_validity`는 구매 후 개통해야 하는 기한을 뜻합니다.',
+      '`network_type`과 `carrier_support_kr`는 제목·옵션·상세 설명의 텍스트를 기반으로 추론될 수 있습니다.',
+    ],
+    terms: [
+      ['price_jpy', '상품의 현재 판매가 기준 JPY 값입니다. 옵션형 상품은 대표 플랜 또는 강한 fallback 신호를 기준으로 계산됩니다.'],
+      ['data_amount', '무제한, 총량형(`3GB`), 일 단위형(`1GB/day`)처럼 데이터 정책을 정규화한 값입니다.'],
+      ['network_type', '`local`, `roaming`, `unknown` 중 하나입니다. 현지 회선/현지 번호/로밍 문구 등으로 분류합니다.'],
+      ['carrier_support_kr', 'SKT, KT, LGU+ 관련 언급이 있는지 표시합니다. 언급이 없으면 미표시로 남을 수 있습니다.'],
+    ],
+  },
+  amazon_jp: {
+    intro: 'Amazon JP 화면은 판매량, 베스트셀러 여부, 판매순위처럼 Amazon이 상대적으로 잘 노출하는 지표 중심으로 구성됩니다.',
+    terms: [
+      ['monthly_sold_count', '상품 설명이나 검색 결과에 노출되는 최근 1개월 판매량 신호입니다. 값이 없으면 Amazon 페이지에서 공개되지 않은 것입니다.'],
+      ['is_bestseller', 'Amazon의 베스트셀러 배지 유무입니다. `Yes`면 해당 배지가 확인된 상품입니다.'],
+      ['bestseller_rank', 'Amazon 판매순위입니다. 숫자가 작을수록 해당 카테고리 내 상위에 가깝습니다.'],
+      ['brand', 'Amazon에서 브랜드 필드가 비교적 안정적으로 보일 때 수집됩니다.'],
+    ],
+    faq: [
+      '판매량과 판매순위는 Amazon 공개 UI에 의존하므로 시점에 따라 달라질 수 있습니다.',
+      'Amazon에서는 Qoo10의 `Power seller` 같은 셀러 배지 개념을 사용하지 않습니다.',
+    ],
+  },
+  qoo10_jp: {
+    intro: 'Qoo10 화면은 리뷰 수, 셀러 배지, 검색 노출 순서처럼 Qoo10에서 실제로 안정적으로 보이는 지표 중심으로 구성됩니다.',
+    terms: [
+      ['review_count', '상품 리뷰 수입니다. 검색 결과 카드와 상세 페이지에서 확인된 값을 우선 사용합니다.'],
+      ['seller_badge', 'Qoo10 셀러 등급입니다. `Power seller`, `Good seller`, `General seller`는 셀러 신뢰/활동 수준을 보여주는 배지입니다.'],
+      ['search_position', '현재 검색어 기준 검색 결과에 몇 번째로 노출됐는지를 뜻합니다. 절대 판매순위가 아니라 이번 수집 시점의 노출 순서입니다.'],
+      ['Power seller', 'Qoo10에서 높은 활동성과 신뢰도를 가진 셀러에게 부여되는 상위 배지입니다. 상품 인기 지표와는 다릅니다.'],
+      ['Good seller', '일정 수준 이상의 판매/평가 신호를 가진 셀러 배지입니다. Power seller보다는 낮은 단계입니다.'],
+      ['General seller', '일반 셀러 배지입니다. 판매자임은 확인되지만 상위 등급 배지는 없는 상태로 보면 됩니다.'],
+    ],
+    faq: [
+      'Qoo10에는 Amazon식 월간 판매량, 베스트셀러, 공식 판매순위 필드가 안정적으로 없어서 대시보드 구조가 다릅니다.',
+      'Qoo10의 `network_type`과 `data_amount`는 제목, 옵션, 상세 설명을 함께 보고 추론합니다. 따라서 일부 상품은 `unknown` 또는 보수적 값으로 남을 수 있습니다.',
+    ],
+  },
+};
 
 let state = {
   items: [],
@@ -124,6 +174,11 @@ function normalizeItem(raw) {
 
 const el = {
   metaText: document.getElementById('metaText'),
+  helpBtn: document.getElementById('helpBtn'),
+  helpOverlay: document.getElementById('helpOverlay'),
+  helpCloseBtn: document.getElementById('helpCloseBtn'),
+  helpTitle: document.getElementById('helpTitle'),
+  helpBody: document.getElementById('helpBody'),
   refreshBtn: document.getElementById('refreshBtn'),
   siteSelect: document.getElementById('siteSelect'),
   datasetSelect: document.getElementById('datasetSelect'),
@@ -154,6 +209,53 @@ function activeConfig() {
 
 function siteLabel(site) {
   return site === 'qoo10_jp' ? 'Qoo10 JP' : 'Amazon JP';
+}
+
+function isHelpOpen() {
+  return el.helpOverlay && !el.helpOverlay.hidden;
+}
+
+function renderHelpModal() {
+  const common = HELP_CONTENT.common;
+  const siteHelp = HELP_CONTENT[state.selectedSite] || HELP_CONTENT.amazon_jp;
+  el.helpTitle.textContent = `${siteLabel(state.selectedSite)} 도움말`;
+  el.helpBody.innerHTML = `
+    <section class="helpSection">
+      <h3>프로그램 소개</h3>
+      <p>${safe(common.summary)}</p>
+    </section>
+    <section class="helpSection">
+      <h3>사용법</h3>
+      <ol class="helpList">${common.usage.map((item) => `<li>${safe(item)}</li>`).join('')}</ol>
+    </section>
+    <section class="helpSection">
+      <h3>공통 용어</h3>
+      <div class="termGrid">${common.terms.map(([term, desc]) => `<div class="termCard"><strong>${safe(term)}</strong><p>${safe(desc)}</p></div>`).join('')}</div>
+    </section>
+    <section class="helpSection">
+      <h3>${safe(siteLabel(state.selectedSite))} 화면 설명</h3>
+      <p>${safe(siteHelp.intro)}</p>
+    </section>
+    <section class="helpSection">
+      <h3>${safe(siteLabel(state.selectedSite))} 주요 용어</h3>
+      <div class="termGrid">${siteHelp.terms.map(([term, desc]) => `<div class="termCard"><strong>${safe(term)}</strong><p>${safe(desc)}</p></div>`).join('')}</div>
+    </section>
+    <section class="helpSection">
+      <h3>자주 궁금한 점</h3>
+      <ul class="helpList">${siteHelp.faq.map((item) => `<li>${safe(item)}</li>`).join('')}${common.notes.map((item) => `<li>${safe(item)}</li>`).join('')}</ul>
+    </section>
+  `;
+}
+
+function openHelpModal() {
+  renderHelpModal();
+  el.helpOverlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeHelpModal() {
+  el.helpOverlay.hidden = true;
+  document.body.style.overflow = '';
 }
 
 function formatDatasetLabel(entry) {
@@ -357,6 +459,7 @@ function renderSiteStructure() {
   }
   el.tableHead.innerHTML = `<tr>${config.columns.map(([, label]) => `<th>${safe(label)}</th>`).join('')}</tr>`;
   el.sellerBadgeCard.style.display = config.showSellerBadgeChart ? '' : 'none';
+  if (isHelpOpen()) renderHelpModal();
 }
 
 function renderKpis(summary) {
@@ -617,6 +720,14 @@ el.datasetSelect.addEventListener('change', () => {
 });
 
 el.refreshBtn.addEventListener('click', triggerReload);
+el.helpBtn.addEventListener('click', openHelpModal);
+el.helpCloseBtn.addEventListener('click', closeHelpModal);
+el.helpOverlay.addEventListener('click', (event) => {
+  if (event.target === el.helpOverlay) closeHelpModal();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && isHelpOpen()) closeHelpModal();
+});
 el.prevPage.addEventListener('click', () => { state.currentPage = Math.max(1, state.currentPage - 1); renderTable(); });
 el.nextPage.addEventListener('click', () => { const totalPages = Math.max(1, Math.ceil(state.filtered.length / pageSize)); state.currentPage = Math.min(totalPages, state.currentPage + 1); renderTable(); });
 el.downloadExcelBtn.addEventListener('click', downloadFilteredExcel);

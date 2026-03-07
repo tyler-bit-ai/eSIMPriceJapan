@@ -31,7 +31,10 @@
         </div>
         <p id="metaText" class="meta">데이터를 불러오는 중...</p>
       </div>
-      <button id="refreshBtn" class="btn">새로고침</button>
+      <div class="heroActions">
+        <button id="helpBtn" class="btn ghost">도움말</button>
+        <button id="refreshBtn" class="btn">새로고침</button>
+      </div>
     </header>
 
     <section id="kpis" class="kpis"></section>
@@ -89,6 +92,19 @@
       </div>
     </section>
   </main>
+
+  <div id="helpOverlay" class="modalOverlay" hidden>
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modalHead">
+        <div>
+          <p class="modalKicker">HELP</p>
+          <h2 id="helpTitle">도움말</h2>
+        </div>
+        <button id="helpCloseBtn" class="btn ghost">닫기</button>
+      </div>
+      <div id="helpBody" class="modalBody"></div>
+    </div>
+  </div>
 
   <script src="./app.js"></script>
 </body>
