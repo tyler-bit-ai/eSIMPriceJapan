@@ -7,7 +7,16 @@ from app.models import CarrierSupportKR, NetworkType
 
 PRICE_PATTERN = re.compile(r"(?:(?:￥|¥|JPY\s?)\s*([0-9][0-9,]*)|([0-9][0-9,]*)\s*円)")
 AMOUNT_PATTERN = re.compile(r"([0-9][0-9,]+)")
-DATA_PATTERN = re.compile(r"(?:(\d+)\s?GB|無制限|使い放題|unlimited)", re.IGNORECASE)
+DATA_PATTERN = re.compile(
+    r"("
+    r"(?:\d+(?:\.\d+)?)\s?GB\s*/\s*日|"
+    r"(?:\d+(?:\.\d+)?)\s?MB\s*/\s*日|"
+    r"(?:毎日|1日あたり|1日)\s*(?:最大)?\s*(?:\d+(?:\.\d+)?)\s?(?:GB|MB)|"
+    r"(?:最大)?\s*(?:\d+(?:\.\d+)?)\s?GB|"
+    r"無制限|完全無制限|高速無制限|データ無制限|使い放題|unlimited"
+    r")",
+    re.IGNORECASE,
+)
 VALIDITY_PATTERNS = [
     re.compile(r"(\d{1,3})\s?(?:日間|日)\s?(?:有効|利用|利用可能|validity)?", re.IGNORECASE),
     re.compile(r"(\d{1,3})\s?(?:時間|hour|hours)\b", re.IGNORECASE),
@@ -93,10 +102,9 @@ def extract_price_jpy_with_evidence(
 def extract_data_amount(texts: list[str]) -> ExtractedValue:
     for raw in texts:
         text = normalize_text(raw)
-        m = DATA_PATTERN.search(text)
-        if not m:
+        val = _extract_data_amount_value(text)
+        if not val:
             continue
-        val = _normalize_data_amount(m.group(0))
         return ExtractedValue(val, [text[:180]])
     return ExtractedValue(None, [])
 
@@ -106,10 +114,51 @@ def _normalize_data_amount(raw_value: str) -> str:
     if "無制限" in raw_value or "使い放題" in raw_value or "unlimited" in lower:
         return "unlimited"
 
-    m = re.search(r"(\d+)\s?gb", lower, re.IGNORECASE)
+    m_day = re.search(r"(\d+(?:\.\d+)?)\s?(gb|mb)\s*/\s*日", lower, re.IGNORECASE)
+    if m_day:
+        amount = _format_numeric_token(m_day.group(1))
+        unit = m_day.group(2).upper()
+        return f"{amount}{unit}/day"
+
+    m_daily_prefix = re.search(r"(?:毎日|1日あたり|1日)\s*(?:最大)?\s*(\d+(?:\.\d+)?)\s?(gb|mb)", lower, re.IGNORECASE)
+    if m_daily_prefix:
+        amount = _format_numeric_token(m_daily_prefix.group(1))
+        unit = m_daily_prefix.group(2).upper()
+        return f"{amount}{unit}/day"
+
+    m = re.search(r"(\d+(?:\.\d+)?)\s?gb", lower, re.IGNORECASE)
     if m:
-        return f"{m.group(1)}GB"
+        amount = _format_numeric_token(m.group(1))
+        return f"{amount}GB"
+    mb = re.search(r"(\d+(?:\.\d+)?)\s?mb", lower, re.IGNORECASE)
+    if mb:
+        amount = _format_numeric_token(mb.group(1))
+        return f"{amount}MB"
     return raw_value
+
+
+def _extract_data_amount_value(text: str) -> str | None:
+    daily_patterns = [
+        re.compile(r"(\d+(?:\.\d+)?)\s?(GB|MB)\s*/\s*日", re.IGNORECASE),
+        re.compile(r"(?:毎日|1日あたり|1日)\s*(?:最大)?\s*(\d+(?:\.\d+)?)\s?(GB|MB)", re.IGNORECASE),
+    ]
+    for pattern in daily_patterns:
+        match = pattern.search(text)
+        if match:
+            amount = _format_numeric_token(match.group(1))
+            unit = match.group(2).upper()
+            return f"{amount}{unit}/day"
+
+    m = DATA_PATTERN.search(text)
+    if not m:
+        return None
+    return _normalize_data_amount(m.group(0))
+
+
+def _format_numeric_token(value: str) -> str:
+    if "." in value:
+        return value.rstrip("0").rstrip(".")
+    return value
 
 
 def extract_validity(texts: list[str]) -> ExtractedValue:
@@ -265,6 +314,18 @@ def extract_network_type(texts: list[str]) -> tuple[NetworkType, list[str]]:
         re.compile(r"現地キャリア"),
         re.compile(r"ローカル回線"),
         re.compile(r"local\s+(?:network|carrier)", re.IGNORECASE),
+        re.compile(r"現地番号"),
+        re.compile(r"韓国国内通話"),
+        re.compile(r"電話(?:番号)?付き"),
+        re.compile(r"010電話番号"),
+        re.compile(r"電話\s*/\s*SMS可", re.IGNORECASE),
+        re.compile(r"SMS(?:受信|送受信)?可"),
+    ]
+    local_soft_patterns = [
+        re.compile(r"SKT公式", re.IGNORECASE),
+        re.compile(r"KT\s+Japan直営", re.IGNORECASE),
+        re.compile(r"LG\s*U\+", re.IGNORECASE),
+        re.compile(r"正規eSIM", re.IGNORECASE),
     ]
     roaming_strong_patterns = [
         re.compile(r"国際ローミング"),
@@ -295,6 +356,9 @@ def extract_network_type(texts: list[str]) -> tuple[NetworkType, list[str]]:
 
         if has_local_strong:
             local_score += 3
+            local_hits.append(text[:180])
+        elif any(p.search(text) for p in local_soft_patterns):
+            local_score += 1
             local_hits.append(text[:180])
         elif "ローカル" in text or re.search(r"\blocal\b", lower):
             local_score += 1

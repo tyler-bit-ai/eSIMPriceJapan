@@ -231,6 +231,8 @@ class Qoo10JPAdapter(MarketplaceAdapter):
 
             data_amount = self._resolve_data_amount(
                 validity_texts=validity_texts,
+                title=title or "",
+                option_candidates=option_candidates,
                 representative_option=representative_option,
                 unresolved_options=bool(option_candidates and not representative_option),
             )
@@ -239,7 +241,11 @@ class Qoo10JPAdapter(MarketplaceAdapter):
             elif data_amount.evidence:
                 evidence["data_amount"] = data_amount.evidence
 
-            network_type, network_ev = extract_network_type(validity_texts)
+            network_type, network_ev = self._resolve_network_type(
+                validity_texts=validity_texts,
+                title=title or "",
+                representative_option=representative_option,
+            )
             if network_ev:
                 evidence["network_type"] = network_ev
             else:
@@ -668,14 +674,116 @@ class Qoo10JPAdapter(MarketplaceAdapter):
     def _resolve_data_amount(
         self,
         validity_texts: list[str],
+        title: str,
+        option_candidates: list[OptionCandidate],
         representative_option: OptionCandidate | None,
         unresolved_options: bool,
     ) -> ExtractedValue:
         if representative_option and representative_option.data_amount:
             return ExtractedValue(representative_option.data_amount, [representative_option.raw_text[:180]])
+
+        direct = extract_data_amount(validity_texts)
+        if isinstance(direct.value, str) and not unresolved_options:
+            return direct
+
         if unresolved_options:
+            fallback = self._resolve_data_amount_from_qoo10_signals(title, option_candidates)
+            if fallback:
+                return fallback
             return ExtractedValue(None, ["option_candidates_present_but_no_confident_representative_match"])
-        return extract_data_amount(validity_texts)
+
+        return direct
+
+    def _resolve_data_amount_from_qoo10_signals(
+        self,
+        title: str,
+        option_candidates: list[OptionCandidate],
+    ) -> ExtractedValue | None:
+        title_amount = self._extract_option_data_amount(title)
+        if title_amount == "unlimited":
+            return ExtractedValue("unlimited", [f"qoo10_title_fallback: {title[:160]}"])
+
+        option_amounts = [opt.data_amount for opt in option_candidates if opt.data_amount]
+        if not option_amounts:
+            return None
+
+        unique_amounts = set(option_amounts)
+        if len(unique_amounts) == 1:
+            value = option_amounts[0]
+            reason = "qoo10_option_consensus"
+            if title_amount and title_amount == value:
+                reason = "qoo10_title_and_option_consensus"
+            return ExtractedValue(value, [f"{reason}: {option_candidates[0].raw_text[:160]}"])
+
+        if title_amount and title_amount in unique_amounts:
+            matching = [opt for opt in option_candidates if opt.data_amount == title_amount]
+            if len(matching) >= max(2, len(option_candidates) // 2):
+                return ExtractedValue(
+                    title_amount,
+                    [f"qoo10_option_majority_with_title: {matching[0].raw_text[:160]}"],
+                )
+
+        return None
+
+    def _resolve_network_type(
+        self,
+        validity_texts: list[str],
+        title: str,
+        representative_option: OptionCandidate | None,
+    ) -> tuple[str, list[str]]:
+        texts = list(validity_texts)
+        if representative_option:
+            texts.insert(0, representative_option.raw_text)
+
+        network_type, evidence = extract_network_type(texts)
+        local_signals = self._collect_qoo10_local_signals(texts)
+        roaming_signals = self._collect_qoo10_roaming_signals(texts)
+
+        if network_type != "unknown":
+            if network_type == "local" and local_signals:
+                return "local", [f"qoo10_local_signal: {local_signals[0][:180]}"]
+            if network_type == "roaming" and roaming_signals:
+                return "roaming", [f"qoo10_roaming_signal: {roaming_signals[0][:180]}"]
+            return network_type, evidence
+
+        if local_signals and roaming_signals:
+            return "unknown", [
+                f"conflicting_qoo10_network_signals(local={len(local_signals)}, roaming={len(roaming_signals)})",
+                local_signals[0][:180],
+                roaming_signals[0][:180],
+            ]
+        if roaming_signals:
+            return "roaming", [f"qoo10_roaming_signal: {roaming_signals[0][:180]}"]
+        if local_signals:
+            return "local", [f"qoo10_local_signal: {local_signals[0][:180]}"]
+        return network_type, evidence
+
+    def _collect_qoo10_local_signals(self, texts: list[str]) -> list[str]:
+        patterns = [
+            re.compile(r"現地番号"),
+            re.compile(r"韓国国内通話"),
+            re.compile(r"電話(?:番号)?付き"),
+            re.compile(r"010電話番号"),
+            re.compile(r"電話\s*/\s*SMS可", re.IGNORECASE),
+            re.compile(r"SMS(?:受信|送受信)?可"),
+        ]
+        signals: list[str] = []
+        for text in texts:
+            if any(pattern.search(text) for pattern in patterns):
+                signals.append(text)
+        return signals
+
+    def _collect_qoo10_roaming_signals(self, texts: list[str]) -> list[str]:
+        patterns = [
+            re.compile(r"国際ローミング"),
+            re.compile(r"データローミング"),
+            re.compile(r"ローミング設定"),
+        ]
+        signals: list[str] = []
+        for text in texts:
+            if any(pattern.search(text) for pattern in patterns):
+                signals.append(text)
+        return signals
 
     def _format_usage_days(self, usage_days: float | None) -> str | None:
         if usage_days is None:

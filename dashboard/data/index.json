@@ -5,12 +5,12 @@
                                     "csv":  "sites/qoo10_jp/latest.csv",
                                     "jsonl":  "sites/qoo10_jp/latest.jsonl",
                                     "metadata":  "sites/qoo10_jp/metadata.json",
-                                    "source":  ".\\out_smoke_qoo10\\results.jsonl",
-                                    "crawled_at":  "2026-03-07T03:32:26.1567062Z",
-                                    "published_at":  "2026-03-07T03:32:37.3067144Z",
-                                    "item_count":  5,
+                                    "source":  ".\\out_qoo10_200_reclass\\results.jsonl",
+                                    "crawled_at":  "2026-03-07T04:52:24.2429262Z",
+                                    "published_at":  "2026-03-07T04:53:28.4801434Z",
+                                    "item_count":  200,
                                     "query":  "eSIM 韓国",
-                                    "limit":  5
+                                    "limit":  200
                                 },
                    "amazon_jp":  {
                                      "site":  "amazon_jp",
@@ -26,6 +26,34 @@
                                  }
                },
     "runs":  [
+                 {
+                     "id":  "20260307T045224Z_qoo10_jp_out_qoo10_200_reclass",
+                     "site":  "qoo10_jp",
+                     "label":  "2026-03-07 13:52 | qoo10_jp | out_qoo10_200_reclass | 200 items",
+                     "source":  ".\\out_qoo10_200_reclass\\results.jsonl",
+                     "crawled_at":  "2026-03-07T04:52:24.2429262Z",
+                     "published_at":  "2026-03-07T04:53:28.4801434Z",
+                     "item_count":  200,
+                     "csv":  "runs/20260307T045224Z_qoo10_jp_out_qoo10_200_reclass.csv",
+                     "jsonl":  "runs/20260307T045224Z_qoo10_jp_out_qoo10_200_reclass.jsonl",
+                     "metadata":  "sites/qoo10_jp/metadata.json",
+                     "query":  "eSIM 韓国",
+                     "limit":  200
+                 },
+                 {
+                     "id":  "20260307T041400Z_qoo10_jp_out_qoo10_200",
+                     "site":  "qoo10_jp",
+                     "label":  "2026-03-07 13:14 | qoo10_jp | out_qoo10_200 | 200 items",
+                     "source":  ".\\out_qoo10_200\\results.jsonl",
+                     "crawled_at":  "2026-03-07T04:14:00.9625962Z",
+                     "published_at":  "2026-03-07T04:22:39.8546714Z",
+                     "item_count":  200,
+                     "csv":  "runs/20260307T041400Z_qoo10_jp_out_qoo10_200.csv",
+                     "jsonl":  "runs/20260307T041400Z_qoo10_jp_out_qoo10_200.jsonl",
+                     "metadata":  "sites/qoo10_jp/metadata.json",
+                     "query":  "eSIM 韓国",
+                     "limit":  200
+                 },
                  {
                      "id":  "20260307T033226Z_qoo10_jp_out_smoke_qoo10",
                      "site":  "qoo10_jp",

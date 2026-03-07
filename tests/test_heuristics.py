@@ -115,6 +115,11 @@ def test_extract_network_type_korean_carrier_line_is_unknown():
     assert net == NetworkType.unknown
 
 
+def test_extract_network_type_phone_number_is_local():
+    net, _ = extract_network_type(["韓国 eSIM 010電話番号付き 電話/SMS可"])
+    assert net == NetworkType.local
+
+
 def test_extract_carrier_support_kr():
     carriers, evidence = extract_carrier_support_kr(["韓国 SKT KT LG U+ 対応キャリア"])
     assert carriers.skt is True
@@ -138,6 +143,16 @@ def test_extract_data_amount():
 def test_extract_data_amount_unlimited_jp_to_en():
     res = extract_data_amount(["高速データ通信 無制限"])
     assert res.value == "unlimited"
+
+
+def test_extract_data_amount_daily_gb():
+    res = extract_data_amount(["韓国 eSIM 1GB/日 3日間"])
+    assert res.value == "1GB/day"
+
+
+def test_extract_data_amount_daily_mb():
+    res = extract_data_amount(["毎日 500MB 利用可能"])
+    assert res.value == "500MB/day"
 
 
 def test_extract_monthly_sold_count():

@@ -171,3 +171,46 @@ def test_extract_search_seller_info_splits_badge_and_name():
 def test_extract_detail_review_count_fallback():
     adapter = object.__new__(Qoo10JPAdapter)
     assert adapter._extract_detail_review_count(["商品情報", "レビュー 843", "その他"]) == 843
+
+
+def test_resolve_data_amount_uses_title_fallback_for_unlimited():
+    adapter = object.__new__(Qoo10JPAdapter)
+    resolved = adapter._resolve_data_amount(
+        validity_texts=["韓国 eSIM 安心プラン"],
+        title="韓国 eSIM 完全無制限 正規eSIM",
+        option_candidates=[
+            adapter._parse_option_candidate("2日 48時間（正規）", "1"),
+            adapter._parse_option_candidate("3日 72時間（正規）", "2"),
+        ],
+        representative_option=None,
+        unresolved_options=True,
+    )
+    assert resolved.value == "unlimited"
+    assert resolved.evidence[0].startswith("qoo10_title_fallback")
+
+
+def test_resolve_data_amount_uses_option_consensus_when_unresolved():
+    adapter = object.__new__(Qoo10JPAdapter)
+    resolved = adapter._resolve_data_amount(
+        validity_texts=["韓国 eSIM"],
+        title="韓国 eSIM 安心プラン",
+        option_candidates=[
+            adapter._parse_option_candidate("2日 48時間 1GB/日", "1"),
+            adapter._parse_option_candidate("3日 72時間 1GB/日", "2"),
+        ],
+        representative_option=None,
+        unresolved_options=True,
+    )
+    assert resolved.value == "1GB/day"
+    assert "qoo10_option_consensus" in resolved.evidence[0]
+
+
+def test_resolve_network_type_uses_qoo10_local_signal():
+    adapter = object.__new__(Qoo10JPAdapter)
+    network_type, evidence = adapter._resolve_network_type(
+        validity_texts=["韓国 eSIM 010電話番号付き 電話/SMS可"],
+        title="韓国 eSIM",
+        representative_option=None,
+    )
+    assert network_type == "local"
+    assert evidence[0].startswith("qoo10_local_signal")
