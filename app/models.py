@@ -57,6 +57,19 @@ class ProductDetail(BaseModel):
     evidence: dict[str, list[str]] = Field(default_factory=dict)
 
 
+class InvalidItem(BaseModel):
+    site: Optional[str] = None
+    product_url: str
+    asin: Optional[str] = None
+    site_product_id: Optional[str] = None
+    title: Optional[str] = None
+    price_jpy: Optional[int] = None
+    search_price_jpy: Optional[int] = None
+    invalid_reason: str
+    raw_price_texts: list[str] = Field(default_factory=list)
+    evidence: dict[str, list[str]] = Field(default_factory=dict)
+
+
 class CrawlError(BaseModel):
     product_url: str
     asin: Optional[str] = None
@@ -68,6 +81,7 @@ class CrawlError(BaseModel):
 
 class CrawlResult(BaseModel):
     items: list[ProductDetail]
+    invalid_items: list[InvalidItem]
     failures: list[CrawlError]
 
 

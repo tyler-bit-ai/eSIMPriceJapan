@@ -203,7 +203,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
             )
             if price.evidence:
                 evidence["price_jpy"] = price.evidence
-            elif stub.search_price_jpy is not None:
+            elif stub.search_price_jpy is not None and stub.search_price_jpy > 0:
                 price.value = stub.search_price_jpy
                 evidence["price_jpy"] = [
                     f"search_result_fallback: {stub.search_price_text or stub.search_price_jpy}"
@@ -339,6 +339,16 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 text = node.get_text(" ", strip=True)
                 if text:
                     candidates.append(text)
+        context_patterns = [
+            r"(?:価格|税込価格|￥|¥|JPY)[^。\n\r]{0,40}[0-9][0-9,]*\s*円?",
+            r"[￥¥]\s*[0-9][0-9,]*",
+        ]
+        all_text = soup.get_text(" ", strip=True)
+        for pattern in context_patterns:
+            for match in re.finditer(pattern, all_text, re.IGNORECASE):
+                snippet = match.group(0).strip()
+                if snippet:
+                    candidates.append(snippet)
 
         if not candidates:
             for node in soup.select(".a-price .a-offscreen"):

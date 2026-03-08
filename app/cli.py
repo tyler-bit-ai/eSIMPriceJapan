@@ -7,7 +7,13 @@ from pathlib import Path
 import typer
 
 from app.adapters.factory import create_adapter, get_supported_sites
-from app.output.writers import write_csv, write_failed_jsonl, write_jsonl
+from app.output.writers import (
+    write_csv,
+    write_failed_jsonl,
+    write_invalid_csv,
+    write_invalid_jsonl,
+    write_jsonl,
+)
 from app.pipeline.crawler import CrawlPipeline
 from app.utils.logging import configure_logging
 
@@ -87,14 +93,20 @@ async def _run_crawl(
     results_jsonl = out / "results.jsonl"
     results_csv = out / "results.csv"
     failed_jsonl = out / "failed.jsonl"
+    invalid_jsonl = out / "invalid.jsonl"
+    invalid_csv = out / "invalid.csv"
 
     write_jsonl(results_jsonl, result.items)
     write_csv(results_csv, result.items)
     write_failed_jsonl(failed_jsonl, result.failures)
+    write_invalid_jsonl(invalid_jsonl, result.invalid_items)
+    write_invalid_csv(invalid_csv, result.invalid_items)
 
     logger.info("saved %s items to %s", len(result.items), results_jsonl)
     logger.info("saved %s items to %s", len(result.items), results_csv)
     logger.info("saved %s failures to %s", len(result.failures), failed_jsonl)
+    logger.info("saved %s invalid items to %s", len(result.invalid_items), invalid_jsonl)
+    logger.info("saved %s invalid items to %s", len(result.invalid_items), invalid_csv)
 
 
 if __name__ == "__main__":

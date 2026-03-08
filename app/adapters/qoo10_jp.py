@@ -630,13 +630,25 @@ class Qoo10JPAdapter(MarketplaceAdapter):
     ) -> ExtractedValue:
         if representative_option:
             if representative_option.absolute_price_jpy is not None:
+                if representative_option.absolute_price_jpy <= 0:
+                    return ExtractedValue(None, ["representative_option_absolute_price_non_positive"])
                 return ExtractedValue(
                     representative_option.absolute_price_jpy,
                     [f"{representative_option.raw_text[:140]} (option absolute price)"],
                 )
             if isinstance(base_price.value, int):
+                computed_price = base_price.value + representative_option.surcharge_jpy
+                if computed_price <= 0:
+                    return ExtractedValue(
+                        None,
+                        [
+                            "representative_option_resolved_to_non_positive_price",
+                            f"{base_price.evidence[0] if base_price.evidence else base_price.value} + option surcharge {representative_option.surcharge_jpy}",
+                            representative_option.raw_text[:140],
+                        ],
+                    )
                 return ExtractedValue(
-                    base_price.value + representative_option.surcharge_jpy,
+                    computed_price,
                     [
                         f"{base_price.evidence[0] if base_price.evidence else base_price.value} + option surcharge {representative_option.surcharge_jpy}",
                         representative_option.raw_text[:140],
@@ -645,8 +657,10 @@ class Qoo10JPAdapter(MarketplaceAdapter):
         if unresolved_options:
             return ExtractedValue(None, ["option_candidates_present_but_no_confident_representative_match"])
         if isinstance(base_price.value, int):
+            if base_price.value <= 0:
+                return ExtractedValue(None, ["base_price_non_positive"])
             return base_price
-        if stub.search_price_jpy is not None:
+        if stub.search_price_jpy is not None and stub.search_price_jpy > 0:
             return ExtractedValue(
                 stub.search_price_jpy,
                 [f"search_result_fallback: {stub.search_price_text or stub.search_price_jpy}"],

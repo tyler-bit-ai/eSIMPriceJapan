@@ -4,7 +4,7 @@ import csv
 import json
 from pathlib import Path
 
-from app.models import CrawlError, ProductDetail, model_to_row
+from app.models import CrawlError, InvalidItem, ProductDetail, model_to_row
 
 
 def write_jsonl(path: Path, items: list[ProductDetail]) -> None:
@@ -54,3 +54,34 @@ def write_failed_jsonl(path: Path, failures: list[CrawlError]) -> None:
     with path.open("w", encoding="utf-8") as f:
         for failure in failures:
             f.write(json.dumps(model_to_row(failure), ensure_ascii=False) + "\n")
+
+
+def write_invalid_jsonl(path: Path, items: list[InvalidItem]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        for item in items:
+            f.write(json.dumps(model_to_row(item), ensure_ascii=False) + "\n")
+
+
+def write_invalid_csv(path: Path, items: list[InvalidItem]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "site",
+        "title",
+        "price_jpy",
+        "search_price_jpy",
+        "invalid_reason",
+        "product_url",
+        "asin",
+        "site_product_id",
+        "raw_price_texts",
+        "evidence",
+    ]
+    with path.open("w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for item in items:
+            row = model_to_row(item)
+            row["raw_price_texts"] = json.dumps(row["raw_price_texts"], ensure_ascii=False)
+            row["evidence"] = json.dumps(row["evidence"], ensure_ascii=False)
+            writer.writerow(row)

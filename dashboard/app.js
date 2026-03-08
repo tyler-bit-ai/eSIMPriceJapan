@@ -147,11 +147,12 @@ function normalizeCarrier(carrierSupport) {
 
 function normalizeItem(raw) {
   const carrier = normalizeCarrier(raw.carrier_support_kr);
+  const parsedPrice = Number(raw.price_jpy);
   return {
     site: raw.site || null,
     title: raw.title || '',
     product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
-    price_jpy: Number.isFinite(Number(raw.price_jpy)) ? Number(raw.price_jpy) : null,
+    price_jpy: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
     review_count: Number.isFinite(Number(raw.review_count)) ? Number(raw.review_count) : null,
     seller_badge: raw.seller_badge || null,
     search_position: Number.isFinite(Number(raw.search_position)) ? Number(raw.search_position) : null,
@@ -170,6 +171,10 @@ function normalizeItem(raw) {
     usage_days: extractDays(raw.usage_validity || raw.validity || null),
     activation_days: extractDays(raw.activation_validity || null),
   };
+}
+
+function keepDashboardItem(item) {
+  return Number.isFinite(item.price_jpy) && item.price_jpy > 0;
 }
 
 const el = {
@@ -627,7 +632,7 @@ async function loadDataStaticFromRecord(record) {
   const metaPath = resolveDataPath(record && record.metadata, `./data/sites/${state.selectedSite}/metadata.json`);
   const res = await fetch(jsonlPath, { cache: 'no-store' });
   if (!res.ok) throw new Error(`정적 데이터 로드 실패: HTTP ${res.status}`);
-  const items = parseJsonl(await res.text()).map(normalizeItem);
+  const items = parseJsonl(await res.text()).map(normalizeItem).filter(keepDashboardItem);
   let metadata = null;
   if (record && (record.crawled_at || record.published_at || record.source || record.item_count)) {
     metadata = { source: record.source || jsonlPath, crawled_at: record.crawled_at || null, published_at: record.published_at || null, item_count: record.item_count || items.length, site: record.site || state.selectedSite };

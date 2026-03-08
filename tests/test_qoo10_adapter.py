@@ -145,6 +145,18 @@ def test_resolve_price_uses_representative_option_surcharge():
     assert base_price.value == 1140
 
 
+def test_resolve_price_returns_none_for_non_positive_base_price():
+    adapter = object.__new__(Qoo10JPAdapter)
+    resolved = adapter._resolve_price(
+        base_price=type("X", (), {"value": 0, "evidence": ["販売価格 0円"]})(),
+        stub=type("Stub", (), {"search_price_jpy": 0, "search_price_text": "0円"})(),
+        representative_option=None,
+        unresolved_options=False,
+    )
+    assert resolved.value is None
+    assert resolved.evidence[0] == "base_price_non_positive"
+
+
 def test_resolve_validity_returns_none_on_unresolved_options():
     adapter = object.__new__(Qoo10JPAdapter)
     text_validity = type(
