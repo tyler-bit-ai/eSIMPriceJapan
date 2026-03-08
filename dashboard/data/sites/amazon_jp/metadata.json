@@ -2,8 +2,8 @@
     "site":  "amazon_jp",
     "query":  "eSIM 韓国",
     "limit":  200,
-    "source":  "C:\\Codex\\eSIMPriceJapan_repo\\.\\out_amazon_review_refresh\\results.jsonl",
-    "crawled_at":  "2026-03-08T11:00:46.2214033Z",
-    "published_at":  "2026-03-08T11:00:46.9528899Z",
+    "source":  "C:\\Codex\\eSIMPriceJapan_repo\\.\\out_amazon_review_refresh_v2\\results.jsonl",
+    "crawled_at":  "2026-03-08T11:56:00.5378567Z",
+    "published_at":  "2026-03-08T11:56:01.5497213Z",
     "item_count":  200
 }

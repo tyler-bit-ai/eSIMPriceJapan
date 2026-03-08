@@ -17,15 +17,29 @@
                                      "csv":  "sites/amazon_jp/latest.csv",
                                      "jsonl":  "sites/amazon_jp/latest.jsonl",
                                      "metadata":  "sites/amazon_jp/metadata.json",
-                                     "source":  "C:\\Codex\\eSIMPriceJapan_repo\\.\\out_amazon_review_refresh\\results.jsonl",
-                                     "crawled_at":  "2026-03-08T11:00:46.2214033Z",
-                                     "published_at":  "2026-03-08T11:00:46.9528899Z",
+                                     "source":  "C:\\Codex\\eSIMPriceJapan_repo\\.\\out_amazon_review_refresh_v2\\results.jsonl",
+                                     "crawled_at":  "2026-03-08T11:56:00.5378567Z",
+                                     "published_at":  "2026-03-08T11:56:01.5497213Z",
                                      "item_count":  200,
                                      "query":  "eSIM 韓国",
                                      "limit":  200
                                  }
                },
     "runs":  [
+                 {
+                     "id":  "20260308T115600Z_amazon_jp_out_amazon_review_refresh_v2",
+                     "site":  "amazon_jp",
+                     "label":  "2026-03-08 20:56 | amazon_jp | out_amazon_review_refresh_v2 | 200 items",
+                     "source":  "C:\\Codex\\eSIMPriceJapan_repo\\.\\out_amazon_review_refresh_v2\\results.jsonl",
+                     "crawled_at":  "2026-03-08T11:56:00.5378567Z",
+                     "published_at":  "2026-03-08T11:56:01.5497213Z",
+                     "item_count":  200,
+                     "csv":  "runs/20260308T115600Z_amazon_jp_out_amazon_review_refresh_v2.csv",
+                     "jsonl":  "runs/20260308T115600Z_amazon_jp_out_amazon_review_refresh_v2.jsonl",
+                     "metadata":  "sites/amazon_jp/metadata.json",
+                     "query":  "eSIM 韓国",
+                     "limit":  200
+                 },
                  {
                      "id":  "20260308T110046Z_amazon_jp_out_amazon_review_refresh",
                      "site":  "amazon_jp",
