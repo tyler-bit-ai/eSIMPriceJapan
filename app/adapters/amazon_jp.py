@@ -18,6 +18,7 @@ from app.extractors.heuristics import (
     extract_monthly_sold_count,
     extract_network_type,
     extract_price_jpy_with_evidence,
+    extract_review_count,
     extract_validity_split,
     parse_price_text,
 )
@@ -112,6 +113,22 @@ class AmazonJPAdapter(MarketplaceAdapter):
                         if amount is not None and (currency == "JPY" or currency is None):
                             search_price_jpy = amount
                     card_text = card.get_text(" ", strip=True)
+                    review_count = self._extract_review_count_value(
+                        [
+                            self._extract_text_selectors(
+                                card,
+                                [
+                                    "span[aria-label*='個の評価']",
+                                    "span[aria-label*='ratings']",
+                                    "span.a-size-base.s-underline-text",
+                                    "a.a-link-normal span.a-size-base",
+                                    "a[href*='customerReviews'] span",
+                                ],
+                            )
+                            or "",
+                            card_text,
+                        ]
+                    )
                     monthly_sold = extract_monthly_sold_count([card_text])
                     bestseller_badge = extract_bestseller_badge([card_text])
 
@@ -126,6 +143,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
                             site_product_id=asin,
                             search_price_jpy=search_price_jpy,
                             search_price_text=price_text,
+                            search_review_count=review_count.value if isinstance(review_count.value, int) else None,
                             search_monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
                             search_is_bestseller=bestseller_badge.value if isinstance(bestseller_badge.value, bool) else None,
                         )
@@ -243,6 +261,14 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 monthly_sold.value = stub.search_monthly_sold_count
                 evidence["monthly_sold_count"] = [f"search_result_fallback: {stub.search_monthly_sold_count}"]
 
+            review_texts = self._collect_review_count_candidates(soup, text_blocks)
+            review_count = self._extract_review_count_value(review_texts)
+            if review_count.evidence:
+                evidence["review_count"] = [f"detail_page: {review_count.evidence[0]}"]
+            elif isinstance(stub.search_review_count, int):
+                review_count.value = stub.search_review_count
+                evidence["review_count"] = [f"search_result_fallback: {stub.search_review_count}"]
+
             bestseller_badge = extract_bestseller_badge(text_blocks)
             if bestseller_badge.evidence:
                 evidence["is_bestseller"] = bestseller_badge.evidence
@@ -274,6 +300,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 site=self.name,
                 title=title,
                 price_jpy=price.value if isinstance(price.value, int) else None,
+                review_count=review_count.value if isinstance(review_count.value, int) else None,
                 monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
                 is_bestseller=bestseller_badge.value if isinstance(bestseller_badge.value, bool) else None,
                 bestseller_rank=bestseller_rank.value if isinstance(bestseller_rank.value, int) else None,
@@ -358,11 +385,62 @@ class AmazonJPAdapter(MarketplaceAdapter):
 
         return candidates[:12]
 
+    def _collect_review_count_candidates(self, soup: BeautifulSoup, text_blocks: list[str]) -> list[str]:
+        candidates: list[str] = []
+        selectors = [
+            "#acrCustomerReviewText",
+            "span[data-hook='total-review-count']",
+            "a[data-hook='see-all-reviews-link-foot'] span",
+            "a[href*='customerReviews'] span",
+            "#averageCustomerReviews_feature_div",
+            "[data-hook='cr-filter-info-review-rating-count']",
+            "script[type='application/ld+json']",
+        ]
+        for selector in selectors:
+            for node in soup.select(selector):
+                if node.name == "script":
+                    text = node.string or node.get_text(" ", strip=True)
+                else:
+                    text = (
+                        node.get_text(" ", strip=True)
+                        or node.get("aria-label")
+                        or node.get("content")
+                        or ""
+                    )
+                if text:
+                    candidates.append(text)
+        candidates.extend(text_blocks[:5])
+        return candidates
+
+    def _extract_review_count_value(self, texts: list[str]):
+        extracted = extract_review_count(texts)
+        if extracted.evidence:
+            return extracted
+
+        for raw in texts:
+            text = raw.strip() if raw else ""
+            if not text:
+                continue
+            paren_match = re.search(r"\(\s*([0-9][0-9,]*)\s*\)", text)
+            if paren_match:
+                return type(extracted)(int(paren_match.group(1).replace(",", "")), [text[:180]])
+            bare_match = re.fullmatch(r"[#]?\s*([0-9][0-9,]*)", text)
+            if bare_match:
+                return type(extracted)(int(bare_match.group(1).replace(",", "")), [text[:180]])
+
+        return extracted
+
     def _extract_text_selectors(self, soup: BeautifulSoup, selectors: list[str]) -> str | None:
         for selector in selectors:
             node = soup.select_one(selector)
             if node:
-                text = node.get_text(" ", strip=True)
+                text = (
+                    node.get_text(" ", strip=True)
+                    or node.get("aria-label")
+                    or node.get("content")
+                    or node.get("alt")
+                    or ""
+                )
                 if text:
                     return text
         return None

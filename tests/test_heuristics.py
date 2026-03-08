@@ -7,6 +7,7 @@ from app.extractors.heuristics import (
     extract_network_type,
     extract_price_jpy,
     extract_price_jpy_with_evidence,
+    extract_review_count,
     extract_validity,
     extract_validity_split,
     parse_price_text,
@@ -168,3 +169,18 @@ def test_extract_bestseller_badge():
 def test_extract_bestseller_rank():
     res = extract_bestseller_rank(["Amazon 売れ筋ランキング: 家電＆カメラ 28位"])
     assert res.value == 28
+
+
+def test_extract_review_count_amazon_jp():
+    res = extract_review_count(["1,234個の評価"])
+    assert res.value == 1234
+
+
+def test_extract_review_count_amazon_en():
+    res = extract_review_count(["1,234 ratings"])
+    assert res.value == 1234
+
+
+def test_extract_review_count_ignores_star_rating():
+    res = extract_review_count(["4.5 5つ星のうち4.5"])
+    assert res.value is None

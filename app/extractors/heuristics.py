@@ -23,6 +23,11 @@ VALIDITY_PATTERNS = [
     re.compile(r"(?:有効期限|利用期間|validity)\s*[:：]?\s*([^\n\r。]+)", re.IGNORECASE),
     re.compile(r"(GB\s?使い切り|GB\s?소진\s?시까지|until\s+data\s+is\s+used)", re.IGNORECASE),
 ]
+REVIEW_PATTERNS = [
+    re.compile(r"([0-9][0-9,]*)\s*(?:個の評価|件のレビュー|ratings?|customer reviews?)", re.IGNORECASE),
+    re.compile(r"(?:レビュー|評価)\s*[:：]?\s*([0-9][0-9,]*)", re.IGNORECASE),
+    re.compile(r'"(?:reviewCount|ratingCount)"\s*:\s*"?([0-9][0-9,]*)"?', re.IGNORECASE),
+]
 
 
 @dataclass
@@ -97,6 +102,18 @@ def extract_price_jpy_with_evidence(
             return ExtractedValue(amount, [f"{text[:150]} (assumed JPY by i18n-prefs)"]), non_jpy_evidence
 
     return ExtractedValue(None, []), non_jpy_evidence
+
+
+def extract_review_count(texts: list[str]) -> ExtractedValue:
+    for raw in texts:
+        text = normalize_text(raw)
+        for pattern in REVIEW_PATTERNS:
+            match = pattern.search(text)
+            if not match:
+                continue
+            count = int(match.group(1).replace(",", ""))
+            return ExtractedValue(count, [text[:180]])
+    return ExtractedValue(None, [])
 
 
 def extract_data_amount(texts: list[str]) -> ExtractedValue:

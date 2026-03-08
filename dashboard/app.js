@@ -5,12 +5,14 @@ const SITE_CONFIG = {
     sortOptions: [
       ['priceAsc', '가격 낮은순'],
       ['priceDesc', '가격 높은순'],
+      ['reviewDesc', '리뷰 많은순'],
       ['salesDesc', '판매량 높은순'],
       ['usageAsc', '사용기간 짧은순'],
     ],
     columns: [
       ['title', '상품명'],
       ['price_jpy', '가격 (JPY)'],
+      ['review_count', '리뷰 수'],
       ['monthly_sold_count', '판매량(최근 1개월)'],
       ['is_bestseller', '베스트셀러'],
       ['bestseller_rank', '판매순위'],
@@ -75,6 +77,7 @@ const HELP_CONTENT = {
     intro: 'Amazon JP 화면은 판매량, 베스트셀러 여부, 판매순위처럼 Amazon이 상대적으로 잘 노출하는 지표 중심으로 구성됩니다.',
     terms: [
       ['monthly_sold_count', '상품 설명이나 검색 결과에 노출되는 최근 1개월 판매량 신호입니다. 값이 없으면 Amazon 페이지에서 공개되지 않은 것입니다.'],
+      ['review_count', 'Amazon 상품 리뷰 수입니다. 검색 결과 카드 또는 상세 페이지의 리뷰 수 텍스트에서 수집합니다.'],
       ['is_bestseller', 'Amazon의 베스트셀러 배지 유무입니다. `Yes`면 해당 배지가 확인된 상품입니다.'],
       ['bestseller_rank', 'Amazon 판매순위입니다. 숫자가 작을수록 해당 카테고리 내 상위에 가깝습니다.'],
       ['brand', 'Amazon에서 브랜드 필드가 비교적 안정적으로 보일 때 수집됩니다.'],
@@ -113,6 +116,7 @@ let state = {
   selectedSite: 'amazon_jp',
   selectedDatasetId: null,
   selectedCsvPath: './data/sites/amazon_jp/latest.csv',
+  amazonReviewEnabled: true,
 };
 
 function parseJsonl(text) {
@@ -209,7 +213,13 @@ const el = {
 };
 
 function activeConfig() {
-  return SITE_CONFIG[state.selectedSite] || SITE_CONFIG.amazon_jp;
+  const config = SITE_CONFIG[state.selectedSite] || SITE_CONFIG.amazon_jp;
+  if (state.selectedSite !== 'amazon_jp' || state.amazonReviewEnabled) return config;
+  return {
+    ...config,
+    sortOptions: config.sortOptions.filter(([value]) => value !== 'reviewDesc'),
+    columns: config.columns.filter(([key]) => key !== 'review_count'),
+  };
 }
 
 function siteLabel(site) {
@@ -378,6 +388,16 @@ function summarize(items) {
   };
 }
 
+function updateAmazonReviewVisibility(items) {
+  if (state.selectedSite !== 'amazon_jp') {
+    state.amazonReviewEnabled = true;
+    return;
+  }
+  const total = items.length;
+  const known = items.filter((it) => Number.isFinite(it.review_count)).length;
+  state.amazonReviewEnabled = total > 0 && (known / total) >= 0.1;
+}
+
 function carrierLabel(carrier) {
   const out = [];
   if (carrier && carrier.skt) out.push('SKT');
@@ -505,6 +525,10 @@ function renderKpis(summary) {
         ['KT 명시', `${summary.carrierTrue.kt}`],
         ['LGU+ 명시', `${summary.carrierTrue.lgu}`],
       ];
+  if (state.selectedSite === 'amazon_jp' && state.amazonReviewEnabled) {
+    kpis.splice(4, 0, ['리뷰 수 중앙값', summary.reviewMedian === null ? '-' : `${summary.reviewMedian.toLocaleString('ko-KR')}`]);
+    kpis.splice(5, 0, ['리뷰 수 확인 상품', `${summary.reviewKnownCount.toLocaleString('ko-KR')}개`]);
+  }
   el.kpis.innerHTML = kpis.map(([label, value]) => `<div class="kpi"><label>${safe(label)}</label><strong>${safe(value)}</strong></div>`).join('');
 }
 
@@ -597,6 +621,8 @@ function applyLocalFilters(items) {
 }
 
 function renderLocalView() {
+  updateAmazonReviewVisibility(state.items);
+  renderSiteStructure();
   state.filtered = applyLocalFilters(state.items);
   state.currentPage = 1;
   const summary = summarize(state.filtered);

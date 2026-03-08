@@ -205,6 +205,7 @@ function sendExcel(res, items, site) {
     }
     return {
       ...base,
+      review_count: it.review_count ?? '',
       monthly_sold_count: it.monthly_sold_count ?? '',
       is_bestseller: it.is_bestseller === null ? '' : (it.is_bestseller ? 'true' : 'false'),
       bestseller_rank: it.bestseller_rank ?? '',
@@ -233,6 +234,7 @@ function sendExcel(res, items, site) {
         'site',
         'title',
         'price_jpy',
+        'review_count',
         'monthly_sold_count',
         'is_bestseller',
         'bestseller_rank',
