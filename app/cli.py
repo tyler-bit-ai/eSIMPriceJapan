@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
+from typing import Optional
 
 import typer
 
 from app.adapters.factory import create_adapter, get_supported_sites
+from app.countries import get_default_query, get_supported_countries
 from app.output.writers import (
     write_csv,
     write_failed_jsonl,
@@ -29,7 +31,8 @@ def main() -> None:
 @app.command("crawl")
 def crawl(
     site: str = typer.Option("amazon_jp", "--site"),
-    query: str = typer.Option("eSIM Korea", "--query"),
+    country: str = typer.Option("kr", "--country"),
+    query: Optional[str] = typer.Option(None, "--query"),
     limit: int = typer.Option(50, "--limit", min=1, max=200),
     out: Path = typer.Option(Path("./out"), "--out"),
     concurrency: int = typer.Option(3, "--concurrency", min=1, max=8),
@@ -46,13 +49,21 @@ def crawl(
         supported = ", ".join(supported_sites)
         raise typer.BadParameter(f"Unsupported --site {site}. Supported: {supported}")
 
+    supported_countries = get_supported_countries()
+    if country not in supported_countries:
+        supported = ", ".join(supported_countries)
+        raise typer.BadParameter(f"Unsupported --country {country}. Supported: {supported}")
+
     if min_delay > max_delay:
         raise typer.BadParameter("--min-delay must be <= --max-delay")
+
+    effective_query = query if query is not None else get_default_query(site=site, country=country)
 
     asyncio.run(
         _run_crawl(
             site=site,
-            query=query,
+            country=country,
+            query=effective_query,
             limit=limit,
             out=out,
             concurrency=concurrency,
@@ -65,6 +76,7 @@ def crawl(
 
 async def _run_crawl(
     site: str,
+    country: str,
     query: str,
     limit: int,
     out: Path,
@@ -86,7 +98,7 @@ async def _run_crawl(
             max_delay=max_delay,
             max_retries=max_retries,
         )
-        result = await pipeline.run(query=query, limit=limit)
+        result = await pipeline.run(query=query, limit=limit, country=country)
     finally:
         await adapter.close()
 

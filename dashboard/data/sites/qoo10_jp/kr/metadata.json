@@ -1,0 +1,10 @@
+{
+  "site": "qoo10_jp",
+  "country": "kr",
+  "query": "eSIM 韓国",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_qoo10_jp_kr\\results.jsonl",
+  "crawled_at": "2026-03-20T10:51:00.671155Z",
+  "published_at": "2026-03-20T11:54:22.006430Z",
+  "item_count": 134
+}

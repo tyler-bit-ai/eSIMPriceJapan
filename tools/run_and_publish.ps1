@@ -1,6 +1,7 @@
 param(
   [string]$Site = 'amazon_jp',
-  [string]$Query = 'eSIM 韓国',
+  [string]$Country = 'kr',
+  [string]$Query = '',
   [int]$Limit = 200,
   [int]$Concurrency = 2,
   [int]$MinDelay = 1,
@@ -52,14 +53,18 @@ $outPath = if ([System.IO.Path]::IsPathRooted($OutDir)) { $OutDir } else { Join-
 $dataPath = if ([System.IO.Path]::IsPathRooted($DataDir)) { $DataDir } else { Join-Path $repo $DataDir }
 
 Write-Host "[1/3] Crawl start"
-& $python -m app crawl --site $Site --query $Query --limit $Limit --concurrency $Concurrency --min-delay $MinDelay --max-delay $MaxDelay --out $outPath
+if ([string]::IsNullOrWhiteSpace($Query)) {
+  & $python -m app crawl --site $Site --country $Country --limit $Limit --concurrency $Concurrency --min-delay $MinDelay --max-delay $MaxDelay --out $outPath
+} else {
+  & $python -m app crawl --site $Site --country $Country --query $Query --limit $Limit --concurrency $Concurrency --min-delay $MinDelay --max-delay $MaxDelay --out $outPath
+}
 if ($LASTEXITCODE -ne 0) {
   throw "crawl 실패 (exit=$LASTEXITCODE)"
 }
 
 Write-Host "[2/3] Publish static dashboard data"
 $publishScript = Join-Path $repo 'tools\publish.ps1'
-& powershell -ExecutionPolicy Bypass -File $publishScript -OutDir $outPath -DataDir $dataPath -Site $Site -Query $Query -Limit $Limit
+& powershell -ExecutionPolicy Bypass -File $publishScript -OutDir $outPath -DataDir $dataPath -Site $Site -Country $Country -Query $Query -Limit $Limit
 if ($LASTEXITCODE -ne 0) {
   throw "publish.ps1 실패 (exit=$LASTEXITCODE)"
 }
@@ -74,7 +79,7 @@ if (-not $hasChanges) {
 }
 
 $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-$msg = "chore(data): update crawl dataset ($Site, limit=$Limit, $ts)"
+$msg = "chore(data): update crawl dataset ($Site, $Country, limit=$Limit, $ts)"
 git commit -m $msg
 if ($LASTEXITCODE -ne 0) {
   throw "git commit 실패 (exit=$LASTEXITCODE)"

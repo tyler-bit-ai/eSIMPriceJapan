@@ -1,0 +1,10 @@
+{
+  "site": "qoo10_jp",
+  "country": "us",
+  "query": "eSIM アメリカ",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_qoo10_jp_us\\results.jsonl",
+  "crawled_at": "2026-03-20T11:53:45.205530Z",
+  "published_at": "2026-03-20T11:54:22.218936Z",
+  "item_count": 145
+}

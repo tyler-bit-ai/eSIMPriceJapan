@@ -1,0 +1,10 @@
+{
+  "site": "amazon_jp",
+  "country": "hk",
+  "query": "eSIM 香港",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_amazon_jp_hk\\results.jsonl",
+  "crawled_at": "2026-03-20T10:13:15.322735Z",
+  "published_at": "2026-03-20T11:54:21.582321Z",
+  "item_count": 200
+}

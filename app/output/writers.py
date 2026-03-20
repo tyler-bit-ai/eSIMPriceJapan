@@ -18,6 +18,7 @@ def write_csv(path: Path, items: list[ProductDetail]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "site",
+        "country",
         "title",
         "price_jpy",
         "review_count",
@@ -67,6 +68,7 @@ def write_invalid_csv(path: Path, items: list[InvalidItem]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "site",
+        "country",
         "title",
         "price_jpy",
         "search_price_jpy",

@@ -52,11 +52,20 @@ const SITE_CONFIG = {
     searchPlaceholder: '상품명/셀러/셀러 배지 검색',
   },
 };
+const COUNTRY_CONFIG = {
+  kr: { label: '한국', dashboardEnabled: true },
+  vn: { label: '베트남', dashboardEnabled: true },
+  th: { label: '태국', dashboardEnabled: false },
+  tw: { label: '대만', dashboardEnabled: true },
+  hk: { label: '홍콩', dashboardEnabled: true },
+  mo: { label: '마카오', dashboardEnabled: true },
+  us: { label: '미국', dashboardEnabled: true },
+};
 const HELP_CONTENT = {
   common: {
-    summary: '이 대시보드는 일본 마켓플레이스에서 한국 eSIM 검색 결과를 수집하고, 핵심 정보를 정규화해 비교할 수 있도록 만든 분석 화면입니다.',
+    summary: '이 대시보드는 일본 마켓플레이스에서 국가별 eSIM 검색 결과를 수집하고, 핵심 정보를 정규화해 비교할 수 있도록 만든 분석 화면입니다.',
     usage: [
-      '상단에서 사이트와 데이터셋을 선택하면 해당 수집 결과가 로드됩니다.',
+      '상단에서 사이트, 국가, 데이터셋을 선택하면 해당 수집 결과가 로드됩니다.',
       '필터 영역에서 네트워크, 데이터 용량, 사용기간, 통신사 지원, 가격 범위를 조합해 원하는 상품만 볼 수 있습니다.',
       '정렬 기준은 사이트마다 다르며, Qoo10은 리뷰 수와 검색 위치, Amazon은 판매량과 베스트셀러 지표를 더 많이 사용합니다.',
       '상세 항목 표의 상품명을 누르면 원본 상품 페이지로 이동하고, 현재 화면 기준으로 엑셀 다운로드도 가능합니다.',
@@ -113,9 +122,11 @@ let state = {
   totalBeforeFilter: 0,
   datasets: [],
   sites: [],
+  countries: [],
   selectedSite: 'amazon_jp',
+  selectedCountry: 'kr',
   selectedDatasetId: null,
-  selectedCsvPath: './data/sites/amazon_jp/latest.csv',
+  selectedCsvPath: './data/sites/amazon_jp/kr/latest.csv',
   amazonReviewEnabled: true,
 };
 
@@ -154,6 +165,7 @@ function normalizeItem(raw) {
   const parsedPrice = Number(raw.price_jpy);
   return {
     site: raw.site || null,
+    country: raw.country || null,
     title: raw.title || '',
     product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
     price_jpy: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
@@ -190,6 +202,7 @@ const el = {
   helpBody: document.getElementById('helpBody'),
   refreshBtn: document.getElementById('refreshBtn'),
   siteSelect: document.getElementById('siteSelect'),
+  countrySelect: document.getElementById('countrySelect'),
   datasetSelect: document.getElementById('datasetSelect'),
   kpis: document.getElementById('kpis'),
   dataAmountBars: document.getElementById('dataAmountBars'),
@@ -226,6 +239,16 @@ function siteLabel(site) {
   return site === 'qoo10_jp' ? 'Qoo10 JP' : 'Amazon JP';
 }
 
+function countryLabel(country) {
+  return (COUNTRY_CONFIG[country] && COUNTRY_CONFIG[country].label) || String(country || '한국').toUpperCase();
+}
+
+function getVisibleCountryCodes() {
+  return Object.entries(COUNTRY_CONFIG)
+    .filter(([, config]) => config.dashboardEnabled)
+    .map(([code]) => code);
+}
+
 function isHelpOpen() {
   return el.helpOverlay && !el.helpOverlay.hidden;
 }
@@ -233,7 +256,7 @@ function isHelpOpen() {
 function renderHelpModal() {
   const common = HELP_CONTENT.common;
   const siteHelp = HELP_CONTENT[state.selectedSite] || HELP_CONTENT.amazon_jp;
-  el.helpTitle.textContent = `${siteLabel(state.selectedSite)} 도움말`;
+  el.helpTitle.textContent = `${siteLabel(state.selectedSite)} · ${countryLabel(state.selectedCountry)} 도움말`;
   el.helpBody.innerHTML = `
     <section class="helpSection">
       <h3>프로그램 소개</h3>
@@ -277,7 +300,8 @@ function formatDatasetLabel(entry) {
   const crawled = entry && entry.crawled_at ? isoToLocal(entry.crawled_at) : '-';
   const count = Number.isFinite(Number(entry && entry.item_count)) ? Number(entry.item_count).toLocaleString('ko-KR') : '-';
   const source = (entry && entry.source) ? String(entry.source).split(/[\\/]/).pop() : (entry && entry.id ? entry.id : 'dataset');
-  return `${crawled} | ${source} | ${count}개`;
+  const country = entry && entry.country ? countryLabel(entry.country) : countryLabel(state.selectedCountry);
+  return `${crawled} | ${country} | ${source} | ${count}개`;
 }
 
 function populateSiteOptions(indexData) {
@@ -293,6 +317,23 @@ function populateSiteOptions(indexData) {
   el.siteSelect.value = state.selectedSite;
 }
 
+function populateCountryOptions(indexData) {
+  const countries = new Set(getVisibleCountryCodes());
+  const latest = indexData && indexData.latest && indexData.latest[state.selectedSite] ? indexData.latest[state.selectedSite] : {};
+  Object.keys(latest).forEach((country) => {
+    if (!COUNTRY_CONFIG[country] || COUNTRY_CONFIG[country].dashboardEnabled) countries.add(country);
+  });
+  const runs = Array.isArray(indexData && indexData.runs) ? indexData.runs : [];
+  runs.forEach((run) => {
+    if (!run || run.site !== state.selectedSite || !run.country) return;
+    if (!COUNTRY_CONFIG[run.country] || COUNTRY_CONFIG[run.country].dashboardEnabled) countries.add(run.country);
+  });
+  state.countries = [...countries];
+  if (!state.countries.includes(state.selectedCountry)) state.selectedCountry = state.countries[0] || 'kr';
+  el.countrySelect.innerHTML = state.countries.map((country) => `<option value="${safe(country)}">${safe(countryLabel(country))}</option>`).join('');
+  el.countrySelect.value = state.selectedCountry;
+}
+
 function populateDatasetOptions(datasets) {
   if (!datasets.length) {
     el.datasetSelect.innerHTML = '<option value="">latest</option>';
@@ -306,7 +347,9 @@ function populateDatasetOptions(datasets) {
 }
 
 function getDatasetsForSelectedSite() {
-  return state.datasets.filter((entry) => (entry.site || 'amazon_jp') === state.selectedSite);
+  return state.datasets.filter(
+    (entry) => (entry.site || 'amazon_jp') === state.selectedSite && (entry.country || 'kr') === state.selectedCountry,
+  );
 }
 
 function yen(n) {
@@ -409,6 +452,7 @@ function carrierLabel(carrier) {
 function toQuery(includeDataset = true) {
   const params = new URLSearchParams();
   params.set('site', state.selectedSite);
+  params.set('country', state.selectedCountry);
   if (includeDataset && state.selectedDatasetId) params.set('dataset', state.selectedDatasetId);
   const q = el.searchInput.value.trim();
   if (q) params.set('q', q);
@@ -654,14 +698,16 @@ async function loadIndexData() {
 
 async function loadDataStaticFromRecord(record) {
   const jsonlPath = resolveDataPath(record && record.jsonl, `./data/sites/${state.selectedSite}/latest.jsonl`);
-  const csvPath = resolveDataPath(record && record.csv, `./data/sites/${state.selectedSite}/latest.csv`);
-  const metaPath = resolveDataPath(record && record.metadata, `./data/sites/${state.selectedSite}/metadata.json`);
-  const res = await fetch(jsonlPath, { cache: 'no-store' });
+  const jsonlFallback = `./data/sites/${state.selectedSite}/${state.selectedCountry}/latest.jsonl`;
+  const csvPath = resolveDataPath(record && record.csv, `./data/sites/${state.selectedSite}/${state.selectedCountry}/latest.csv`);
+  const metaPath = resolveDataPath(record && record.metadata, `./data/sites/${state.selectedSite}/${state.selectedCountry}/metadata.json`);
+  const finalJsonlPath = resolveDataPath(record && record.jsonl, jsonlFallback);
+  const res = await fetch(finalJsonlPath, { cache: 'no-store' });
   if (!res.ok) throw new Error(`정적 데이터 로드 실패: HTTP ${res.status}`);
   const items = parseJsonl(await res.text()).map(normalizeItem).filter(keepDashboardItem);
   let metadata = null;
   if (record && (record.crawled_at || record.published_at || record.source || record.item_count)) {
-    metadata = { source: record.source || jsonlPath, crawled_at: record.crawled_at || null, published_at: record.published_at || null, item_count: record.item_count || items.length, site: record.site || state.selectedSite };
+    metadata = { source: record.source || finalJsonlPath, crawled_at: record.crawled_at || null, published_at: record.published_at || null, item_count: record.item_count || items.length, site: record.site || state.selectedSite, country: record.country || state.selectedCountry };
   } else {
     try {
       const metaRes = await fetch(metaPath, { cache: 'no-store' });
@@ -670,10 +716,10 @@ async function loadDataStaticFromRecord(record) {
   }
   state.items = items;
   state.totalBeforeFilter = items.length;
-  state.file = metadata && metadata.source ? metadata.source : jsonlPath;
+  state.file = metadata && metadata.source ? metadata.source : finalJsonlPath;
   state.generatedAt = metadata && metadata.crawled_at ? metadata.crawled_at : null;
   state.selectedCsvPath = csvPath;
-  el.metaText.textContent = `사이트: ${siteLabel(state.selectedSite)} | 파일: ${state.file} | 추출: ${isoToLocal(state.generatedAt)} | 반영: ${isoToLocal(metadata && metadata.published_at)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  el.metaText.textContent = `사이트: ${siteLabel(state.selectedSite)} | 국가: ${countryLabel(state.selectedCountry)} | 파일: ${state.file} | 추출: ${isoToLocal(state.generatedAt)} | 반영: ${isoToLocal(metadata && metadata.published_at)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
   renderSiteStructure();
   renderFilterOptions(state.items);
   renderLocalView();
@@ -683,6 +729,7 @@ async function loadDataStatic() {
   const index = await loadIndexData();
   state.datasets = Array.isArray(index.runs) ? index.runs : [];
   populateSiteOptions(index);
+  populateCountryOptions(index);
   const datasets = getDatasetsForSelectedSite();
   if (state.selectedDatasetId && !datasets.some((d) => String(d.id) === String(state.selectedDatasetId))) state.selectedDatasetId = null;
   populateDatasetOptions(datasets);
@@ -690,7 +737,8 @@ async function loadDataStatic() {
     const selected = datasets.find((d) => String(d.id) === String(state.selectedDatasetId));
     if (selected) return loadDataStaticFromRecord(selected);
   }
-  return loadDataStaticFromRecord(index.latest && index.latest[state.selectedSite] ? index.latest[state.selectedSite] : null);
+  const latestBySite = index.latest && index.latest[state.selectedSite] ? index.latest[state.selectedSite] : null;
+  return loadDataStaticFromRecord(latestBySite && latestBySite[state.selectedCountry] ? latestBySite[state.selectedCountry] : null);
 }
 
 async function loadData() {
@@ -698,6 +746,7 @@ async function loadData() {
   const index = await loadIndexData();
   state.datasets = Array.isArray(index.runs) ? index.runs : [];
   populateSiteOptions(index);
+  populateCountryOptions(index);
   const datasets = getDatasetsForSelectedSite();
   if (state.selectedDatasetId && !datasets.some((d) => String(d.id) === String(state.selectedDatasetId))) state.selectedDatasetId = null;
   populateDatasetOptions(datasets);
@@ -722,7 +771,7 @@ async function loadData() {
   state.file = data.file;
   state.generatedAt = data.generatedAt;
   state.currentPage = 1;
-  el.metaText.textContent = `사이트: ${siteLabel(state.selectedSite)} | 파일: ${data.file} | 생성: ${isoToLocal(data.generatedAt)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  el.metaText.textContent = `사이트: ${siteLabel(state.selectedSite)} | 국가: ${countryLabel(state.selectedCountry)} | 파일: ${data.file} | 생성: ${isoToLocal(data.generatedAt)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
   renderFilterOptions(data.items);
   renderLocalView();
 }
@@ -742,6 +791,12 @@ el.siteSelect.addEventListener('change', () => {
   state.selectedSite = el.siteSelect.value || 'amazon_jp';
   state.selectedDatasetId = null;
   renderSiteStructure();
+  triggerReload();
+});
+
+el.countrySelect.addEventListener('change', () => {
+  state.selectedCountry = el.countrySelect.value || 'kr';
+  state.selectedDatasetId = null;
   triggerReload();
 });
 

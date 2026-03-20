@@ -1,0 +1,10 @@
+{
+  "site": "qoo10_jp",
+  "country": "vn",
+  "query": "eSIM ベトナム",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_qoo10_jp_vn\\results.jsonl",
+  "crawled_at": "2026-03-20T11:01:17.181354Z",
+  "published_at": "2026-03-20T11:54:22.256885Z",
+  "item_count": 136
+}

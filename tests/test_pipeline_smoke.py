@@ -57,11 +57,14 @@ class FakeAdapter(MarketplaceAdapter):
 def test_pipeline_smoke(tmp_path: Path):
     adapter = FakeAdapter()
     pipeline = CrawlPipeline(adapter=adapter, out_dir=tmp_path, concurrency=2, min_delay=0, max_delay=0)
-    result = asyncio.run(pipeline.run(query="eSIM 韓国", limit=5))
+    result = asyncio.run(pipeline.run(query="eSIM 韓国", limit=5, country="kr"))
 
     assert len(result.items) == 3
     assert len(result.invalid_items) == 1
     assert len(result.failures) == 1
+    assert all(item.country == "kr" for item in result.items)
+    assert result.invalid_items[0].country == "kr"
+    assert result.failures[0].country == "kr"
 
     write_jsonl(tmp_path / "results.jsonl", result.items)
     write_csv(tmp_path / "results.csv", result.items)
@@ -74,3 +77,5 @@ def test_pipeline_smoke(tmp_path: Path):
     assert (tmp_path / "failed.jsonl").exists()
     assert (tmp_path / "invalid.jsonl").exists()
     assert (tmp_path / "invalid.csv").exists()
+    assert '"country": "kr"' in (tmp_path / "results.jsonl").read_text(encoding="utf-8")
+    assert "country" in (tmp_path / "results.csv").read_text(encoding="utf-8-sig")

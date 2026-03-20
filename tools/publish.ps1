@@ -2,7 +2,8 @@ param(
   [string]$OutDir = '.\out',
   [string]$DataDir = 'dashboard\data',
   [string]$Site = 'amazon_jp',
-  [string]$Query = 'eSIM 韓国',
+  [string]$Country = 'kr',
+  [string]$Query = '',
   [int]$Limit = 0
 )
 
@@ -17,34 +18,148 @@ if (-not (Test-Path $resultsJsonl)) {
   exit 1
 }
 
+function New-Record(
+  [string]$SiteValue,
+  [string]$CountryValue,
+  [string]$CsvValue,
+  [string]$JsonlValue,
+  [string]$MetadataValue,
+  [string]$SourceValue,
+  [string]$CrawledAtValue,
+  [string]$PublishedAtValue,
+  $ItemCountValue,
+  [string]$QueryValue,
+  $LimitValue
+) {
+  return [ordered]@{
+    site = $SiteValue
+    country = $CountryValue
+    csv = $CsvValue
+    jsonl = $JsonlValue
+    metadata = $MetadataValue
+    source = $SourceValue
+    crawled_at = $CrawledAtValue
+    published_at = $PublishedAtValue
+    item_count = $ItemCountValue
+    query = $QueryValue
+    limit = $LimitValue
+  }
+}
+
+function Convert-ToRecord($Value, [string]$FallbackSite, [string]$FallbackCountry) {
+  if ($null -eq $Value) { return $null }
+  $csvValue = [string]$Value.csv
+  $jsonlValue = [string]$Value.jsonl
+  if ([string]::IsNullOrWhiteSpace($csvValue) -or [string]::IsNullOrWhiteSpace($jsonlValue)) {
+    return $null
+  }
+  return (New-Record `
+    (if ($Value.site) { [string]$Value.site } else { $FallbackSite }) `
+    (if ($Value.country) { [string]$Value.country } else { $FallbackCountry }) `
+    $csvValue `
+    $jsonlValue `
+    ([string]$Value.metadata) `
+    ([string]$Value.source) `
+    ([string]$Value.crawled_at) `
+    ([string]$Value.published_at) `
+    (if ($null -ne $Value.item_count) { [int]$Value.item_count } else { $null }) `
+    ([string]$Value.query) `
+    (if ($null -ne $Value.limit) { [int]$Value.limit } else { 0 }))
+}
+
+function Normalize-LatestMap($LatestValue) {
+  $map = [ordered]@{}
+  if ($null -eq $LatestValue) { return $map }
+
+  $topKeys = @($LatestValue.Keys)
+  $isFlatLegacy = ($topKeys -contains 'csv') -and ($topKeys -contains 'jsonl')
+  if ($isFlatLegacy) {
+    $record = Convert-ToRecord $LatestValue 'amazon_jp' 'kr'
+    if ($null -ne $record) {
+      $map['amazon_jp'] = [ordered]@{ kr = $record }
+    }
+    return $map
+  }
+
+  foreach ($siteKey in $topKeys) {
+    $siteValue = $LatestValue[$siteKey]
+    if ($null -eq $siteValue) { continue }
+    $siteKeys = @($siteValue.Keys)
+    $isSiteLegacy = ($siteKeys -contains 'csv') -and ($siteKeys -contains 'jsonl')
+    if ($isSiteLegacy) {
+      $record = Convert-ToRecord $siteValue $siteKey 'kr'
+      if ($null -ne $record) {
+        $map[$siteKey] = [ordered]@{ kr = $record }
+      }
+      continue
+    }
+
+    $countryMap = [ordered]@{}
+    foreach ($countryKey in $siteKeys) {
+      $record = Convert-ToRecord $siteValue[$countryKey] $siteKey $countryKey
+      if ($null -ne $record) {
+        $countryMap[$countryKey] = $record
+      }
+    }
+    if ($countryMap.Count -gt 0) {
+      $map[$siteKey] = $countryMap
+    }
+  }
+
+  return $map
+}
+
+function Normalize-Runs($RunsValue, [string]$CurrentRunId) {
+  $normalized = @()
+  if ($null -eq $RunsValue) { return $normalized }
+  foreach ($run in $RunsValue) {
+    if ([string]$run.id -eq $CurrentRunId) { continue }
+    $normalized += [ordered]@{
+      id = [string]$run.id
+      site = if ($run.site) { [string]$run.site } else { 'amazon_jp' }
+      country = if ($run.country) { [string]$run.country } else { 'kr' }
+      label = [string]$run.label
+      source = [string]$run.source
+      crawled_at = [string]$run.crawled_at
+      published_at = [string]$run.published_at
+      item_count = if ($null -ne $run.item_count) { [int]$run.item_count } else { $null }
+      csv = [string]$run.csv
+      jsonl = [string]$run.jsonl
+      metadata = [string]$run.metadata
+      query = [string]$run.query
+      limit = if ($null -ne $run.limit) { [int]$run.limit } else { 0 }
+    }
+  }
+  return $normalized
+}
+
 New-Item -ItemType Directory -Force $DataDir | Out-Null
 $runsDir = Join-Path $DataDir 'runs'
 New-Item -ItemType Directory -Force $runsDir | Out-Null
-$siteDir = Join-Path $DataDir (Join-Path 'sites' $Site)
-New-Item -ItemType Directory -Force $siteDir | Out-Null
+$countryDir = Join-Path (Join-Path $DataDir (Join-Path 'sites' $Site)) $Country
+New-Item -ItemType Directory -Force $countryDir | Out-Null
 
 $outName = (Split-Path $OutDir -Leaf) -replace '[^a-zA-Z0-9._-]', '_'
 $jsonlInfo = Get-Item $resultsJsonl
 $crawledAt = $jsonlInfo.LastWriteTimeUtc.ToString('o')
 $publishedAt = (Get-Date).ToUniversalTime().ToString('o')
 $runTs = $jsonlInfo.LastWriteTimeUtc.ToString('yyyyMMddTHHmmssZ')
-$runId = "${runTs}_${Site}_${outName}"
+$runId = "${runTs}_${Site}_${Country}_${outName}"
 $lineCount = (Get-Content $resultsJsonl | Where-Object { $_.Trim() -ne '' } | Measure-Object -Line).Lines
 
 $runCsvName = "${runId}.csv"
 $runJsonlName = "${runId}.jsonl"
-$runCsvPath = Join-Path $runsDir $runCsvName
-$runJsonlPath = Join-Path $runsDir $runJsonlName
-Copy-Item $results $runCsvPath -Force
-Copy-Item $resultsJsonl $runJsonlPath -Force
+Copy-Item $results (Join-Path $runsDir $runCsvName) -Force
+Copy-Item $resultsJsonl (Join-Path $runsDir $runJsonlName) -Force
 
-$dest = Join-Path $siteDir 'latest.csv'
-Copy-Item $results $dest -Force
-$destJsonl = Join-Path $siteDir 'latest.jsonl'
+$destCsv = Join-Path $countryDir 'latest.csv'
+$destJsonl = Join-Path $countryDir 'latest.jsonl'
+Copy-Item $results $destCsv -Force
 Copy-Item $resultsJsonl $destJsonl -Force
 
 $meta = [ordered]@{
   site = $Site
+  country = $Country
   query = $Query
   limit = $Limit
   source = $resultsJsonl
@@ -52,7 +167,7 @@ $meta = [ordered]@{
   published_at = $publishedAt
   item_count = $lineCount
 }
-$metaPath = Join-Path $siteDir 'metadata.json'
+$metaPath = Join-Path $countryDir 'metadata.json'
 $meta | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8
 
 $indexPath = Join-Path $DataDir 'index.json'
@@ -60,107 +175,37 @@ $latestMap = [ordered]@{}
 $runs = @()
 if (Test-Path $indexPath) {
   try {
-    $existing = Get-Content $indexPath -Raw | ConvertFrom-Json
-    if ($existing -and $existing.latest) {
-      $latestProps = @($existing.latest.PSObject.Properties.Name)
-      $isLegacyLatest = $latestProps -contains 'csv' -and $latestProps -contains 'jsonl'
-      if ($isLegacyLatest) {
-        $latestMap['amazon_jp'] = [ordered]@{
-          site = 'amazon_jp'
-          csv = [string]$existing.latest.csv
-          jsonl = [string]$existing.latest.jsonl
-          metadata = [string]$existing.latest.metadata
-          source = ''
-          crawled_at = ''
-          published_at = ''
-          item_count = $null
-          query = ''
-          limit = 0
-        }
-      } else {
-        foreach ($p in $existing.latest.PSObject.Properties) {
-          $csvValue = [string]$p.Value.csv
-          if ([string]::IsNullOrWhiteSpace($csvValue) -or $csvValue.StartsWith('@{site=')) {
-            continue
-          }
-          $latestMap[$p.Name] = [ordered]@{
-            site = if ($p.Value.site) { [string]$p.Value.site } else { [string]$p.Name }
-            csv = $csvValue
-            jsonl = [string]$p.Value.jsonl
-            metadata = [string]$p.Value.metadata
-            source = [string]$p.Value.source
-            crawled_at = [string]$p.Value.crawled_at
-            published_at = [string]$p.Value.published_at
-            item_count = if ($null -ne $p.Value.item_count) { [int]$p.Value.item_count } else { $null }
-            query = [string]$p.Value.query
-            limit = if ($null -ne $p.Value.limit) { [int]$p.Value.limit } else { 0 }
-          }
-        }
-      }
-    }
-    if ($existing -and $existing.runs) {
-      foreach ($r in $existing.runs) {
-        if ($r.id -ne $runId) {
-          $runs += [ordered]@{
-            id = [string]$r.id
-            site = if ($r.site) { [string]$r.site } else { 'amazon_jp' }
-            label = [string]$r.label
-            source = [string]$r.source
-            crawled_at = [string]$r.crawled_at
-            published_at = [string]$r.published_at
-            item_count = [int]$r.item_count
-            csv = [string]$r.csv
-            jsonl = [string]$r.jsonl
-            metadata = [string]$r.metadata
-            query = [string]$r.query
-            limit = if ($null -ne $r.limit) { [int]$r.limit } else { 0 }
-          }
-        }
-      }
-    }
+    $existing = Get-Content $indexPath -Raw | ConvertFrom-Json -AsHashtable
+    $latestMap = Normalize-LatestMap $existing.latest
+    $runs = Normalize-Runs $existing.runs $runId
   } catch {
     $latestMap = [ordered]@{}
     $runs = @()
   }
 }
 
-if (-not $latestMap.Contains('amazon_jp')) {
-  $legacyLatestCsv = Join-Path $DataDir 'latest.csv'
-  $legacyLatestJsonl = Join-Path $DataDir 'latest.jsonl'
-  $legacyMetadata = Join-Path $DataDir 'metadata.json'
-  if ((Test-Path $legacyLatestCsv) -and (Test-Path $legacyLatestJsonl)) {
-    $latestMap['amazon_jp'] = [ordered]@{
-      site = 'amazon_jp'
-      csv = 'latest.csv'
-      jsonl = 'latest.jsonl'
-      metadata = if (Test-Path $legacyMetadata) { 'metadata.json' } else { '' }
-      source = ''
-      crawled_at = ''
-      published_at = ''
-      item_count = $null
-      query = ''
-      limit = 0
-    }
-  }
+if (-not $latestMap.Contains($Site)) {
+  $latestMap[$Site] = [ordered]@{}
 }
 
-$latestMap[$Site] = [ordered]@{
-  site = $Site
-  csv = ('sites/{0}/latest.csv' -f $Site)
-  jsonl = ('sites/{0}/latest.jsonl' -f $Site)
-  metadata = ('sites/{0}/metadata.json' -f $Site)
-  source = $resultsJsonl
-  crawled_at = $crawledAt
-  published_at = $publishedAt
-  item_count = $lineCount
-  query = $Query
-  limit = $Limit
-}
+$latestMap[$Site][$Country] = New-Record `
+  $Site `
+  $Country `
+  ('sites/{0}/{1}/latest.csv' -f $Site, $Country) `
+  ('sites/{0}/{1}/latest.jsonl' -f $Site, $Country) `
+  ('sites/{0}/{1}/metadata.json' -f $Site, $Country) `
+  $resultsJsonl `
+  $crawledAt `
+  $publishedAt `
+  $lineCount `
+  $Query `
+  $Limit
 
-$label = "{0} | {1} | {2} | {3} items" -f $jsonlInfo.LastWriteTime.ToString('yyyy-MM-dd HH:mm'), $Site, $outName, $lineCount
+$label = "{0} | {1} | {2} | {3} | {4} items" -f $jsonlInfo.LastWriteTime.ToString('yyyy-MM-dd HH:mm'), $Site, $Country, $outName, $lineCount
 $newRun = [ordered]@{
   id = $runId
   site = $Site
+  country = $Country
   label = $label
   source = $resultsJsonl
   crawled_at = $crawledAt
@@ -168,7 +213,7 @@ $newRun = [ordered]@{
   item_count = $lineCount
   csv = ('runs/{0}' -f $runCsvName)
   jsonl = ('runs/{0}' -f $runJsonlName)
-  metadata = ('sites/{0}/metadata.json' -f $Site)
+  metadata = ('sites/{0}/{1}/metadata.json' -f $Site, $Country)
   query = $Query
   limit = $Limit
 }
@@ -178,9 +223,9 @@ $indexObj = [ordered]@{
   latest = $latestMap
   runs = $runs
 }
-$indexObj | ConvertTo-Json -Depth 8 | Set-Content -Path $indexPath -Encoding UTF8
+$indexObj | ConvertTo-Json -Depth 10 | Set-Content -Path $indexPath -Encoding UTF8
 
-Write-Host "Copied $results -> $dest"
+Write-Host "Copied $results -> $destCsv"
 Write-Host "Copied $resultsJsonl -> $destJsonl"
 Write-Host "Wrote metadata -> $metaPath"
 Write-Host "Saved run -> $runId"

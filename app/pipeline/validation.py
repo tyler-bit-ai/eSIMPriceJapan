@@ -29,6 +29,7 @@ def _to_invalid(detail: ProductDetail, stub: ProductStub, reason: str) -> Invali
 
     return InvalidItem(
         site=detail.site or stub.site,
+        country=detail.country or stub.country,
         product_url=str(detail.product_url),
         asin=detail.asin or stub.asin,
         site_product_id=detail.site_product_id or stub.site_product_id,

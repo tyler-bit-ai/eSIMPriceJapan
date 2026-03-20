@@ -9,6 +9,7 @@ const ROOT = __dirname;
 const DASHBOARD_DIR = path.join(ROOT, 'dashboard');
 const DATA_DIR = path.join(DASHBOARD_DIR, 'data');
 const INDEX_PATH = path.join(DATA_DIR, 'index.json');
+const DEFAULT_COUNTRY = 'kr';
 
 function readJsonFile(jsonPath) {
   const raw = fs.readFileSync(jsonPath, 'utf8').replace(/^\uFEFF/, '');
@@ -272,22 +273,38 @@ function normalizeIndexShape(indexObj) {
   if (latest.csv || latest.jsonl) {
     return {
       latest: {
-        amazon_jp: { ...latest, site: 'amazon_jp' },
+        amazon_jp: {
+          [DEFAULT_COUNTRY]: { ...latest, site: 'amazon_jp', country: latest.country || DEFAULT_COUNTRY },
+        },
       },
-      runs: runs.map((run) => ({ ...run, site: run.site || 'amazon_jp' })),
+      runs: runs.map((run) => ({ ...run, site: run.site || 'amazon_jp', country: run.country || DEFAULT_COUNTRY })),
     };
   }
 
   const normalizedLatest = {};
   for (const [site, record] of Object.entries(latest)) {
-    if (record && typeof record === 'object') {
-      normalizedLatest[site] = { ...record, site: record.site || site };
+    if (!record || typeof record !== 'object') continue;
+    if (record.csv || record.jsonl) {
+      normalizedLatest[site] = {
+        [DEFAULT_COUNTRY]: { ...record, site: record.site || site, country: record.country || DEFAULT_COUNTRY },
+      };
+      continue;
+    }
+    normalizedLatest[site] = {};
+    for (const [country, countryRecord] of Object.entries(record)) {
+      if (countryRecord && typeof countryRecord === 'object') {
+        normalizedLatest[site][country] = {
+          ...countryRecord,
+          site: countryRecord.site || site,
+          country: countryRecord.country || country,
+        };
+      }
     }
   }
 
   return {
     latest: normalizedLatest,
-    runs: runs.map((run) => ({ ...run, site: run.site || 'amazon_jp' })),
+    runs: runs.map((run) => ({ ...run, site: run.site || 'amazon_jp', country: run.country || DEFAULT_COUNTRY })),
   };
 }
 
@@ -309,14 +326,17 @@ function readIndexData() {
   return {
     latest: {
       amazon_jp: {
-        site: 'amazon_jp',
-        csv: latest.file.replace(/results\.jsonl$/i, 'results.csv').replaceAll('\\', '/'),
-        jsonl: latest.file.replaceAll('\\', '/'),
-        metadata: null,
-        source: latest.file,
-        crawled_at: new Date(latest.mtimeMs).toISOString(),
-        published_at: null,
-        item_count: null,
+        [DEFAULT_COUNTRY]: {
+          site: 'amazon_jp',
+          country: DEFAULT_COUNTRY,
+          csv: latest.file.replace(/results\.jsonl$/i, 'results.csv').replaceAll('\\', '/'),
+          jsonl: latest.file.replaceAll('\\', '/'),
+          metadata: null,
+          source: latest.file,
+          crawled_at: new Date(latest.mtimeMs).toISOString(),
+          published_at: null,
+          item_count: null,
+        },
       },
     },
     runs: [],
@@ -329,12 +349,17 @@ function resolveRepoPath(relPath) {
   return path.join(DATA_DIR, relPath.replace(/^\.\//, ''));
 }
 
-function getDatasetRecord(indexData, site, datasetId) {
+function getDatasetRecord(indexData, site, country, datasetId) {
   if (datasetId) {
-    const run = indexData.runs.find((entry) => String(entry.id) === String(datasetId) && (entry.site || 'amazon_jp') === site);
+    const run = indexData.runs.find(
+      (entry) =>
+        String(entry.id) === String(datasetId) &&
+        (entry.site || 'amazon_jp') === site &&
+        (entry.country || DEFAULT_COUNTRY) === country,
+    );
     if (run) return run;
   }
-  return indexData.latest[site] || null;
+  return (indexData.latest[site] && indexData.latest[site][country]) || null;
 }
 
 function readDataset(record) {
@@ -375,9 +400,9 @@ function readDataset(record) {
   };
 }
 
-function readLatestData(site = 'amazon_jp', datasetId = null) {
+function readLatestData(site = 'amazon_jp', country = DEFAULT_COUNTRY, datasetId = null) {
   const indexData = readIndexData();
-  const record = getDatasetRecord(indexData, site, datasetId);
+  const record = getDatasetRecord(indexData, site, country, datasetId);
   const data = readDataset(record);
   return {
     ...data,
@@ -485,8 +510,9 @@ function createServer() {
 
     if (parsedUrl.pathname === '/api/latest') {
       const site = String(parsedUrl.query.site || 'amazon_jp');
+      const country = String(parsedUrl.query.country || DEFAULT_COUNTRY);
       const dataset = parsedUrl.query.dataset ? String(parsedUrl.query.dataset) : null;
-      const data = readLatestData(site, dataset);
+      const data = readLatestData(site, country, dataset);
       if (!data.found) {
         sendJson(res, 200, data);
         return;
@@ -501,6 +527,7 @@ function createServer() {
         summary: summarize(filtered),
         totalBeforeFilter: data.items.length,
         site,
+        country,
         dataset,
       });
       return;
@@ -508,8 +535,9 @@ function createServer() {
 
     if (parsedUrl.pathname === '/api/export.xlsx') {
       const site = String(parsedUrl.query.site || 'amazon_jp');
+      const country = String(parsedUrl.query.country || DEFAULT_COUNTRY);
       const dataset = parsedUrl.query.dataset ? String(parsedUrl.query.dataset) : null;
-      const data = readLatestData(site, dataset);
+      const data = readLatestData(site, country, dataset);
       if (!data.found) {
         sendJson(res, 404, { message: data.message || 'No data found.' });
         return;
@@ -551,6 +579,7 @@ if (require.main === module) {
 module.exports = {
   parseJsonl,
   summarize,
+  normalizeIndexShape,
   readLatestData,
   readIndexData,
   applyFilters,

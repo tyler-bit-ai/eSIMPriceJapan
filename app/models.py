@@ -20,6 +20,7 @@ class CarrierSupportKR(BaseModel):
 
 class ProductStub(BaseModel):
     site: Optional[str] = None
+    country: Optional[str] = None
     product_url: HttpUrl
     asin: Optional[str] = None
     site_product_id: Optional[str] = None
@@ -35,6 +36,7 @@ class ProductStub(BaseModel):
 
 class ProductDetail(BaseModel):
     site: Optional[str] = None
+    country: Optional[str] = None
     title: Optional[str] = None
     price_jpy: Optional[int] = None
     review_count: Optional[int] = None
@@ -59,6 +61,7 @@ class ProductDetail(BaseModel):
 
 class InvalidItem(BaseModel):
     site: Optional[str] = None
+    country: Optional[str] = None
     product_url: str
     asin: Optional[str] = None
     site_product_id: Optional[str] = None
@@ -71,6 +74,8 @@ class InvalidItem(BaseModel):
 
 
 class CrawlError(BaseModel):
+    site: Optional[str] = None
+    country: Optional[str] = None
     product_url: str
     asin: Optional[str] = None
     error_type: str

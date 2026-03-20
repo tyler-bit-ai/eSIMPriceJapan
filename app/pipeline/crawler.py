@@ -31,8 +31,10 @@ class CrawlPipeline:
         self.max_delay = max_delay
         self.max_retries = max_retries
 
-    async def run(self, query: str, limit: int) -> CrawlResult:
+    async def run(self, query: str, limit: int, country: str | None = None) -> CrawlResult:
         stubs = await self.adapter.search(query=query, limit=limit)
+        if country:
+            stubs = [stub.model_copy(update={"country": country}) for stub in stubs]
         logger.info("start crawl details: %s items", len(stubs))
         semaphore = asyncio.Semaphore(self.concurrency)
 
@@ -45,6 +47,8 @@ class CrawlPipeline:
                 await random_delay(self.min_delay, self.max_delay)
                 try:
                     item = await self._fetch_with_retry(stub)
+                    if country and item.country is None:
+                        item = item.model_copy(update={"country": country})
                     invalid = validate_product(item, stub)
                     if invalid is not None:
                         logger.info("invalid item for %s: %s", stub.product_url, invalid.invalid_reason)
@@ -56,6 +60,8 @@ class CrawlPipeline:
                     screenshot = self._extract_screenshot_path(str(exc))
                     failures.append(
                         CrawlError(
+                            site=stub.site,
+                            country=stub.country or country,
                             product_url=str(stub.product_url),
                             asin=stub.asin,
                             error_type=type(exc).__name__,
