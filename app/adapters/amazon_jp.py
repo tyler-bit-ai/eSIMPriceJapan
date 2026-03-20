@@ -22,7 +22,7 @@ from app.extractors.heuristics import (
     extract_validity_split,
     parse_price_text,
 )
-from app.models import ProductDetail, ProductStub
+from app.models import CarrierSupportKR, ProductDetail, ProductStub
 
 logger = logging.getLogger(__name__)
 
@@ -250,7 +250,10 @@ class AmazonJPAdapter(MarketplaceAdapter):
             else:
                 evidence["network_type"] = ["no_local_or_roaming_keyword_matched"]
 
-            carrier_support, carrier_ev = extract_carrier_support_kr(text_blocks)
+            carrier_support, carrier_ev = self._extract_carrier_support_kr(
+                text_blocks=text_blocks,
+                country=stub.country,
+            )
             if carrier_ev:
                 evidence["carrier_support_kr"] = carrier_ev
 
@@ -298,6 +301,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
 
             return ProductDetail(
                 site=self.name,
+                country=stub.country,
                 title=title,
                 price_jpy=price.value if isinstance(price.value, int) else None,
                 review_count=review_count.value if isinstance(review_count.value, int) else None,
@@ -347,6 +351,15 @@ class AmazonJPAdapter(MarketplaceAdapter):
         if all_text:
             blocks.append(all_text[:5000])
         return blocks
+
+    def _extract_carrier_support_kr(
+        self,
+        text_blocks: list[str],
+        country: str | None,
+    ) -> tuple[CarrierSupportKR, list[str]]:
+        if country != "kr":
+            return CarrierSupportKR(), []
+        return extract_carrier_support_kr(text_blocks)
 
     def _collect_price_text_candidates(self, soup: BeautifulSoup) -> list[str]:
         candidates: list[str] = []

@@ -21,7 +21,7 @@ from app.extractors.heuristics import (
     normalize_text,
     parse_price_text,
 )
-from app.models import ProductDetail, ProductStub
+from app.models import CarrierSupportKR, ProductDetail, ProductStub
 
 logger = logging.getLogger(__name__)
 
@@ -254,7 +254,10 @@ class Qoo10JPAdapter(MarketplaceAdapter):
             carrier_texts = list(validity_texts)
             if representative_option:
                 carrier_texts.insert(0, representative_option.raw_text)
-            carrier_support, carrier_ev = extract_carrier_support_kr(carrier_texts)
+            carrier_support, carrier_ev = self._extract_carrier_support_kr(
+                text_blocks=carrier_texts,
+                country=stub.country,
+            )
             if carrier_ev:
                 evidence["carrier_support_kr"] = carrier_ev
 
@@ -276,6 +279,7 @@ class Qoo10JPAdapter(MarketplaceAdapter):
 
             detail = ProductDetail(
                 site=self.name,
+                country=stub.country,
                 title=title,
                 price_jpy=price.value if isinstance(price.value, int) else None,
                 review_count=review_count,
@@ -304,6 +308,15 @@ class Qoo10JPAdapter(MarketplaceAdapter):
             raise RuntimeError(f"detail parsing failed: {exc}; screenshot={shot}") from exc
         finally:
             await page.close()
+
+    def _extract_carrier_support_kr(
+        self,
+        text_blocks: list[str],
+        country: str | None,
+    ) -> tuple[CarrierSupportKR, list[str]]:
+        if country != "kr":
+            return CarrierSupportKR(), []
+        return extract_carrier_support_kr(text_blocks)
 
     def _iter_search_cards(self, soup: BeautifulSoup) -> list[BeautifulSoup]:
         cards: list[BeautifulSoup] = []

@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 
 from app.adapters.amazon_jp import AmazonJPAdapter
 from app.extractors.heuristics import extract_review_count
+from app.models import CarrierSupportKR
 
 
 def test_amazon_search_card_extracts_review_count():
@@ -55,3 +56,29 @@ def test_amazon_extract_review_count_value_from_json_ld():
     adapter = object.__new__(AmazonJPAdapter)
     extracted = adapter._extract_review_count_value(['{"reviewCount":"512","ratingValue":"4.5"}'])
     assert extracted.value == 512
+
+
+def test_amazon_extract_carrier_support_kr_only_for_kr_country():
+    adapter = object.__new__(AmazonJPAdapter)
+
+    support, evidence = adapter._extract_carrier_support_kr(
+        ["ベトナム eSIM 対応 SKT KT LG U+"],
+        country="vn",
+    )
+
+    assert support == CarrierSupportKR()
+    assert evidence == []
+
+
+def test_amazon_extract_carrier_support_kr_for_kr_country():
+    adapter = object.__new__(AmazonJPAdapter)
+
+    support, evidence = adapter._extract_carrier_support_kr(
+        ["韓国 eSIM 対応 SKT KT LG U+"],
+        country="kr",
+    )
+
+    assert support.skt is True
+    assert support.kt is True
+    assert support.lgu is True
+    assert evidence

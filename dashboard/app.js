@@ -195,6 +195,9 @@ function keepDashboardItem(item) {
 
 const el = {
   metaText: document.getElementById('metaText'),
+  currentScope: document.getElementById('currentScope'),
+  siteAmazonCard: document.getElementById('siteAmazonCard'),
+  siteQoo10Card: document.getElementById('siteQoo10Card'),
   helpBtn: document.getElementById('helpBtn'),
   helpOverlay: document.getElementById('helpOverlay'),
   helpCloseBtn: document.getElementById('helpCloseBtn'),
@@ -522,6 +525,15 @@ async function downloadFilteredExcel() {
 function renderSiteStructure() {
   const config = activeConfig();
   el.searchInput.placeholder = config.searchPlaceholder;
+  if (el.currentScope) {
+    el.currentScope.textContent = `사이트: ${siteLabel(state.selectedSite)} · 국가: ${countryLabel(state.selectedCountry)}`;
+  }
+  if (el.siteAmazonCard) {
+    el.siteAmazonCard.classList.toggle('active', state.selectedSite === 'amazon_jp');
+  }
+  if (el.siteQoo10Card) {
+    el.siteQoo10Card.classList.toggle('active', state.selectedSite === 'qoo10_jp');
+  }
   el.sortKey.innerHTML = config.sortOptions.map(([value, label]) => `<option value="${value}">${safe(label)}</option>`).join('');
   if (!config.sortOptions.some(([value]) => value === el.sortKey.value)) {
     el.sortKey.value = config.sortOptions[0][0];
@@ -559,7 +571,6 @@ function renderKpis(summary) {
         ['필터 결과', `${total.toLocaleString('ko-KR')}개`],
         ['최저 / 중앙 / 평균', `${yen(summary.priceMin)} / ${yen(summary.priceMedian)} / ${yen(summary.priceAvg)}`],
         ['최고 가격', yen(summary.priceMax)],
-        ['판매량 중앙값', summary.salesMedian === null ? '-' : `${summary.salesMedian.toLocaleString('ko-KR')}개`],
         ['판매량 수집', `${summary.salesKnownCount.toLocaleString('ko-KR')}개`],
         ['로밍 / 로컬', `${roamingPct}% / ${localPct}%`],
         ['무제한 비중', `${unlimitedPct}%`],
@@ -569,10 +580,6 @@ function renderKpis(summary) {
         ['KT 명시', `${summary.carrierTrue.kt}`],
         ['LGU+ 명시', `${summary.carrierTrue.lgu}`],
       ];
-  if (state.selectedSite === 'amazon_jp' && state.amazonReviewEnabled) {
-    kpis.splice(4, 0, ['리뷰 수 중앙값', summary.reviewMedian === null ? '-' : `${summary.reviewMedian.toLocaleString('ko-KR')}`]);
-    kpis.splice(5, 0, ['리뷰 수 확인 상품', `${summary.reviewKnownCount.toLocaleString('ko-KR')}개`]);
-  }
   el.kpis.innerHTML = kpis.map(([label, value]) => `<div class="kpi"><label>${safe(label)}</label><strong>${safe(value)}</strong></div>`).join('');
 }
 
