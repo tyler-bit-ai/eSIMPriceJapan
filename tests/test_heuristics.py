@@ -3,10 +3,11 @@ from app.extractors.heuristics import (
     extract_bestseller_rank,
     extract_carrier_support_kr,
     extract_data_amount,
+    extract_monthly_sold_count,
     extract_network_type,
     extract_price_jpy,
     extract_price_jpy_with_evidence,
-    extract_sales_last_month,
+    extract_review_count,
     extract_validity,
     extract_validity_split,
     parse_price_text,
@@ -23,6 +24,12 @@ def test_parse_price_text_krw():
     amount, currency = parse_price_text("KRW14,210")
     assert amount == 14210
     assert currency == "KRW"
+
+
+def test_parse_price_text_yen_suffix():
+    amount, currency = parse_price_text("商品価格 1,080円")
+    assert amount == 1080
+    assert currency == "JPY"
 
 
 def test_extract_price_jpy_with_non_jpy_evidence():
@@ -47,6 +54,12 @@ def test_extract_validity_split_usage_and_activation():
     )
     assert res.usage_validity == "3일"
     assert res.activation_validity == "30일"
+
+
+def test_extract_validity_split_hours_to_days():
+    res = extract_validity_split(["韓国eSIM 72時間 無制限 / 有効期限 90日"])
+    assert res.usage_validity == "3일"
+    assert res.activation_validity == "90일"
 
 
 def test_extract_validity_split_swap_if_inverted():
@@ -83,12 +96,44 @@ def test_extract_network_type_local():
     assert net == NetworkType.local
 
 
+def test_extract_network_type_avoid_roaming_center_false_positive():
+    net, _ = extract_network_type(["現地空港サポート(SKTelecomローミングセンター)"])
+    assert net == NetworkType.unknown
+
+
+def test_extract_network_type_negated_roaming():
+    net, _ = extract_network_type(["このプランはローミング不要です"])
+    assert net == NetworkType.unknown
+
+
+def test_extract_network_type_conflicting_signals():
+    net, _ = extract_network_type(["現地回線対応、ただし国際ローミング設定が必要"])
+    assert net == NetworkType.unknown
+
+
+def test_extract_network_type_korean_carrier_line_is_unknown():
+    net, _ = extract_network_type(["韓国大手通信キャリア SKTelecom 公式認証正規品SIM"])
+    assert net == NetworkType.unknown
+
+
+def test_extract_network_type_phone_number_is_local():
+    net, _ = extract_network_type(["韓国 eSIM 010電話番号付き 電話/SMS可"])
+    assert net == NetworkType.local
+
+
 def test_extract_carrier_support_kr():
     carriers, evidence = extract_carrier_support_kr(["韓国 SKT KT LG U+ 対応キャリア"])
     assert carriers.skt is True
     assert carriers.kt is True
     assert carriers.lgu is True
     assert evidence
+
+
+def test_extract_carrier_support_kr_sk_telecom_variants():
+    carriers, _ = extract_carrier_support_kr(["Korea SK Telecom KT Japan Uplus 対応"])
+    assert carriers.skt is True
+    assert carriers.kt is True
+    assert carriers.lgu is True
 
 
 def test_extract_data_amount():
@@ -101,22 +146,41 @@ def test_extract_data_amount_unlimited_jp_to_en():
     assert res.value == "unlimited"
 
 
-def test_extract_sales_last_month_count():
-    sales = extract_sales_last_month(["この商品は過去1か月で500点以上購入されました"])
-    assert sales.min_count == 500
+def test_extract_data_amount_daily_gb():
+    res = extract_data_amount(["韓国 eSIM 1GB/日 3日間"])
+    assert res.value == "1GB/day"
 
 
-def test_extract_sales_last_month_man_unit():
-    sales = extract_sales_last_month(["過去1か月で1.2万点以上購入されました"])
-    assert sales.min_count == 12000
+def test_extract_data_amount_daily_mb():
+    res = extract_data_amount(["毎日 500MB 利用可能"])
+    assert res.value == "500MB/day"
 
 
-def test_extract_bestseller_rank():
-    rank = extract_bestseller_rank(["売れ筋ランキング: 1,234位 家電＆カメラ"])
-    assert rank.rank == 1234
+def test_extract_monthly_sold_count():
+    res = extract_monthly_sold_count(["過去1か月で4,000点以上購入されました"])
+    assert res.value == 4000
 
 
 def test_extract_bestseller_badge():
-    badge, evidence = extract_bestseller_badge(["ベストセラー", "その他"])
-    assert badge is True
-    assert evidence
+    res = extract_bestseller_badge(["ベストセラー"])
+    assert res.value is True
+
+
+def test_extract_bestseller_rank():
+    res = extract_bestseller_rank(["Amazon 売れ筋ランキング: 家電＆カメラ 28位"])
+    assert res.value == 28
+
+
+def test_extract_review_count_amazon_jp():
+    res = extract_review_count(["1,234個の評価"])
+    assert res.value == 1234
+
+
+def test_extract_review_count_amazon_en():
+    res = extract_review_count(["1,234 ratings"])
+    assert res.value == 1234
+
+
+def test_extract_review_count_ignores_star_rating():
+    res = extract_review_count(["4.5 5つ星のうち4.5"])
+    assert res.value is None

@@ -1,0 +1,10 @@
+{
+  "site": "qoo10_jp",
+  "country": "th",
+  "query": "eSIM タイ",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_qoo10_jp_th\\results.jsonl",
+  "crawled_at": "2026-03-20T11:12:04.210253Z",
+  "published_at": "2026-03-20T11:54:22.102890Z",
+  "item_count": 139
+}

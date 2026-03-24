@@ -1,0 +1,9 @@
+﻿{
+    "site":  "qoo10_jp",
+    "query":  "eSIM 韓国",
+    "limit":  200,
+    "source":  ".\\out_qoo10_200_reclass\\results.jsonl",
+    "crawled_at":  "2026-03-07T04:52:24.2429262Z",
+    "published_at":  "2026-03-07T04:53:28.4801434Z",
+    "item_count":  200
+}

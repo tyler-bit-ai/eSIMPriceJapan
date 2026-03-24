@@ -3,11 +3,19 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
+from typing import Optional
 
 import typer
 
-from app.adapters.amazon_jp import AmazonJPAdapter
-from app.output.writers import write_csv, write_failed_jsonl, write_jsonl
+from app.adapters.factory import create_adapter, get_supported_sites
+from app.countries import get_default_query, get_supported_countries
+from app.output.writers import (
+    write_csv,
+    write_failed_jsonl,
+    write_invalid_csv,
+    write_invalid_jsonl,
+    write_jsonl,
+)
 from app.pipeline.crawler import CrawlPipeline
 from app.utils.logging import configure_logging
 
@@ -23,7 +31,8 @@ def main() -> None:
 @app.command("crawl")
 def crawl(
     site: str = typer.Option("amazon_jp", "--site"),
-    query: str = typer.Option("eSIM Korea", "--query"),
+    country: str = typer.Option("kr", "--country"),
+    query: Optional[str] = typer.Option(None, "--query"),
     limit: int = typer.Option(50, "--limit", min=1, max=200),
     out: Path = typer.Option(Path("./out"), "--out"),
     concurrency: int = typer.Option(3, "--concurrency", min=1, max=8),
@@ -35,15 +44,26 @@ def crawl(
     """Crawl marketplace and export JSONL/CSV results."""
     configure_logging(verbose=verbose)
 
-    if site != "amazon_jp":
-        raise typer.BadParameter("Only --site amazon_jp is implemented for now")
+    supported_sites = get_supported_sites()
+    if site not in supported_sites:
+        supported = ", ".join(supported_sites)
+        raise typer.BadParameter(f"Unsupported --site {site}. Supported: {supported}")
+
+    supported_countries = get_supported_countries()
+    if country not in supported_countries:
+        supported = ", ".join(supported_countries)
+        raise typer.BadParameter(f"Unsupported --country {country}. Supported: {supported}")
 
     if min_delay > max_delay:
         raise typer.BadParameter("--min-delay must be <= --max-delay")
 
+    effective_query = query if query is not None else get_default_query(site=site, country=country)
+
     asyncio.run(
         _run_crawl(
-            query=query,
+            site=site,
+            country=country,
+            query=effective_query,
             limit=limit,
             out=out,
             concurrency=concurrency,
@@ -55,6 +75,8 @@ def crawl(
 
 
 async def _run_crawl(
+    site: str,
+    country: str,
     query: str,
     limit: int,
     out: Path,
@@ -66,7 +88,7 @@ async def _run_crawl(
     out.mkdir(parents=True, exist_ok=True)
     screenshot_dir = out / "screenshots"
 
-    adapter = await AmazonJPAdapter.create(screenshot_dir=screenshot_dir)
+    adapter = await create_adapter(site=site, screenshot_dir=screenshot_dir)
     try:
         pipeline = CrawlPipeline(
             adapter=adapter,
@@ -76,21 +98,27 @@ async def _run_crawl(
             max_delay=max_delay,
             max_retries=max_retries,
         )
-        result = await pipeline.run(query=query, limit=limit)
+        result = await pipeline.run(query=query, limit=limit, country=country)
     finally:
         await adapter.close()
 
     results_jsonl = out / "results.jsonl"
     results_csv = out / "results.csv"
     failed_jsonl = out / "failed.jsonl"
+    invalid_jsonl = out / "invalid.jsonl"
+    invalid_csv = out / "invalid.csv"
 
     write_jsonl(results_jsonl, result.items)
     write_csv(results_csv, result.items)
     write_failed_jsonl(failed_jsonl, result.failures)
+    write_invalid_jsonl(invalid_jsonl, result.invalid_items)
+    write_invalid_csv(invalid_csv, result.invalid_items)
 
     logger.info("saved %s items to %s", len(result.items), results_jsonl)
     logger.info("saved %s items to %s", len(result.items), results_csv)
     logger.info("saved %s failures to %s", len(result.failures), failed_jsonl)
+    logger.info("saved %s invalid items to %s", len(result.invalid_items), invalid_jsonl)
+    logger.info("saved %s invalid items to %s", len(result.invalid_items), invalid_csv)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+{
+  "site": "amazon_jp",
+  "country": "tw",
+  "query": "eSIM 台湾",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_amazon_jp_tw\\results.jsonl",
+  "crawled_at": "2026-03-20T09:57:49.142472Z",
+  "published_at": "2026-03-20T11:54:21.785607Z",
+  "item_count": 200
+}

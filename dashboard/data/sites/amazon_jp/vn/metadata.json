@@ -1,0 +1,10 @@
+{
+  "site": "amazon_jp",
+  "country": "vn",
+  "query": "eSIM ベトナム",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_amazon_jp_vn\\results.jsonl",
+  "crawled_at": "2026-03-20T09:29:26.523807Z",
+  "published_at": "2026-03-20T11:54:21.896428Z",
+  "item_count": 200
+}

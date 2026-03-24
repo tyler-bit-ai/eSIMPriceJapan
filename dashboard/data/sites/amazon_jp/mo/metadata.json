@@ -1,0 +1,10 @@
+{
+  "site": "amazon_jp",
+  "country": "mo",
+  "query": "eSIM マカオ",
+  "limit": 200,
+  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_amazon_jp_mo\\results.jsonl",
+  "crawled_at": "2026-03-20T10:26:18.981343Z",
+  "published_at": "2026-03-20T11:54:21.703692Z",
+  "item_count": 200
+}

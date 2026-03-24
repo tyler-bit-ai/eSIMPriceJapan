@@ -1,66 +1,110 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Amazon JP eSIM Dashboard</title>
+  <title>Japan eSIM Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
-  <script>
-    if (location.pathname.endsWith('/dashboard')) {
-      location.replace(location.pathname + '/');
-    }
-  </script>
 </head>
 <body>
   <div class="noise"></div>
   <main class="layout">
     <header class="hero">
-      <div>
-        <p class="kicker">AMAZON JP eSIM INSIGHT</p>
+      <section class="heroCopy">
+        <p class="kicker">JAPAN MARKETPLACE RESEARCH BOARD</p>
         <h1>수집 결과 대시보드</h1>
-        <p id="metaText" class="meta">데이터를 불러오는 중...</p>
-      </div>
-      <button id="refreshBtn" class="btn">새로고침</button>
+        <p class="heroLead">일본 마켓플레이스에서 국가별 eSIM 상품을 수집하고, 두 사이트를 같은 조사 체계 안에서 비교할 수 있도록 정리한 분석 화면입니다.</p>
+        <div class="marketCluster">
+          <div class="clusterHeader">
+            <div>
+              <p class="sectionKicker">조사 채널</p>
+              <p class="clusterTitle">Amazon JP · Qoo10 JP 연계 뷰</p>
+            </div>
+            <span id="currentScope" class="clusterNote">사이트: Amazon JP · 국가: 한국</span>
+          </div>
+          <div class="siteBridge" aria-label="조사 채널">
+            <div id="siteAmazonCard" class="sitePill active">
+              <span class="sitePillLabel">Amazon JP</span>
+              <span class="sitePillMeta">리뷰, 판매량, 베스트셀러 지표 중심</span>
+            </div>
+            <div class="siteBridgeLink">동일 조사군</div>
+            <div id="siteQoo10Card" class="sitePill">
+              <span class="sitePillLabel">Qoo10 JP</span>
+              <span class="sitePillMeta">검색 위치, 셀러 배지, 옵션형 상품 중심</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="heroMeta">
+        <div class="heroMetaTop">
+          <span class="scopeBadge">현재 조사 조건</span>
+          <div class="heroActions">
+            <button id="helpBtn" class="btn ghost">도움말</button>
+            <button id="refreshBtn" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div class="metaStack">
+          <label class="datasetField" for="siteSelect">
+            <span class="filterLabel">사이트</span>
+            <select id="siteSelect">
+              <option value="amazon_jp">Amazon JP</option>
+              <option value="qoo10_jp">Qoo10 JP</option>
+            </select>
+          </label>
+          <label class="datasetField" for="countrySelect">
+            <span class="filterLabel">국가</span>
+            <select id="countrySelect">
+              <option value="kr">한국</option>
+            </select>
+          </label>
+          <label class="datasetField" for="datasetSelect">
+            <span class="filterLabel">데이터셋</span>
+            <select id="datasetSelect">
+              <option value="">로딩 중...</option>
+            </select>
+          </label>
+          <div class="metaCard">
+            <span class="metaLabel">데이터 상태</span>
+            <strong id="metaText" class="metaValue">데이터를 불러오는 중...</strong>
+          </div>
+        </div>
+      </section>
     </header>
 
     <section id="kpis" class="kpis"></section>
 
     <section class="card">
-      <div class="cardHead">
-        <h2>필터</h2>
-        <span class="subtle">필터 변경 시 즉시 반영됩니다.</span>
+      <div class="panelHeaderCard">
+        <div>
+          <p class="sectionKicker">탐색 조건</p>
+          <h2>필터</h2>
+        </div>
+        <p class="panelNote">현재 선택한 사이트와 국가 기준으로 즉시 다시 계산됩니다.</p>
       </div>
       <div class="toolbar">
-        <label class="field field--search">
-          <span>상품명/셀러/브랜드</span>
-          <input id="searchInput" type="text" placeholder="키워드 입력" />
+        <label class="field fieldWide">
+          <span class="filterLabel">검색</span>
+          <input id="searchInput" type="text" placeholder="상품명/셀러/브랜드 검색" />
         </label>
         <label class="field">
-          <span>네트워크</span>
-          <select id="networkFilter"><option value="">전체</option></select>
+          <span class="filterLabel">네트워크</span>
+          <select id="networkFilter"><option value="">네트워크 전체</option></select>
         </label>
         <label class="field">
-          <span>데이터</span>
-          <select id="dataFilter"><option value="">전체</option></select>
+          <span class="filterLabel">데이터</span>
+          <select id="dataFilter"><option value="">데이터 전체</option></select>
         </label>
         <label class="field">
-          <span>사용기간</span>
-          <select id="usageFilter"><option value="">전체</option></select>
+          <span class="filterLabel">사용기간</span>
+          <select id="usageFilter"><option value="">사용기간 전체</option></select>
         </label>
         <label class="field">
-          <span>베스트셀러</span>
-          <select id="bestsellerFilter">
-            <option value="">전체</option>
-            <option value="true">베스트셀러만</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>한국 통신사</span>
+          <span class="filterLabel">통신사</span>
           <select id="carrierFilter">
-            <option value="">전체</option>
+            <option value="">통신사 전체</option>
             <option value="any">통신사 명시 상품</option>
             <option value="skt">SKT 지원</option>
             <option value="kt">KT 지원</option>
@@ -68,76 +112,88 @@
           </select>
         </label>
         <label class="field">
-          <span>최소 가격 (JPY)</span>
-          <input id="minPrice" type="number" min="0" step="1" placeholder="0" />
+          <span class="filterLabel">최소 가격</span>
+          <input id="minPrice" type="number" min="0" step="1" placeholder="최소 가격 (JPY)" />
         </label>
         <label class="field">
-          <span>최대 가격 (JPY)</span>
-          <input id="maxPrice" type="number" min="0" step="1" placeholder="예: 5000" />
+          <span class="filterLabel">최대 가격</span>
+          <input id="maxPrice" type="number" min="0" step="1" placeholder="최대 가격 (JPY)" />
         </label>
         <label class="field">
-          <span>정렬</span>
-          <select id="sortKey">
-            <option value="priceAsc">가격 낮은 순</option>
-            <option value="priceDesc">가격 높은 순</option>
-            <option value="usageAsc">사용기간 짧은 순</option>
-            <option value="salesDesc">판매량 높은 순</option>
-            <option value="salesAsc">판매량 낮은 순</option>
-            <option value="rankAsc">판매순위 높은 순</option>
-          </select>
+          <span class="filterLabel">정렬</span>
+          <select id="sortKey"></select>
         </label>
       </div>
     </section>
 
     <section class="grid">
       <article class="card">
-        <h2>데이터 용량 분포</h2>
+        <div class="panelHeaderCard">
+          <div>
+            <p class="sectionKicker">분포 분석</p>
+            <h2>데이터 용량 분포</h2>
+          </div>
+        </div>
         <div id="dataAmountBars" class="bars"></div>
       </article>
       <article class="card">
-        <h2>네트워크 비율</h2>
+        <div class="panelHeaderCard">
+          <div>
+            <p class="sectionKicker">분포 분석</p>
+            <h2>네트워크 비중</h2>
+          </div>
+        </div>
         <div id="networkBars" class="bars"></div>
       </article>
-      <article class="card">
-        <h2>베스트셀러 분포</h2>
-        <div id="bestsellerBars" class="bars"></div>
+      <article class="card" id="sellerBadgeCard">
+        <div class="panelHeaderCard">
+          <div>
+            <p class="sectionKicker">분포 분석</p>
+            <h2>셀러 배지 분포</h2>
+          </div>
+        </div>
+        <div id="sellerBadgeBars" class="bars"></div>
       </article>
     </section>
 
     <section class="card">
-      <div class="detailHead">
-        <h2>상세 목록</h2>
-        <button id="downloadExcelBtn" class="btn ghost">CSV 다운로드</button>
+      <div class="panelHeaderCard detailHead">
+        <div>
+          <p class="sectionKicker">상세 비교</p>
+          <h2>상세 항목</h2>
+        </div>
+        <div class="panelActions">
+          <button id="downloadExcelBtn" class="btn ghost">엑셀 다운로드</button>
+        </div>
       </div>
       <div class="tableWrap">
         <table>
-          <thead>
-            <tr>
-              <th>상품명</th>
-              <th>가격 (JPY)</th>
-              <th>네트워크</th>
-              <th>데이터</th>
-              <th>사용기간</th>
-              <th>최근1개월 구매수(하한)</th>
-              <th>판매순위</th>
-              <th>베스트셀러</th>
-              <th>통신사 지원</th>
-              <th>셀러</th>
-              <th>브랜드</th>
-            </tr>
-          </thead>
+          <thead id="tableHead"></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
       <div class="pagination">
         <button id="prevPage" class="btn ghost">이전</button>
-        <span id="pageInfo"></span>
+        <span id="pageInfo" class="paginationStatus"></span>
         <button id="nextPage" class="btn ghost">다음</button>
       </div>
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <div id="helpOverlay" class="modalOverlay" hidden>
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modalHead">
+        <div>
+          <p class="modalKicker">HELP</p>
+          <h2 id="helpTitle">도움말</h2>
+        </div>
+        <button id="helpCloseBtn" class="btn ghost">닫기</button>
+      </div>
+      <div id="helpBody" class="modalBody"></div>
+    </div>
+  </div>
+
   <script src="./app.js"></script>
 </body>
 </html>
+

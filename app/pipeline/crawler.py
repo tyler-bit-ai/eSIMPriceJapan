@@ -7,7 +7,8 @@ from pathlib import Path
 from tenacity import AsyncRetrying, RetryError, stop_after_attempt, wait_exponential_jitter
 
 from app.adapters.base import MarketplaceAdapter
-from app.models import CrawlError, CrawlResult, ProductDetail, ProductStub
+from app.models import CrawlError, CrawlResult, InvalidItem, ProductDetail, ProductStub
+from app.pipeline.validation import validate_product
 from app.utils.delay import random_delay
 
 logger = logging.getLogger(__name__)
@@ -30,12 +31,15 @@ class CrawlPipeline:
         self.max_delay = max_delay
         self.max_retries = max_retries
 
-    async def run(self, query: str, limit: int) -> CrawlResult:
+    async def run(self, query: str, limit: int, country: str | None = None) -> CrawlResult:
         stubs = await self.adapter.search(query=query, limit=limit)
+        if country:
+            stubs = [stub.model_copy(update={"country": country}) for stub in stubs]
         logger.info("start crawl details: %s items", len(stubs))
         semaphore = asyncio.Semaphore(self.concurrency)
 
         items: list[ProductDetail] = []
+        invalid_items: list[InvalidItem] = []
         failures: list[CrawlError] = []
 
         async def worker(stub: ProductStub) -> None:
@@ -43,12 +47,21 @@ class CrawlPipeline:
                 await random_delay(self.min_delay, self.max_delay)
                 try:
                     item = await self._fetch_with_retry(stub)
-                    items.append(item)
+                    if country and item.country is None:
+                        item = item.model_copy(update={"country": country})
+                    invalid = validate_product(item, stub)
+                    if invalid is not None:
+                        logger.info("invalid item for %s: %s", stub.product_url, invalid.invalid_reason)
+                        invalid_items.append(invalid)
+                    else:
+                        items.append(item)
                 except Exception as exc:
                     logger.warning("failed for %s: %s", stub.product_url, exc)
                     screenshot = self._extract_screenshot_path(str(exc))
                     failures.append(
                         CrawlError(
+                            site=stub.site,
+                            country=stub.country or country,
                             product_url=str(stub.product_url),
                             asin=stub.asin,
                             error_type=type(exc).__name__,
@@ -59,7 +72,7 @@ class CrawlPipeline:
                     )
 
         await asyncio.gather(*(worker(stub) for stub in stubs))
-        return CrawlResult(items=items, failures=failures)
+        return CrawlResult(items=items, invalid_items=invalid_items, failures=failures)
 
     async def _fetch_with_retry(self, stub: ProductStub) -> ProductDetail:
         try:

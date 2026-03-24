@@ -15,13 +15,14 @@ from app.extractors.heuristics import (
     extract_bestseller_rank,
     extract_carrier_support_kr,
     extract_data_amount,
+    extract_monthly_sold_count,
     extract_network_type,
     extract_price_jpy_with_evidence,
-    extract_sales_last_month,
+    extract_review_count,
     extract_validity_split,
     parse_price_text,
 )
-from app.models import ProductDetail, ProductStub
+from app.models import CarrierSupportKR, ProductDetail, ProductStub
 
 logger = logging.getLogger(__name__)
 
@@ -111,24 +112,40 @@ class AmazonJPAdapter(MarketplaceAdapter):
                         amount, currency = parse_price_text(price_text)
                         if amount is not None and (currency == "JPY" or currency is None):
                             search_price_jpy = amount
-
                     card_text = card.get_text(" ", strip=True)
-                    sales = extract_sales_last_month([card_text])
-                    badge_texts = [n.get_text(" ", strip=True) for n in card.select(".a-badge-label, .a-badge-text")]
-                    search_badge, _ = extract_bestseller_badge(badge_texts + [card_text])
+                    review_count = self._extract_review_count_value(
+                        [
+                            self._extract_text_selectors(
+                                card,
+                                [
+                                    "span[aria-label*='個の評価']",
+                                    "span[aria-label*='ratings']",
+                                    "span.a-size-base.s-underline-text",
+                                    "a.a-link-normal span.a-size-base",
+                                    "a[href*='customerReviews'] span",
+                                ],
+                            )
+                            or "",
+                            card_text,
+                        ]
+                    )
+                    monthly_sold = extract_monthly_sold_count([card_text])
+                    bestseller_badge = extract_bestseller_badge([card_text])
 
                     seen.add(full)
                     if asin:
                         seen_asins.add(asin)
                     unique.append(
                         ProductStub(
+                            site=self.name,
                             product_url=full,
                             asin=asin,
+                            site_product_id=asin,
                             search_price_jpy=search_price_jpy,
                             search_price_text=price_text,
-                            search_sales_last_month_min=sales.min_count,
-                            search_sales_last_month_text=sales.text,
-                            search_bestseller_badge=search_badge,
+                            search_review_count=review_count.value if isinstance(review_count.value, int) else None,
+                            search_monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
+                            search_is_bestseller=bestseller_badge.value if isinstance(bestseller_badge.value, bool) else None,
                         )
                     )
                     if len(unique) >= limit:
@@ -156,7 +173,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
                         seen.add(full)
                         if asin:
                             seen_asins.add(asin)
-                        unique.append(ProductStub(product_url=full, asin=asin))
+                        unique.append(ProductStub(site=self.name, product_url=full, asin=asin, site_product_id=asin))
                         if len(unique) >= limit:
                             break
                     if len(unique) >= limit:
@@ -204,7 +221,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
             )
             if price.evidence:
                 evidence["price_jpy"] = price.evidence
-            elif stub.search_price_jpy is not None:
+            elif stub.search_price_jpy is not None and stub.search_price_jpy > 0:
                 price.value = stub.search_price_jpy
                 evidence["price_jpy"] = [
                     f"search_result_fallback: {stub.search_price_text or stub.search_price_jpy}"
@@ -219,40 +236,52 @@ class AmazonJPAdapter(MarketplaceAdapter):
             validity_split = extract_validity_split(validity_texts)
             if validity_split.usage_evidence:
                 evidence["usage_validity"] = validity_split.usage_evidence
+            if validity_split.activation_evidence:
+                evidence["activation_validity"] = validity_split.activation_evidence
 
             data_amount = extract_data_amount(text_blocks)
             if data_amount.evidence:
                 evidence["data_amount"] = data_amount.evidence
 
-            network_type, network_ev = extract_network_type(text_blocks)
+            network_texts = [title] + text_blocks if title else text_blocks
+            network_type, network_ev = extract_network_type(network_texts)
             if network_ev:
                 evidence["network_type"] = network_ev
             else:
                 evidence["network_type"] = ["no_local_or_roaming_keyword_matched"]
 
-            carrier_support, carrier_ev = extract_carrier_support_kr(text_blocks)
+            carrier_support, carrier_ev = self._extract_carrier_support_kr(
+                text_blocks=text_blocks,
+                country=stub.country,
+            )
             if carrier_ev:
                 evidence["carrier_support_kr"] = carrier_ev
 
-            sales = extract_sales_last_month(validity_texts)
-            if sales.min_count is None and stub.search_sales_last_month_min is not None:
-                sales.min_count = stub.search_sales_last_month_min
-                sales.text = stub.search_sales_last_month_text
-                sales.evidence = [f"search_result_fallback: {stub.search_sales_last_month_text or stub.search_sales_last_month_min}"]
-            if sales.evidence:
-                evidence["sales_last_month"] = sales.evidence
+            monthly_sold = extract_monthly_sold_count(text_blocks)
+            if monthly_sold.evidence:
+                evidence["monthly_sold_count"] = monthly_sold.evidence
+            elif isinstance(stub.search_monthly_sold_count, int):
+                monthly_sold.value = stub.search_monthly_sold_count
+                evidence["monthly_sold_count"] = [f"search_result_fallback: {stub.search_monthly_sold_count}"]
 
-            rank_candidates = self._collect_rank_text_candidates(soup)
-            rank = extract_bestseller_rank(rank_candidates)
-            if rank.evidence:
-                evidence["bestseller_rank"] = rank.evidence
+            review_texts = self._collect_review_count_candidates(soup, text_blocks)
+            review_count = self._extract_review_count_value(review_texts)
+            if review_count.evidence:
+                evidence["review_count"] = [f"detail_page: {review_count.evidence[0]}"]
+            elif isinstance(stub.search_review_count, int):
+                review_count.value = stub.search_review_count
+                evidence["review_count"] = [f"search_result_fallback: {stub.search_review_count}"]
 
-            badge_texts = self._collect_badge_text_candidates(soup)
-            bestseller_badge, badge_ev = extract_bestseller_badge(badge_texts + validity_texts)
-            if bestseller_badge is None:
-                bestseller_badge = stub.search_bestseller_badge
-            if badge_ev:
-                evidence["bestseller_badge"] = badge_ev
+            bestseller_badge = extract_bestseller_badge(text_blocks)
+            if bestseller_badge.evidence:
+                evidence["is_bestseller"] = bestseller_badge.evidence
+            elif isinstance(stub.search_is_bestseller, bool):
+                bestseller_badge.value = stub.search_is_bestseller
+                evidence["is_bestseller"] = [f"search_result_fallback: {stub.search_is_bestseller}"]
+
+            bestseller_rank = extract_bestseller_rank(text_blocks)
+            if bestseller_rank.evidence:
+                evidence["bestseller_rank"] = bestseller_rank.evidence
 
             seller = self._extract_text_selectors(
                 soup,
@@ -271,21 +300,23 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 asin = self._extract_asin_from_dom(soup)
 
             return ProductDetail(
+                site=self.name,
+                country=stub.country,
                 title=title,
                 price_jpy=price.value if isinstance(price.value, int) else None,
+                review_count=review_count.value if isinstance(review_count.value, int) else None,
+                monthly_sold_count=monthly_sold.value if isinstance(monthly_sold.value, int) else None,
+                is_bestseller=bestseller_badge.value if isinstance(bestseller_badge.value, bool) else None,
+                bestseller_rank=bestseller_rank.value if isinstance(bestseller_rank.value, int) else None,
                 usage_validity=validity_split.usage_validity,
-                validity=validity_split.usage_validity,
+                activation_validity=validity_split.activation_validity,
+                validity=validity_split.usage_validity or validity_split.activation_validity,
                 network_type=network_type,
                 carrier_support_kr=carrier_support,
                 data_amount=data_amount.value if isinstance(data_amount.value, str) else None,
-                sales_last_month_min=sales.min_count,
-                sales_last_month_text=sales.text,
-                bestseller_badge=bestseller_badge,
-                bestseller_rank=rank.rank,
-                bestseller_category=rank.category,
-                bestseller_rank_text=rank.text,
                 product_url=stub.product_url,
                 asin=asin,
+                site_product_id=asin,
                 seller=seller,
                 brand=brand,
                 evidence=evidence,
@@ -321,6 +352,15 @@ class AmazonJPAdapter(MarketplaceAdapter):
             blocks.append(all_text[:5000])
         return blocks
 
+    def _extract_carrier_support_kr(
+        self,
+        text_blocks: list[str],
+        country: str | None,
+    ) -> tuple[CarrierSupportKR, list[str]]:
+        if country != "kr":
+            return CarrierSupportKR(), []
+        return extract_carrier_support_kr(text_blocks)
+
     def _collect_price_text_candidates(self, soup: BeautifulSoup) -> list[str]:
         candidates: list[str] = []
         selectors = [
@@ -339,6 +379,16 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 text = node.get_text(" ", strip=True)
                 if text:
                     candidates.append(text)
+        context_patterns = [
+            r"(?:価格|税込価格|￥|¥|JPY)[^。\n\r]{0,40}[0-9][0-9,]*\s*円?",
+            r"[￥¥]\s*[0-9][0-9,]*",
+        ]
+        all_text = soup.get_text(" ", strip=True)
+        for pattern in context_patterns:
+            for match in re.finditer(pattern, all_text, re.IGNORECASE):
+                snippet = match.group(0).strip()
+                if snippet:
+                    candidates.append(snippet)
 
         if not candidates:
             for node in soup.select(".a-price .a-offscreen"):
@@ -348,44 +398,62 @@ class AmazonJPAdapter(MarketplaceAdapter):
 
         return candidates[:12]
 
-    def _collect_rank_text_candidates(self, soup: BeautifulSoup) -> list[str]:
+    def _collect_review_count_candidates(self, soup: BeautifulSoup, text_blocks: list[str]) -> list[str]:
         candidates: list[str] = []
         selectors = [
-            "#productDetails_detailBullets_sections1 tr",
-            "#detailBullets_feature_div li",
-            "#detailBulletsWrapper_feature_div li",
-            "#prodDetails",
+            "#acrCustomerReviewText",
+            "span[data-hook='total-review-count']",
+            "a[data-hook='see-all-reviews-link-foot'] span",
+            "a[href*='customerReviews'] span",
+            "#averageCustomerReviews_feature_div",
+            "[data-hook='cr-filter-info-review-rating-count']",
+            "script[type='application/ld+json']",
         ]
         for selector in selectors:
             for node in soup.select(selector):
-                text = node.get_text(" ", strip=True)
-                if "売れ筋ランキング" in text or "Best Sellers Rank" in text:
-                    candidates.append(text)
-        page_text = soup.get_text(" ", strip=True)
-        if page_text and ("売れ筋ランキング" in page_text or "Best Sellers Rank" in page_text):
-            candidates.append(page_text[:2000])
-        return candidates[:10]
-
-    def _collect_badge_text_candidates(self, soup: BeautifulSoup) -> list[str]:
-        badges: list[str] = []
-        selectors = [
-            "#acBadge_feature_div",
-            ".ac-badge-text",
-            ".a-badge-text",
-            ".badge-text",
-        ]
-        for selector in selectors:
-            for node in soup.select(selector):
-                text = node.get_text(" ", strip=True)
+                if node.name == "script":
+                    text = node.string or node.get_text(" ", strip=True)
+                else:
+                    text = (
+                        node.get_text(" ", strip=True)
+                        or node.get("aria-label")
+                        or node.get("content")
+                        or ""
+                    )
                 if text:
-                    badges.append(text)
-        return badges
+                    candidates.append(text)
+        candidates.extend(text_blocks[:5])
+        return candidates
+
+    def _extract_review_count_value(self, texts: list[str]):
+        extracted = extract_review_count(texts)
+        if extracted.evidence:
+            return extracted
+
+        for raw in texts:
+            text = raw.strip() if raw else ""
+            if not text:
+                continue
+            paren_match = re.search(r"\(\s*([0-9][0-9,]*)\s*\)", text)
+            if paren_match:
+                return type(extracted)(int(paren_match.group(1).replace(",", "")), [text[:180]])
+            bare_match = re.fullmatch(r"[#]?\s*([0-9][0-9,]*)", text)
+            if bare_match:
+                return type(extracted)(int(bare_match.group(1).replace(",", "")), [text[:180]])
+
+        return extracted
 
     def _extract_text_selectors(self, soup: BeautifulSoup, selectors: list[str]) -> str | None:
         for selector in selectors:
             node = soup.select_one(selector)
             if node:
-                text = node.get_text(" ", strip=True)
+                text = (
+                    node.get_text(" ", strip=True)
+                    or node.get("aria-label")
+                    or node.get("content")
+                    or node.get("alt")
+                    or ""
+                )
                 if text:
                     return text
         return None
