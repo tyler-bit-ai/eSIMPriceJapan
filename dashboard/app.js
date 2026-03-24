@@ -630,6 +630,104 @@ function getFilenameFromDisposition(contentDisposition) {
   return match && match[1] ? match[1] : null;
 }
 
+function makeClientExportFilename() {
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  return `${state.selectedSite || 'market'}_${state.selectedCountry || 'all'}_filtered_${ts}.csv`;
+}
+
+function escapeCsvCell(value) {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replaceAll('"', '""')}"`;
+  }
+  return text;
+}
+
+function buildClientExportRows(items) {
+  const isQoo10 = state.selectedSite === 'qoo10_jp';
+  return items.map((it) => {
+    const base = {
+      site: it.site || state.selectedSite || '',
+      title: it.title || '',
+      price_jpy: it.price_jpy ?? '',
+      price_krw: it.price_krw ?? '',
+      network_type: it.network_type || '',
+      data_amount: it.data_amount || '',
+      usage_validity: it.usage_validity || '',
+      activation_validity: it.activation_validity || '',
+      carrier_support_local: carrierLabel(it.carrier_support_local, it.country || state.selectedCountry),
+      seller: it.seller || '',
+      asin: it.asin || '',
+      site_product_id: it.site_product_id || '',
+    };
+    if (isQoo10) {
+      return {
+        ...base,
+        review_count: it.review_count ?? '',
+        seller_badge: it.seller_badge || '',
+        search_position: it.search_position ?? '',
+      };
+    }
+    return {
+      ...base,
+      review_count: it.review_count ?? '',
+      monthly_sold_count: it.monthly_sold_count ?? '',
+      is_bestseller: it.is_bestseller === null ? '' : (it.is_bestseller ? 'true' : 'false'),
+      bestseller_rank: it.bestseller_rank ?? '',
+      brand: it.brand || '',
+    };
+  });
+}
+
+function buildClientExportCsv(items) {
+  const isQoo10 = state.selectedSite === 'qoo10_jp';
+  const headers = isQoo10
+    ? [
+        'site',
+        'title',
+        'price_jpy',
+        'price_krw',
+        'review_count',
+        'seller_badge',
+        'search_position',
+        'network_type',
+        'data_amount',
+        'usage_validity',
+        'activation_validity',
+        'carrier_support_local',
+        'seller',
+        'asin',
+        'site_product_id',
+      ]
+    : [
+        'site',
+        'title',
+        'price_jpy',
+        'price_krw',
+        'review_count',
+        'monthly_sold_count',
+        'is_bestseller',
+        'bestseller_rank',
+        'network_type',
+        'data_amount',
+        'usage_validity',
+        'activation_validity',
+        'carrier_support_local',
+        'seller',
+        'brand',
+        'asin',
+        'site_product_id',
+      ];
+
+  const rows = buildClientExportRows(items);
+  const lines = [headers.join(',')];
+  rows.forEach((row) => {
+    lines.push(headers.map((header) => escapeCsvCell(row[header])).join(','));
+  });
+  return `\uFEFF${lines.join('\r\n')}`;
+}
+
 async function saveWithPicker(blob, suggestedName) {
   if (!('showSaveFilePicker' in window)) return false;
   const handle = await window.showSaveFilePicker({
@@ -644,12 +742,16 @@ async function saveWithPicker(blob, suggestedName) {
 
 async function downloadFilteredExcel() {
   if (IS_GITHUB_PAGES) {
+    const csv = buildClientExportCsv(state.filtered);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = state.selectedCsvPath;
-    a.download = (a.href.split('/').pop() || 'latest.csv').split('?')[0];
+    a.href = objectUrl;
+    a.download = makeClientExportFilename();
     document.body.appendChild(a);
     a.click();
     a.remove();
+    URL.revokeObjectURL(objectUrl);
     return;
   }
   const qs = toQuery();
