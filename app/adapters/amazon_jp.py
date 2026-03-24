@@ -13,7 +13,7 @@ from app.extractors.heuristics import (
     extract_asin,
     extract_bestseller_badge,
     extract_bestseller_rank,
-    extract_carrier_support_kr,
+    extract_carrier_support_for_country,
     extract_data_amount,
     extract_monthly_sold_count,
     extract_network_type,
@@ -250,12 +250,12 @@ class AmazonJPAdapter(MarketplaceAdapter):
             else:
                 evidence["network_type"] = ["no_local_or_roaming_keyword_matched"]
 
-            carrier_support, carrier_ev = self._extract_carrier_support_kr(
+            carrier_support_local, carrier_support_kr, carrier_ev = self._extract_carrier_support(
                 text_blocks=text_blocks,
                 country=stub.country,
             )
             if carrier_ev:
-                evidence["carrier_support_kr"] = carrier_ev
+                evidence["carrier_support_local"] = carrier_ev
 
             monthly_sold = extract_monthly_sold_count(text_blocks)
             if monthly_sold.evidence:
@@ -312,7 +312,8 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 activation_validity=validity_split.activation_validity,
                 validity=validity_split.usage_validity or validity_split.activation_validity,
                 network_type=network_type,
-                carrier_support_kr=carrier_support,
+                carrier_support_local=carrier_support_local,
+                carrier_support_kr=carrier_support_kr,
                 data_amount=data_amount.value if isinstance(data_amount.value, str) else None,
                 product_url=stub.product_url,
                 asin=asin,
@@ -352,14 +353,12 @@ class AmazonJPAdapter(MarketplaceAdapter):
             blocks.append(all_text[:5000])
         return blocks
 
-    def _extract_carrier_support_kr(
+    def _extract_carrier_support(
         self,
         text_blocks: list[str],
         country: str | None,
-    ) -> tuple[CarrierSupportKR, list[str]]:
-        if country != "kr":
-            return CarrierSupportKR(), []
-        return extract_carrier_support_kr(text_blocks)
+    ) -> tuple[dict[str, bool | None], CarrierSupportKR, list[str]]:
+        return extract_carrier_support_for_country(text_blocks, country)
 
     def _collect_price_text_candidates(self, soup: BeautifulSoup) -> list[str]:
         candidates: list[str] = []

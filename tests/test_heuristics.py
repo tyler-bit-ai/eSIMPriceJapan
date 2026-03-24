@@ -1,6 +1,8 @@
 from app.extractors.heuristics import (
     extract_bestseller_badge,
     extract_bestseller_rank,
+    extract_carrier_support_for_country,
+    extract_carrier_support_local,
     extract_carrier_support_kr,
     extract_data_amount,
     extract_monthly_sold_count,
@@ -134,6 +136,40 @@ def test_extract_carrier_support_kr_sk_telecom_variants():
     assert carriers.skt is True
     assert carriers.kt is True
     assert carriers.lgu is True
+
+
+def test_extract_carrier_support_local_for_vietnam():
+    carriers, evidence = extract_carrier_support_local(
+        ["ベトナム eSIM Viettel / MobiFone 対応"],
+        country="vn",
+    )
+    assert carriers["viettel"] is True
+    assert carriers["mobifone"] is True
+    assert carriers["vinaphone"] is None
+    assert evidence
+
+
+def test_extract_carrier_support_local_for_hong_kong():
+    carriers, evidence = extract_carrier_support_local(
+        ["香港 travel eSIM CMHK 3HK SmarTone 対応"],
+        country="hk",
+    )
+    assert carriers["cmhk"] is True
+    assert carriers["three_hk"] is True
+    assert carriers["smartone"] is True
+    assert evidence
+
+
+def test_extract_carrier_support_for_country_only_derives_kr_field_for_korea():
+    local_support, kr_support, evidence = extract_carrier_support_for_country(
+        ["ベトナム eSIM Viettel 対応"],
+        country="vn",
+    )
+    assert local_support["viettel"] is True
+    assert kr_support.skt is None
+    assert kr_support.kt is None
+    assert kr_support.lgu is None
+    assert evidence
 
 
 def test_extract_data_amount():

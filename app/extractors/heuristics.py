@@ -3,6 +3,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from app.carriers import (
+    carrier_support_local_to_kr,
+    get_country_carriers,
+    get_country_carrier_codes,
+)
 from app.models import CarrierSupportKR, NetworkType
 
 PRICE_PATTERN = re.compile(r"(?:(?:￥|¥|JPY\s?)\s*([0-9][0-9,]*)|([0-9][0-9,]*)\s*円)")
@@ -438,6 +443,53 @@ def extract_carrier_support_kr(texts: list[str]) -> tuple[CarrierSupportKR, list
             evidence.append(text[:180])
 
     return support, evidence
+
+
+def extract_carrier_support_local(
+    texts: list[str],
+    country: str | None,
+) -> tuple[dict[str, bool | None], list[str]]:
+    carrier_defs = get_country_carriers(country)
+    if not carrier_defs:
+        return {}, []
+
+    support: dict[str, bool | None] = {
+        code: None for code in get_country_carrier_codes(country)
+    }
+    evidence: list[str] = []
+
+    for raw in texts:
+        text = normalize_text(raw)
+        lower = text.lower()
+        matched_codes: list[str] = []
+        for carrier in carrier_defs:
+            if any(_contains_carrier_alias(lower, alias) for alias in carrier.aliases):
+                support[carrier.code] = True
+                matched_codes.append(carrier.label)
+
+        if matched_codes:
+            evidence.append(f"{', '.join(matched_codes)}: {text[:150]}")
+
+    return support, evidence
+
+
+def extract_carrier_support_for_country(
+    texts: list[str],
+    country: str | None,
+) -> tuple[dict[str, bool | None], CarrierSupportKR, list[str]]:
+    local_support, evidence = extract_carrier_support_local(texts, country)
+    carrier_support_kr = carrier_support_local_to_kr(local_support) if country == "kr" else CarrierSupportKR()
+    return local_support, carrier_support_kr, evidence
+
+
+def _contains_carrier_alias(text: str, alias: str) -> bool:
+    normalized_alias = normalize_text(alias).lower()
+    if not normalized_alias:
+        return False
+    if re.fullmatch(r"[a-z0-9&+.\- ]+", normalized_alias):
+        pattern = rf"(?<![a-z0-9]){re.escape(normalized_alias)}(?![a-z0-9])"
+        return re.search(pattern, text) is not None
+    return normalized_alias in text
 
 
 def extract_asin(url: str) -> str | None:

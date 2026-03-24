@@ -31,6 +31,7 @@ def write_csv(path: Path, items: list[ProductDetail]) -> None:
         "usage_validity",
         "activation_validity",
         "network_type",
+        "carrier_support_local",
         "carrier_support_kr",
         "data_amount",
         "product_url",
@@ -45,6 +46,7 @@ def write_csv(path: Path, items: list[ProductDetail]) -> None:
         writer.writeheader()
         for item in items:
             row = model_to_row(item)
+            row["carrier_support_local"] = json.dumps(row["carrier_support_local"], ensure_ascii=False)
             row["carrier_support_kr"] = json.dumps(row["carrier_support_kr"], ensure_ascii=False)
             row["evidence"] = json.dumps(row["evidence"], ensure_ascii=False)
             writer.writerow(row)

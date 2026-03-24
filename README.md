@@ -94,7 +94,7 @@ npm run dashboard
 - 네트워크(`local` / `roaming` / `unknown`)
 - 데이터 용량(`unlimited`, `NGB`, `1GB/day`)
 - 사용기간
-- 통신사 지원(SKT/KT/LGU+)
+- 통신사 지원(선택 국가의 현지 carrier 기준)
 - 가격 범위
 - 정렬(가격/판매량/리뷰/검색위치/사용기간)
 
@@ -107,7 +107,8 @@ npm run dashboard
 
 주의:
 - 태국(`th`)은 수집 대상이지만 현재 상단 국가 selector에는 노출하지 않도록 설정되어 있습니다.
-- `carrier_support_kr`는 한국 통신사 기준 필드이므로 비한국 국가 데이터에서는 대부분 `unknown` 또는 null로 남을 수 있습니다.
+- 새 스키마는 `carrier_support_local`을 우선 사용하고, 한국(`kr`) old dataset만 `carrier_support_kr` fallback을 사용합니다.
+- 비한국 old dataset은 `carrier_support_local`이 없으면 제목/evidence 기반의 경량 fallback으로 현지 통신사를 복원합니다. 정확도를 높이려면 재크롤링 후 `publish.ps1`로 재발행하는 것이 가장 안전합니다.
 - URL(`product_url`)은 인사이트가 낮아 UI 본문에는 직접 노출하지 않습니다.
 
 ## Output Schema
@@ -115,13 +116,14 @@ npm run dashboard
 - `site`, `country`, `site_product_id`
 - `title`, `price_jpy`, `review_count`, `monthly_sold_count`, `is_bestseller`, `bestseller_rank`
 - `validity`(하위호환), `usage_validity`, `activation_validity`, `network_type`
+- `carrier_support_local` (국가별 carrier code -> true/false/null)
 - `carrier_support_kr` (`skt`, `kt`, `lgu`: true/false/null)
 - `data_amount`, `product_url`, `asin`, `seller`, `brand`, `evidence`
 
 예시 JSONL:
 ```json
-{"site":"amazon_jp","country":"kr","title":"韓国 eSIM 7日 3GB","price_jpy":1980,"usage_validity":"7일","activation_validity":"30일","network_type":"roaming","carrier_support_kr":{"skt":true,"kt":null,"lgu":null},"data_amount":"3GB","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF12","asin":"B0ABCDEF12","site_product_id":"B0ABCDEF12","seller":"Example Store","brand":"Example"}
-{"site":"qoo10_jp","country":"vn","title":"ベトナム eSIM 3日 unlimited","price_jpy":1080,"usage_validity":"3일","activation_validity":"90일","network_type":"unknown","carrier_support_kr":{"skt":null,"kt":null,"lgu":null},"data_amount":"unlimited","product_url":"https://www.qoo10.jp/item/ESIM/1133241666","asin":null,"site_product_id":"1133241666","seller":"Example Seller","brand":null}
+{"site":"amazon_jp","country":"kr","title":"韓国 eSIM 7日 3GB","price_jpy":1980,"usage_validity":"7일","activation_validity":"30일","network_type":"roaming","carrier_support_local":{"skt":true,"kt":null,"lgu":null},"carrier_support_kr":{"skt":true,"kt":null,"lgu":null},"data_amount":"3GB","product_url":"https://www.amazon.co.jp/dp/B0ABCDEF12","asin":"B0ABCDEF12","site_product_id":"B0ABCDEF12","seller":"Example Store","brand":"Example"}
+{"site":"qoo10_jp","country":"vn","title":"ベトナム eSIM 3日 unlimited","price_jpy":1080,"usage_validity":"3일","activation_validity":"90일","network_type":"unknown","carrier_support_local":{"viettel":true,"vinaphone":null,"mobifone":null,"vietnamobile":null},"carrier_support_kr":{"skt":null,"kt":null,"lgu":null},"data_amount":"unlimited","product_url":"https://www.qoo10.jp/item/ESIM/1133241666","asin":null,"site_product_id":"1133241666","seller":"Example Seller","brand":null}
 ```
 
 ## Tests

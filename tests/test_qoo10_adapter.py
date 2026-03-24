@@ -1,9 +1,6 @@
 from bs4 import BeautifulSoup
 
 from app.adapters.qoo10_jp import Qoo10JPAdapter
-from app.models import CarrierSupportKR
-
-
 def test_extract_site_product_id():
     url = "https://www.qoo10.jp/item/ESIM/1133241666?banner_no=1170169"
     assert Qoo10JPAdapter.extract_site_product_id(url) == "1133241666"
@@ -229,26 +226,29 @@ def test_resolve_network_type_uses_qoo10_local_signal():
     assert evidence[0].startswith("qoo10_local_signal")
 
 
-def test_qoo10_extract_carrier_support_kr_only_for_kr_country():
+def test_qoo10_extract_carrier_support_local_for_non_kr_country():
     adapter = object.__new__(Qoo10JPAdapter)
 
-    support, evidence = adapter._extract_carrier_support_kr(
-        ["ベトナム eSIM 対応 SKT KT LG U+"],
+    local_support, kr_support, evidence = adapter._extract_carrier_support(
+        ["ベトナム eSIM Viettel VinaPhone 対応"],
         country="vn",
     )
 
-    assert support == CarrierSupportKR()
-    assert evidence == []
+    assert local_support["viettel"] is True
+    assert local_support["vinaphone"] is True
+    assert kr_support.skt is None
+    assert evidence
 
 
 def test_qoo10_extract_carrier_support_kr_for_kr_country():
     adapter = object.__new__(Qoo10JPAdapter)
 
-    support, evidence = adapter._extract_carrier_support_kr(
+    local_support, support, evidence = adapter._extract_carrier_support(
         ["韓国 eSIM 対応 SKT KT LG U+"],
         country="kr",
     )
 
+    assert local_support["skt"] is True
     assert support.skt is True
     assert support.kt is True
     assert support.lgu is True

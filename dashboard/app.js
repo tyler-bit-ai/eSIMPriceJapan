@@ -22,7 +22,7 @@ const SITE_CONFIG = {
       ['data_amount', '데이터'],
       ['usage_validity', '사용기간'],
       ['activation_validity', '활성화기간'],
-      ['carrier_support_kr', '통신사 지원'],
+      ['carrier_support_local', '통신사 지원'],
       ['seller', '셀러'],
       ['brand', '브랜드'],
     ],
@@ -48,7 +48,7 @@ const SITE_CONFIG = {
       ['data_amount', '데이터'],
       ['usage_validity', '사용기간'],
       ['activation_validity', '활성화기간'],
-      ['carrier_support_kr', '통신사 지원'],
+      ['carrier_support_local', '통신사 지원'],
       ['seller', '셀러'],
     ],
     showSellerBadgeChart: true,
@@ -77,7 +77,7 @@ const HELP_CONTENT = {
     notes: [
       '`unknown`은 정보가 없거나, 신호가 서로 충돌하거나, 추론 근거가 충분하지 않다는 뜻입니다.',
       '`usage_validity`는 실제 사용 가능 기간, `activation_validity`는 구매 후 개통해야 하는 기한을 뜻합니다.',
-      '`network_type`과 `carrier_support_kr`는 제목·옵션·상세 설명의 텍스트를 기반으로 추론될 수 있습니다.',
+      '`network_type`과 `carrier_support_local`은 제목·옵션·상세 설명의 텍스트를 기반으로 추론될 수 있습니다.',
       '`price_krw`는 `price_jpy * 환율`을 원 단위 반올림한 파생 값입니다.',
     ],
     terms: [
@@ -85,7 +85,7 @@ const HELP_CONTENT = {
       ['price_krw', 'Frankfurter 환율을 기준으로 계산한 KRW 환산 가격입니다. 원 단위 반올림 값을 사용합니다.'],
       ['data_amount', '무제한, 총량형(`3GB`), 일 단위형(`1GB/day`)처럼 데이터 정책을 정규화한 값입니다.'],
       ['network_type', '`local`, `roaming`, `unknown` 중 하나입니다. 현지 회선/현지 번호/로밍 문구 등으로 분류합니다.'],
-      ['carrier_support_kr', 'SKT, KT, LGU+ 관련 언급이 있는지 표시합니다. 언급이 없으면 미표시로 남을 수 있습니다.'],
+      ['carrier_support_local', '선택한 국가의 현지 통신사 언급을 carrier registry 기준으로 표시합니다. 언급이 없으면 미표시로 남을 수 있습니다.'],
     ],
   },
   amazon_jp: {
@@ -136,6 +136,84 @@ let state = {
   amazonReviewEnabled: true,
   exchangeRate: FX.buildExchangeRateMeta({ unavailable: true, stale: true }),
 };
+const CARRIER_CONFIG = {
+  kr: [
+    ['skt', 'SKT'],
+    ['kt', 'KT'],
+    ['lgu', 'LGU+'],
+  ],
+  vn: [
+    ['viettel', 'Viettel'],
+    ['vinaphone', 'VinaPhone'],
+    ['mobifone', 'MobiFone'],
+    ['vietnamobile', 'Vietnamobile'],
+  ],
+  tw: [
+    ['chunghwa', 'Chunghwa Telecom'],
+    ['taiwan_mobile', 'Taiwan Mobile'],
+    ['fareastone', 'Far EasTone'],
+  ],
+  hk: [
+    ['cmhk', 'CMHK'],
+    ['csl', 'CSL'],
+    ['smartone', 'SmarTone'],
+    ['three_hk', '3HK'],
+  ],
+  mo: [
+    ['ctm', 'CTM'],
+    ['china_telecom_macau', 'China Telecom (Macau)'],
+    ['three_macau', '3 Macau'],
+  ],
+  us: [
+    ['att', 'AT&T'],
+    ['tmobile', 'T-Mobile'],
+    ['verizon', 'Verizon'],
+  ],
+  th: [
+    ['ais', 'AIS'],
+    ['dtac', 'dtac'],
+    ['truemove', 'TrueMove H'],
+  ],
+};
+const CARRIER_ALIASES = {
+  kr: {
+    skt: ['skt', 'sk telecom', 'sktelecom'],
+    kt: ['kt', 'kt olleh', 'olleh'],
+    lgu: ['lg u+', 'lgu+', 'uplus', 'lg u plus', 'lgu'],
+  },
+  vn: {
+    viettel: ['viettel'],
+    vinaphone: ['vinaphone', 'vina phone', 'vnpt'],
+    mobifone: ['mobifone', 'mobi phone'],
+    vietnamobile: ['vietnamobile', 'vietnam mobile'],
+  },
+  tw: {
+    chunghwa: ['chunghwa', '中華電信', 'cht'],
+    taiwan_mobile: ['taiwan mobile', '台灣大哥大', 'twm'],
+    fareastone: ['far eas tone', 'far eastone', '遠傳', 'fet'],
+  },
+  hk: {
+    cmhk: ['cmhk', 'china mobile hong kong', '中國移動香港'],
+    csl: ['csl', 'one2free', '1o1o', 'pccw-hkt'],
+    smartone: ['smartone', 'smart one'],
+    three_hk: ['3hk', '3 hong kong', 'three hk'],
+  },
+  mo: {
+    ctm: ['ctm', 'macau telecom', '澳門電訊'],
+    china_telecom_macau: ['china telecom macau', '中國電信澳門', 'ctm macau'],
+    three_macau: ['3 macau', 'three macau', 'hutchison telephone macau'],
+  },
+  us: {
+    att: ['at&t', 'att'],
+    tmobile: ['t-mobile', 'tmobile'],
+    verizon: ['verizon'],
+  },
+  th: {
+    ais: ['ais', 'advanced info service'],
+    dtac: ['dtac'],
+    truemove: ['truemove', 'truemove h', 'true move'],
+  },
+};
 
 function parseJsonl(text) {
   return text
@@ -158,22 +236,56 @@ function extractDays(value) {
   return m ? Number(m[1]) : null;
 }
 
-function normalizeCarrier(carrierSupport) {
-  const c = carrierSupport && typeof carrierSupport === 'object' ? carrierSupport : {};
-  return {
-    skt: c.skt === true,
-    kt: c.kt === true,
-    lgu: c.lgu === true,
-  };
+function getCarrierDefinitions(country) {
+  return CARRIER_CONFIG[country] || [];
+}
+
+function inferLegacyCarrierLocal(raw, country) {
+  const aliasMap = CARRIER_ALIASES[country] || {};
+  const bag = [
+    raw.title,
+    raw.seller,
+    raw.brand,
+    ...(raw.evidence && typeof raw.evidence === 'object'
+      ? Object.values(raw.evidence).flat().filter(Boolean)
+      : []),
+  ]
+    .join(' ')
+    .toLowerCase();
+  if (!bag) return {};
+
+  const inferred = {};
+  Object.entries(aliasMap).forEach(([code, aliases]) => {
+    inferred[code] = aliases.some((alias) => bag.includes(String(alias).toLowerCase()));
+  });
+  return inferred;
+}
+
+function normalizeCarrierLocal(carrierSupport, legacyCarrierSupport, country, raw) {
+  const definitions = getCarrierDefinitions(country);
+  if (!definitions.length) return {};
+
+  const source = carrierSupport && typeof carrierSupport === 'object'
+    ? carrierSupport
+    : ((country === 'kr' && legacyCarrierSupport && typeof legacyCarrierSupport === 'object')
+      ? legacyCarrierSupport
+      : inferLegacyCarrierLocal(raw, country));
+
+  const normalized = {};
+  definitions.forEach(([code]) => {
+    normalized[code] = source[code] === true;
+  });
+  return normalized;
 }
 
 function normalizeItem(raw) {
-  const carrier = normalizeCarrier(raw.carrier_support_kr);
+  const country = raw.country || state.selectedCountry || null;
+  const carrier = normalizeCarrierLocal(raw.carrier_support_local, raw.carrier_support_kr, country, raw);
   const parsedPrice = Number(raw.price_jpy);
   const parsedPriceKrw = Number(raw.price_krw);
   return {
     site: raw.site || null,
-    country: raw.country || null,
+    country,
     title: raw.title || '',
     product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
     price_jpy: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
@@ -192,7 +304,8 @@ function normalizeItem(raw) {
     brand: raw.brand || null,
     asin: raw.asin || null,
     site_product_id: raw.site_product_id || null,
-    carrier_support_kr: carrier,
+    carrier_support_local: carrier,
+    carrier_support_kr: country === 'kr' ? carrier : {},
     usage_days: extractDays(raw.usage_validity || raw.validity || null),
     activation_days: extractDays(raw.activation_validity || null),
   };
@@ -410,11 +523,10 @@ function summarize(items) {
   const bestsellerRankKnownCount = items.filter((it) => Number.isFinite(it.bestseller_rank)).length;
   const top10Count = items.filter((it) => Number.isFinite(it.search_position) && it.search_position <= 10).length;
 
-  const carrierTrue = {
-    skt: items.filter((it) => it.carrier_support_kr && it.carrier_support_kr.skt).length,
-    kt: items.filter((it) => it.carrier_support_kr && it.carrier_support_kr.kt).length,
-    lgu: items.filter((it) => it.carrier_support_kr && it.carrier_support_kr.lgu).length,
-  };
+  const carrierCounts = {};
+  getCarrierDefinitions(state.selectedCountry).forEach(([code]) => {
+    carrierCounts[code] = items.filter((it) => it.carrier_support_local && it.carrier_support_local[code]).length;
+  });
   const badgeCounts = {};
   const byDataAmount = {};
   const byNetwork = {};
@@ -447,7 +559,7 @@ function summarize(items) {
     bestsellerCount,
     bestsellerRankKnownCount,
     top10Count,
-    carrierTrue,
+    carrierCounts,
     badgeCounts,
     byDataAmount,
     byNetwork,
@@ -480,12 +592,19 @@ async function resolveExchangeRateMeta(providedMeta) {
   });
 }
 
-function carrierLabel(carrier) {
+function carrierLabel(carrier, country) {
   const out = [];
-  if (carrier && carrier.skt) out.push('SKT');
-  if (carrier && carrier.kt) out.push('KT');
-  if (carrier && carrier.lgu) out.push('LGU+');
+  getCarrierDefinitions(country).forEach(([code, label]) => {
+    if (carrier && carrier[code]) out.push(label);
+  });
   return out.length ? out.join(', ') : 'unknown';
+}
+
+function buildCarrierKpiEntries(summary) {
+  return getCarrierDefinitions(state.selectedCountry).map(([code, label]) => [
+    `${label} 명시`,
+    `${summary.carrierCounts[code] || 0}`,
+  ]);
 }
 
 function toQuery(includeDataset = true) {
@@ -600,9 +719,7 @@ function renderKpis(summary) {
         ['General seller', `${summary.badgeCounts['General seller'] || 0}`],
         ['로밍 / 로컬', `${roamingPct}% / ${localPct}%`],
         ['무제한 비중', `${unlimitedPct}%`],
-        ['SKT 명시', `${summary.carrierTrue.skt}`],
-        ['KT 명시', `${summary.carrierTrue.kt}`],
-        ['LGU+ 명시', `${summary.carrierTrue.lgu}`],
+        ...buildCarrierKpiEntries(summary),
       ]
     : [
         ['사이트', siteLabel(state.selectedSite)],
@@ -616,9 +733,7 @@ function renderKpis(summary) {
         ['무제한 비중', `${unlimitedPct}%`],
         ['베스트셀러 배지', `${summary.bestsellerCount}`],
         ['랭크 확인 상품', `${summary.bestsellerRankKnownCount}`],
-        ['SKT 명시', `${summary.carrierTrue.skt}`],
-        ['KT 명시', `${summary.carrierTrue.kt}`],
-        ['LGU+ 명시', `${summary.carrierTrue.lgu}`],
+        ...buildCarrierKpiEntries(summary),
       ];
   el.kpis.innerHTML = kpis.map(([label, value]) => `<div class="kpi"><label>${safe(label)}</label><strong>${safe(value)}</strong></div>`).join('');
 }
@@ -641,13 +756,17 @@ function renderFilterOptions(items) {
   const networkOptions = unique(items.map((it) => it.network_type));
   const dataOptions = unique(items.map((it) => it.data_amount));
   const usageOptions = unique(items.map((it) => it.usage_validity));
-  const keep = { network: el.networkFilter.value, data: el.dataFilter.value, usage: el.usageFilter.value };
+  const keep = { network: el.networkFilter.value, data: el.dataFilter.value, usage: el.usageFilter.value, carrier: el.carrierFilter.value };
   el.networkFilter.innerHTML = '<option value="">네트워크 전체</option>' + networkOptions.map((v) => `<option>${safe(v)}</option>`).join('');
   el.dataFilter.innerHTML = '<option value="">데이터 전체</option>' + dataOptions.map((v) => `<option>${safe(v)}</option>`).join('');
   el.usageFilter.innerHTML = '<option value="">사용기간 전체</option>' + usageOptions.map((v) => `<option>${safe(v)}</option>`).join('');
+  el.carrierFilter.innerHTML = ['<option value="">통신사 전체</option>', '<option value="any">통신사 명시 상품</option>']
+    .concat(getCarrierDefinitions(state.selectedCountry).map(([code, label]) => `<option value="${safe(code)}">${safe(label)} 지원</option>`))
+    .join('');
   el.networkFilter.value = keep.network;
   el.dataFilter.value = keep.data;
   el.usageFilter.value = keep.usage;
+  el.carrierFilter.value = Array.from(el.carrierFilter.options).some((opt) => opt.value === keep.carrier) ? keep.carrier : '';
 }
 
 function cellValue(row, key) {
@@ -661,7 +780,7 @@ function cellValue(row, key) {
   if (key === 'is_bestseller') return row.is_bestseller === true ? 'Yes' : (row.is_bestseller === false ? 'No' : '-');
   if (key === 'bestseller_rank') return Number.isFinite(row.bestseller_rank) ? `${row.bestseller_rank.toLocaleString('ko-KR')}위` : '-';
   if (key === 'search_position') return Number.isFinite(row.search_position) ? `${row.search_position}` : '-';
-  if (key === 'carrier_support_kr') return safe(carrierLabel(row.carrier_support_kr));
+  if (key === 'carrier_support_local') return safe(carrierLabel(row.carrier_support_local, row.country || state.selectedCountry));
   return safe(row[key]);
 }
 
@@ -691,10 +810,8 @@ function applyLocalFilters(items) {
     if (network && it.network_type !== network) return false;
     if (dataAmount && (it.data_amount || '') !== dataAmount) return false;
     if (usage && (it.usage_validity || '') !== usage) return false;
-    if (carrier === 'skt' && !it.carrier_support_kr.skt) return false;
-    if (carrier === 'kt' && !it.carrier_support_kr.kt) return false;
-    if (carrier === 'lgu' && !it.carrier_support_kr.lgu) return false;
-    if (carrier === 'any' && !(it.carrier_support_kr.skt || it.carrier_support_kr.kt || it.carrier_support_kr.lgu)) return false;
+    if (carrier === 'any' && !Object.values(it.carrier_support_local || {}).some(Boolean)) return false;
+    if (carrier && carrier !== 'any' && !it.carrier_support_local?.[carrier]) return false;
     if (Number.isFinite(minPrice) && Number.isFinite(it.price_jpy) && it.price_jpy < minPrice) return false;
     if (Number.isFinite(maxPrice) && Number.isFinite(it.price_jpy) && it.price_jpy > maxPrice) return false;
     if (!q) return true;
@@ -818,8 +935,8 @@ async function loadData() {
     return;
   }
   state.exchangeRate = await resolveExchangeRateMeta(data.exchangeRate || null);
-  state.items = FX.attachKrwPrices(data.items, state.exchangeRate);
-  state.filtered = data.items;
+  state.items = FX.attachKrwPrices(data.items.map(normalizeItem), state.exchangeRate);
+  state.filtered = state.items;
   state.totalBeforeFilter = data.totalBeforeFilter || data.items.length;
   state.file = data.file;
   state.generatedAt = data.generatedAt;

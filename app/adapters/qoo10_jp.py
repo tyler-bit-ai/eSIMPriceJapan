@@ -13,7 +13,7 @@ from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from app.adapters.base import MarketplaceAdapter
 from app.extractors.heuristics import (
     ExtractedValue,
-    extract_carrier_support_kr,
+    extract_carrier_support_for_country,
     extract_data_amount,
     extract_network_type,
     extract_price_jpy_with_evidence,
@@ -254,12 +254,12 @@ class Qoo10JPAdapter(MarketplaceAdapter):
             carrier_texts = list(validity_texts)
             if representative_option:
                 carrier_texts.insert(0, representative_option.raw_text)
-            carrier_support, carrier_ev = self._extract_carrier_support_kr(
+            carrier_support_local, carrier_support_kr, carrier_ev = self._extract_carrier_support(
                 text_blocks=carrier_texts,
                 country=stub.country,
             )
             if carrier_ev:
-                evidence["carrier_support_kr"] = carrier_ev
+                evidence["carrier_support_local"] = carrier_ev
 
             seller = stub.search_seller or self._extract_detail_seller(text_blocks)
             if seller:
@@ -292,7 +292,8 @@ class Qoo10JPAdapter(MarketplaceAdapter):
                 usage_validity=resolved_usage,
                 activation_validity=resolved_activation,
                 network_type=network_type,
-                carrier_support_kr=carrier_support,
+                carrier_support_local=carrier_support_local,
+                carrier_support_kr=carrier_support_kr,
                 data_amount=data_amount.value if isinstance(data_amount.value, str) else None,
                 product_url=stub.product_url,
                 asin=None,
@@ -309,14 +310,12 @@ class Qoo10JPAdapter(MarketplaceAdapter):
         finally:
             await page.close()
 
-    def _extract_carrier_support_kr(
+    def _extract_carrier_support(
         self,
         text_blocks: list[str],
         country: str | None,
-    ) -> tuple[CarrierSupportKR, list[str]]:
-        if country != "kr":
-            return CarrierSupportKR(), []
-        return extract_carrier_support_kr(text_blocks)
+    ) -> tuple[dict[str, bool | None], CarrierSupportKR, list[str]]:
+        return extract_carrier_support_for_country(text_blocks, country)
 
     def _iter_search_cards(self, soup: BeautifulSoup) -> list[BeautifulSoup]:
         cards: list[BeautifulSoup] = []

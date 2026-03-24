@@ -11,6 +11,84 @@ const DASHBOARD_DIR = path.join(ROOT, 'dashboard');
 const DATA_DIR = path.join(DASHBOARD_DIR, 'data');
 const INDEX_PATH = path.join(DATA_DIR, 'index.json');
 const DEFAULT_COUNTRY = 'kr';
+const CARRIER_CONFIG = {
+  kr: [
+    ['skt', 'SKT'],
+    ['kt', 'KT'],
+    ['lgu', 'LGU+'],
+  ],
+  vn: [
+    ['viettel', 'Viettel'],
+    ['vinaphone', 'VinaPhone'],
+    ['mobifone', 'MobiFone'],
+    ['vietnamobile', 'Vietnamobile'],
+  ],
+  tw: [
+    ['chunghwa', 'Chunghwa Telecom'],
+    ['taiwan_mobile', 'Taiwan Mobile'],
+    ['fareastone', 'Far EasTone'],
+  ],
+  hk: [
+    ['cmhk', 'CMHK'],
+    ['csl', 'CSL'],
+    ['smartone', 'SmarTone'],
+    ['three_hk', '3HK'],
+  ],
+  mo: [
+    ['ctm', 'CTM'],
+    ['china_telecom_macau', 'China Telecom (Macau)'],
+    ['three_macau', '3 Macau'],
+  ],
+  us: [
+    ['att', 'AT&T'],
+    ['tmobile', 'T-Mobile'],
+    ['verizon', 'Verizon'],
+  ],
+  th: [
+    ['ais', 'AIS'],
+    ['dtac', 'dtac'],
+    ['truemove', 'TrueMove H'],
+  ],
+};
+const CARRIER_ALIASES = {
+  kr: {
+    skt: ['skt', 'sk telecom', 'sktelecom'],
+    kt: ['kt', 'kt olleh', 'olleh'],
+    lgu: ['lg u+', 'lgu+', 'uplus', 'lg u plus', 'lgu'],
+  },
+  vn: {
+    viettel: ['viettel'],
+    vinaphone: ['vinaphone', 'vina phone', 'vnpt'],
+    mobifone: ['mobifone', 'mobi phone'],
+    vietnamobile: ['vietnamobile', 'vietnam mobile'],
+  },
+  tw: {
+    chunghwa: ['chunghwa', '中華電信', 'cht'],
+    taiwan_mobile: ['taiwan mobile', '台灣大哥大', 'twm'],
+    fareastone: ['far eas tone', 'far eastone', '遠傳', 'fet'],
+  },
+  hk: {
+    cmhk: ['cmhk', 'china mobile hong kong', '中國移動香港'],
+    csl: ['csl', 'one2free', '1o1o', 'pccw-hkt'],
+    smartone: ['smartone', 'smart one'],
+    three_hk: ['3hk', '3 hong kong', 'three hk'],
+  },
+  mo: {
+    ctm: ['ctm', 'macau telecom', '澳門電訊'],
+    china_telecom_macau: ['china telecom macau', '中國電信澳門', 'ctm macau'],
+    three_macau: ['3 macau', 'three macau', 'hutchison telephone macau'],
+  },
+  us: {
+    att: ['at&t', 'att'],
+    tmobile: ['t-mobile', 'tmobile'],
+    verizon: ['verizon'],
+  },
+  th: {
+    ais: ['ais', 'advanced info service'],
+    dtac: ['dtac'],
+    truemove: ['truemove', 'truemove h', 'true move'],
+  },
+};
 const serverRateCache = {
   value: null,
   getItem() {
@@ -47,21 +125,55 @@ function extractDays(value) {
   return m ? Number(m[1]) : null;
 }
 
-function normalizeCarrier(carrierSupport) {
-  const c = carrierSupport && typeof carrierSupport === 'object' ? carrierSupport : {};
-  return {
-    skt: c.skt === true,
-    kt: c.kt === true,
-    lgu: c.lgu === true,
-  };
+function getCarrierDefinitions(country) {
+  return CARRIER_CONFIG[country] || [];
+}
+
+function inferLegacyCarrierLocal(raw, country) {
+  const aliasMap = CARRIER_ALIASES[country] || {};
+  const evidenceValues = raw.evidence && typeof raw.evidence === 'object'
+    ? Object.values(raw.evidence).flat().filter(Boolean)
+    : [];
+  const bag = [raw.title, raw.seller, raw.brand, ...evidenceValues].join(' ').toLowerCase();
+  const inferred = {};
+  for (const [code, aliases] of Object.entries(aliasMap)) {
+    inferred[code] = aliases.some((alias) => bag.includes(String(alias).toLowerCase()));
+  }
+  return inferred;
+}
+
+function normalizeCarrierLocal(carrierSupport, legacyCarrierSupport, country, raw) {
+  const definitions = getCarrierDefinitions(country);
+  if (!definitions.length) return {};
+
+  const source = carrierSupport && typeof carrierSupport === 'object'
+    ? carrierSupport
+    : ((country === 'kr' && legacyCarrierSupport && typeof legacyCarrierSupport === 'object')
+      ? legacyCarrierSupport
+      : inferLegacyCarrierLocal(raw, country));
+
+  const normalized = {};
+  definitions.forEach(([code]) => {
+    normalized[code] = source[code] === true;
+  });
+  return normalized;
+}
+
+function carrierLabel(carrierSupport, country) {
+  return getCarrierDefinitions(country)
+    .filter(([code]) => carrierSupport && carrierSupport[code])
+    .map(([, label]) => label)
+    .join(', ');
 }
 
 function normalizeItem(raw) {
-  const carrier = normalizeCarrier(raw.carrier_support_kr);
+  const country = raw.country || DEFAULT_COUNTRY;
+  const carrier = normalizeCarrierLocal(raw.carrier_support_local, raw.carrier_support_kr, country, raw);
   const parsedPrice = Number(raw.price_jpy);
   const parsedPriceKrw = Number(raw.price_krw);
   return {
     site: raw.site || null,
+    country,
     title: raw.title || '',
     product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
     price_jpy: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
@@ -80,7 +192,8 @@ function normalizeItem(raw) {
     brand: raw.brand || null,
     asin: raw.asin || null,
     site_product_id: raw.site_product_id || null,
-    carrier_support_kr: carrier,
+    carrier_support_local: carrier,
+    carrier_support_kr: country === 'kr' ? carrier : {},
     usage_days: extractDays(raw.usage_validity || raw.validity || null),
     activation_days: extractDays(raw.activation_validity || null),
   };
@@ -127,11 +240,10 @@ function summarize(items) {
   const localCount = items.filter((it) => it.network_type === 'local').length;
   const unlimitedCount = items.filter((it) => String(it.data_amount || '').toLowerCase() === 'unlimited').length;
 
-  const carrierTrue = {
-    skt: items.filter((it) => it.carrier_support_kr.skt).length,
-    kt: items.filter((it) => it.carrier_support_kr.kt).length,
-    lgu: items.filter((it) => it.carrier_support_kr.lgu).length,
-  };
+  const carrierCounts = {};
+  getCarrierDefinitions(items[0] && items[0].country ? items[0].country : DEFAULT_COUNTRY).forEach(([code]) => {
+    carrierCounts[code] = items.filter((it) => it.carrier_support_local && it.carrier_support_local[code]).length;
+  });
   const reviewValues = items.map((it) => it.review_count).filter((n) => Number.isFinite(n)).sort((a, b) => a - b);
   const reviewMedian =
     reviewValues.length === 0
@@ -176,7 +288,7 @@ function summarize(items) {
     roamingCount,
     localCount,
     unlimitedCount,
-    carrierTrue,
+    carrierCounts,
     reviewKnownCount,
     reviewMedian,
     badgeCounts,
@@ -207,9 +319,7 @@ function sendExcel(res, items, site) {
       data_amount: it.data_amount || '',
       usage_validity: it.usage_validity || '',
       activation_validity: it.activation_validity || '',
-      carrier_support_kr: [it.carrier_support_kr.skt ? 'SKT' : '', it.carrier_support_kr.kt ? 'KT' : '', it.carrier_support_kr.lgu ? 'LGU+' : '']
-        .filter(Boolean)
-        .join(', '),
+      carrier_support_local: carrierLabel(it.carrier_support_local, it.country || DEFAULT_COUNTRY),
       seller: it.seller || '',
       asin: it.asin || '',
       site_product_id: it.site_product_id || '',
@@ -245,7 +355,7 @@ function sendExcel(res, items, site) {
         'data_amount',
         'usage_validity',
         'activation_validity',
-        'carrier_support_kr',
+        'carrier_support_local',
         'seller',
         'asin',
         'site_product_id',
@@ -263,7 +373,7 @@ function sendExcel(res, items, site) {
         'data_amount',
         'usage_validity',
         'activation_validity',
-        'carrier_support_kr',
+        'carrier_support_local',
         'seller',
         'brand',
         'asin',
@@ -465,10 +575,10 @@ function applyFilters(items, queryObj) {
     if (usage && (it.usage_validity || '') !== usage) return false;
     if (activation && (it.activation_validity || '') !== activation) return false;
 
-    if (carrier === 'skt' && !it.carrier_support_kr.skt) return false;
-    if (carrier === 'kt' && !it.carrier_support_kr.kt) return false;
-    if (carrier === 'lgu' && !it.carrier_support_kr.lgu) return false;
-    if (carrier === 'any' && !(it.carrier_support_kr.skt || it.carrier_support_kr.kt || it.carrier_support_kr.lgu)) {
+    if (carrier === 'any' && !Object.values(it.carrier_support_local || {}).some(Boolean)) {
+      return false;
+    }
+    if (carrier && carrier !== 'any' && !it.carrier_support_local?.[carrier]) {
       return false;
     }
 
@@ -624,6 +734,7 @@ if (require.main === module) {
 module.exports = {
   parseJsonl,
   summarize,
+  normalizeItem,
   normalizeIndexShape,
   readLatestData,
   readLatestDataWithExchangeRate,
