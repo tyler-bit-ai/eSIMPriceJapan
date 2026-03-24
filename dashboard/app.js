@@ -1,5 +1,6 @@
 const pageSize = 20;
 const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
+const FX = window.ExchangeRateUtils;
 const SITE_CONFIG = {
   amazon_jp: {
     sortOptions: [
@@ -12,6 +13,7 @@ const SITE_CONFIG = {
     columns: [
       ['title', '상품명'],
       ['price_jpy', '가격 (JPY)'],
+      ['price_krw', '가격 (KRW)'],
       ['review_count', '리뷰 수'],
       ['monthly_sold_count', '판매량(최근 1개월)'],
       ['is_bestseller', '베스트셀러'],
@@ -38,6 +40,7 @@ const SITE_CONFIG = {
     columns: [
       ['title', '상품명'],
       ['price_jpy', '가격 (JPY)'],
+      ['price_krw', '가격 (KRW)'],
       ['review_count', '리뷰 수'],
       ['seller_badge', '셀러 배지'],
       ['search_position', '검색 위치'],
@@ -69,14 +72,17 @@ const HELP_CONTENT = {
       '필터 영역에서 네트워크, 데이터 용량, 사용기간, 통신사 지원, 가격 범위를 조합해 원하는 상품만 볼 수 있습니다.',
       '정렬 기준은 사이트마다 다르며, Qoo10은 리뷰 수와 검색 위치, Amazon은 판매량과 베스트셀러 지표를 더 많이 사용합니다.',
       '상세 항목 표의 상품명을 누르면 원본 상품 페이지로 이동하고, 현재 화면 기준으로 엑셀 다운로드도 가능합니다.',
+      'KRW 가격은 Frankfurter 환율을 기준으로 JPY에서 환산한 보조 지표이며, API 실패 시 최근 성공 환율 캐시를 재사용할 수 있습니다.',
     ],
     notes: [
       '`unknown`은 정보가 없거나, 신호가 서로 충돌하거나, 추론 근거가 충분하지 않다는 뜻입니다.',
       '`usage_validity`는 실제 사용 가능 기간, `activation_validity`는 구매 후 개통해야 하는 기한을 뜻합니다.',
       '`network_type`과 `carrier_support_kr`는 제목·옵션·상세 설명의 텍스트를 기반으로 추론될 수 있습니다.',
+      '`price_krw`는 `price_jpy * 환율`을 원 단위 반올림한 파생 값입니다.',
     ],
     terms: [
       ['price_jpy', '상품의 현재 판매가 기준 JPY 값입니다. 옵션형 상품은 대표 플랜 또는 강한 fallback 신호를 기준으로 계산됩니다.'],
+      ['price_krw', 'Frankfurter 환율을 기준으로 계산한 KRW 환산 가격입니다. 원 단위 반올림 값을 사용합니다.'],
       ['data_amount', '무제한, 총량형(`3GB`), 일 단위형(`1GB/day`)처럼 데이터 정책을 정규화한 값입니다.'],
       ['network_type', '`local`, `roaming`, `unknown` 중 하나입니다. 현지 회선/현지 번호/로밍 문구 등으로 분류합니다.'],
       ['carrier_support_kr', 'SKT, KT, LGU+ 관련 언급이 있는지 표시합니다. 언급이 없으면 미표시로 남을 수 있습니다.'],
@@ -128,6 +134,7 @@ let state = {
   selectedDatasetId: null,
   selectedCsvPath: './data/sites/amazon_jp/kr/latest.csv',
   amazonReviewEnabled: true,
+  exchangeRate: FX.buildExchangeRateMeta({ unavailable: true, stale: true }),
 };
 
 function parseJsonl(text) {
@@ -163,12 +170,14 @@ function normalizeCarrier(carrierSupport) {
 function normalizeItem(raw) {
   const carrier = normalizeCarrier(raw.carrier_support_kr);
   const parsedPrice = Number(raw.price_jpy);
+  const parsedPriceKrw = Number(raw.price_krw);
   return {
     site: raw.site || null,
     country: raw.country || null,
     title: raw.title || '',
     product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
     price_jpy: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
+    price_krw: Number.isFinite(parsedPriceKrw) && parsedPriceKrw > 0 ? parsedPriceKrw : null,
     review_count: Number.isFinite(Number(raw.review_count)) ? Number(raw.review_count) : null,
     seller_badge: raw.seller_badge || null,
     search_position: Number.isFinite(Number(raw.search_position)) ? Number(raw.search_position) : null,
@@ -195,6 +204,7 @@ function keepDashboardItem(item) {
 
 const el = {
   metaText: document.getElementById('metaText'),
+  fxText: document.getElementById('fxText'),
   currentScope: document.getElementById('currentScope'),
   siteAmazonCard: document.getElementById('siteAmazonCard'),
   siteQoo10Card: document.getElementById('siteQoo10Card'),
@@ -360,6 +370,11 @@ function yen(n) {
   return `¥${Number(n).toLocaleString('ja-JP')}`;
 }
 
+function won(n) {
+  if (n === null || n === undefined || Number.isNaN(n)) return '-';
+  return `₩${Number(n).toLocaleString('ko-KR')}`;
+}
+
 function safe(value) {
   if (value === null || value === undefined || value === '') return '-';
   return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
@@ -385,6 +400,7 @@ function median(values) {
 
 function summarize(items) {
   const prices = items.map((it) => it.price_jpy).filter((n) => Number.isFinite(n));
+  const pricesKrw = items.map((it) => it.price_krw).filter((n) => Number.isFinite(n));
   const sales = items.map((it) => it.monthly_sold_count).filter((n) => Number.isFinite(n));
   const reviews = items.map((it) => it.review_count).filter((n) => Number.isFinite(n));
   const localCount = items.filter((it) => it.network_type === 'local').length;
@@ -417,6 +433,10 @@ function summarize(items) {
     priceMax: prices.length ? Math.max(...prices) : null,
     priceAvg: prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null,
     priceMedian: median(prices),
+    priceKrwMin: pricesKrw.length ? Math.min(...pricesKrw) : null,
+    priceKrwMax: pricesKrw.length ? Math.max(...pricesKrw) : null,
+    priceKrwAvg: pricesKrw.length ? Math.round(pricesKrw.reduce((a, b) => a + b, 0) / pricesKrw.length) : null,
+    priceKrwMedian: median(pricesKrw),
     roamingCount,
     localCount,
     unlimitedCount,
@@ -442,6 +462,22 @@ function updateAmazonReviewVisibility(items) {
   const total = items.length;
   const known = items.filter((it) => Number.isFinite(it.review_count)).length;
   state.amazonReviewEnabled = total > 0 && (known / total) >= 0.1;
+}
+
+function renderExchangeRateMeta() {
+  if (!el.fxText) return;
+  const meta = state.exchangeRate || FX.buildExchangeRateMeta({ unavailable: true, stale: true });
+  const updatedAt = meta.updatedAt ? isoToLocal(meta.updatedAt) : '-';
+  el.fxText.textContent = `환율: ${FX.formatExchangeRateStatus(meta)} | 기준일: ${updatedAt} | 출처: ${meta.source || '-'}`;
+}
+
+async function resolveExchangeRateMeta(providedMeta) {
+  if (providedMeta && !providedMeta.unavailable && Number.isFinite(Number(providedMeta.rate))) {
+    return FX.buildExchangeRateMeta(providedMeta);
+  }
+  return FX.fetchExchangeRate(window.fetch.bind(window), {
+    storage: typeof window !== 'undefined' ? window.localStorage : null,
+  });
 }
 
 function carrierLabel(carrier) {
@@ -553,7 +589,9 @@ function renderKpis(summary) {
         ['사이트', siteLabel(state.selectedSite)],
         ['필터 결과', `${total.toLocaleString('ko-KR')}개`],
         ['최저 / 중앙 / 평균', `${yen(summary.priceMin)} / ${yen(summary.priceMedian)} / ${yen(summary.priceAvg)}`],
+        ['최저 / 중앙 / 평균 (KRW)', `${won(summary.priceKrwMin)} / ${won(summary.priceKrwMedian)} / ${won(summary.priceKrwAvg)}`],
         ['최고 가격', yen(summary.priceMax)],
+        ['최고 가격 (KRW)', won(summary.priceKrwMax)],
         ['리뷰 수 중앙값', summary.reviewMedian === null ? '-' : `${summary.reviewMedian.toLocaleString('ko-KR')}`],
         ['리뷰 수 확인 상품', `${summary.reviewKnownCount.toLocaleString('ko-KR')}개`],
         ['검색 상위 10개', `${summary.top10Count.toLocaleString('ko-KR')}개`],
@@ -570,7 +608,9 @@ function renderKpis(summary) {
         ['사이트', siteLabel(state.selectedSite)],
         ['필터 결과', `${total.toLocaleString('ko-KR')}개`],
         ['최저 / 중앙 / 평균', `${yen(summary.priceMin)} / ${yen(summary.priceMedian)} / ${yen(summary.priceAvg)}`],
+        ['최저 / 중앙 / 평균 (KRW)', `${won(summary.priceKrwMin)} / ${won(summary.priceKrwMedian)} / ${won(summary.priceKrwAvg)}`],
         ['최고 가격', yen(summary.priceMax)],
+        ['최고 가격 (KRW)', won(summary.priceKrwMax)],
         ['판매량 수집', `${summary.salesKnownCount.toLocaleString('ko-KR')}개`],
         ['로밍 / 로컬', `${roamingPct}% / ${localPct}%`],
         ['무제한 비중', `${unlimitedPct}%`],
@@ -615,6 +655,7 @@ function cellValue(row, key) {
     return row.product_url ? `<a class="titleLink" href="${safeHref(row.product_url)}" target="_blank" rel="noopener noreferrer">${safe(row.title)}</a>` : safe(row.title);
   }
   if (key === 'price_jpy') return yen(row.price_jpy);
+  if (key === 'price_krw') return won(row.price_krw);
   if (key === 'monthly_sold_count') return Number.isFinite(row.monthly_sold_count) ? `${row.monthly_sold_count.toLocaleString('ko-KR')}개` : '-';
   if (key === 'review_count') return Number.isFinite(row.review_count) ? `${row.review_count.toLocaleString('ko-KR')}` : '-';
   if (key === 'is_bestseller') return row.is_bestseller === true ? 'Yes' : (row.is_bestseller === false ? 'No' : '-');
@@ -721,12 +762,14 @@ async function loadDataStaticFromRecord(record) {
       if (metaRes.ok) metadata = await metaRes.json();
     } catch (_) { metadata = null; }
   }
-  state.items = items;
+  state.exchangeRate = await resolveExchangeRateMeta(null);
+  state.items = FX.attachKrwPrices(items, state.exchangeRate);
   state.totalBeforeFilter = items.length;
   state.file = metadata && metadata.source ? metadata.source : finalJsonlPath;
   state.generatedAt = metadata && metadata.crawled_at ? metadata.crawled_at : null;
   state.selectedCsvPath = csvPath;
   el.metaText.textContent = `사이트: ${siteLabel(state.selectedSite)} | 국가: ${countryLabel(state.selectedCountry)} | 파일: ${state.file} | 추출: ${isoToLocal(state.generatedAt)} | 반영: ${isoToLocal(metadata && metadata.published_at)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  renderExchangeRateMeta();
   renderSiteStructure();
   renderFilterOptions(state.items);
   renderLocalView();
@@ -764,7 +807,9 @@ async function loadData() {
   if (!data.found) {
     state.items = [];
     state.filtered = [];
+    state.exchangeRate = FX.buildExchangeRateMeta({ unavailable: true, stale: true });
     el.metaText.textContent = data.message || '데이터가 없습니다.';
+    renderExchangeRateMeta();
     renderKpis(summarize([]));
     renderBars(el.dataAmountBars, {});
     renderBars(el.networkBars, {});
@@ -772,14 +817,16 @@ async function loadData() {
     renderTable();
     return;
   }
-  state.items = data.items;
+  state.exchangeRate = await resolveExchangeRateMeta(data.exchangeRate || null);
+  state.items = FX.attachKrwPrices(data.items, state.exchangeRate);
   state.filtered = data.items;
   state.totalBeforeFilter = data.totalBeforeFilter || data.items.length;
   state.file = data.file;
   state.generatedAt = data.generatedAt;
   state.currentPage = 1;
   el.metaText.textContent = `사이트: ${siteLabel(state.selectedSite)} | 국가: ${countryLabel(state.selectedCountry)} | 파일: ${data.file} | 생성: ${isoToLocal(data.generatedAt)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
-  renderFilterOptions(data.items);
+  renderExchangeRateMeta();
+  renderFilterOptions(state.items);
   renderLocalView();
 }
 
@@ -826,4 +873,5 @@ el.nextPage.addEventListener('click', () => { const totalPages = Math.max(1, Mat
 el.downloadExcelBtn.addEventListener('click', downloadFilteredExcel);
 
 renderSiteStructure();
+renderExchangeRateMeta();
 triggerReload();

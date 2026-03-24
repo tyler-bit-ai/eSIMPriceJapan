@@ -268,6 +268,13 @@ select,
   overflow-wrap: anywhere;
 }
 
+.metaSubValue {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
 .card {
   padding: 18px;
 }
@@ -391,7 +398,7 @@ input::placeholder {
 
 table {
   width: 100%;
-  min-width: 1060px;
+  min-width: 1180px;
   border-width: 0;
   border-collapse: collapse;
   background: #fffdf8;

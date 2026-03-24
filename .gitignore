@@ -1,8 +1,11 @@
 __pycache__/
 *.pyc
 .venv/
+.venv_*/
+.venv_old/
 out/
 out_*/
 out_smoke/
 .pytest_cache/
 node_modules/
+화면캡처/

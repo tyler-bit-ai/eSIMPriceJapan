@@ -16,6 +16,7 @@
 - 실패 URL/에러/스크린샷 기록 (`failed.jsonl`)
 - 출력: `results.jsonl`, `results.csv`, `failed.jsonl`, `invalid.jsonl`, `invalid.csv`
 - 대시보드: 국가별 latest/run 데이터 로드 + 동적 필터/KPI
+- 대시보드: `price_jpy`와 함께 `price_krw` 환산 표시 지원
 
 ## Install
 ```powershell
@@ -97,6 +98,13 @@ npm run dashboard
 - 가격 범위
 - 정렬(가격/판매량/리뷰/검색위치/사용기간)
 
+대시보드 환율 표시:
+- KRW 가격은 Frankfurter 환율을 기준으로 JPY에서 런타임 환산합니다.
+- 계산식은 `Math.round(price_jpy * rate)` 입니다.
+- 로컬 서버 모드에서는 `/api/latest`와 Excel export에 환율 메타/`price_krw`가 포함됩니다.
+- 정적 모드에서는 브라우저가 환율을 직접 조회하고, 실패 시 최근 성공 환율 캐시를 재사용할 수 있습니다.
+- 환율을 가져오지 못하면 KRW 값은 `-`로 표시됩니다.
+
 주의:
 - 태국(`th`)은 수집 대상이지만 현재 상단 국가 selector에는 노출하지 않도록 설정되어 있습니다.
 - `carrier_support_kr`는 한국 통신사 기준 필드이므로 비한국 국가 데이터에서는 대부분 `unknown` 또는 null로 남을 수 있습니다.
@@ -120,6 +128,7 @@ npm run dashboard
 ```powershell
 python -m pytest -q
 node --check dashboard_server.js
+node --check dashboard\exchange-rate.js
 node --check dashboard\app.js
 ```
 

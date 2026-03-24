@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const url = require('url');
 const xlsx = require('xlsx');
+const FX = require('./dashboard/exchange-rate');
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4173;
 const ROOT = __dirname;
@@ -10,6 +11,15 @@ const DASHBOARD_DIR = path.join(ROOT, 'dashboard');
 const DATA_DIR = path.join(DASHBOARD_DIR, 'data');
 const INDEX_PATH = path.join(DATA_DIR, 'index.json');
 const DEFAULT_COUNTRY = 'kr';
+const serverRateCache = {
+  value: null,
+  getItem() {
+    return this.value;
+  },
+  setItem(_key, value) {
+    this.value = value;
+  },
+};
 
 function readJsonFile(jsonPath) {
   const raw = fs.readFileSync(jsonPath, 'utf8').replace(/^\uFEFF/, '');
@@ -49,11 +59,13 @@ function normalizeCarrier(carrierSupport) {
 function normalizeItem(raw) {
   const carrier = normalizeCarrier(raw.carrier_support_kr);
   const parsedPrice = Number(raw.price_jpy);
+  const parsedPriceKrw = Number(raw.price_krw);
   return {
     site: raw.site || null,
     title: raw.title || '',
     product_url: typeof raw.product_url === 'string' ? raw.product_url : null,
     price_jpy: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
+    price_krw: Number.isFinite(parsedPriceKrw) && parsedPriceKrw > 0 ? parsedPriceKrw : null,
     review_count: Number.isFinite(Number(raw.review_count)) ? Number(raw.review_count) : null,
     seller_badge: raw.seller_badge || null,
     search_position: Number.isFinite(Number(raw.search_position)) ? Number(raw.search_position) : null,
@@ -102,6 +114,7 @@ function getLatestResultsFile() {
 
 function summarize(items) {
   const prices = items.map((it) => it.price_jpy).filter((n) => Number.isFinite(n));
+  const pricesKrw = items.map((it) => it.price_krw).filter((n) => Number.isFinite(n));
   const sorted = [...prices].sort((a, b) => a - b);
   const median =
     sorted.length === 0
@@ -156,6 +169,10 @@ function summarize(items) {
     priceMax: sorted.length ? sorted[sorted.length - 1] : null,
     priceAvg: sorted.length ? Math.round(sorted.reduce((a, b) => a + b, 0) / sorted.length) : null,
     priceMedian: median,
+    priceKrwMin: pricesKrw.length ? Math.min(...pricesKrw) : null,
+    priceKrwMax: pricesKrw.length ? Math.max(...pricesKrw) : null,
+    priceKrwAvg: pricesKrw.length ? Math.round(pricesKrw.reduce((a, b) => a + b, 0) / pricesKrw.length) : null,
+    priceKrwMedian: FX.summarizeNumbers(pricesKrw).median,
     roamingCount,
     localCount,
     unlimitedCount,
@@ -185,6 +202,7 @@ function sendExcel(res, items, site) {
       site: it.site || site || '',
       title: it.title || '',
       price_jpy: it.price_jpy ?? '',
+      price_krw: it.price_krw ?? '',
       network_type: it.network_type || '',
       data_amount: it.data_amount || '',
       usage_validity: it.usage_validity || '',
@@ -219,6 +237,7 @@ function sendExcel(res, items, site) {
         'site',
         'title',
         'price_jpy',
+        'price_krw',
         'review_count',
         'seller_badge',
         'search_position',
@@ -235,6 +254,7 @@ function sendExcel(res, items, site) {
         'site',
         'title',
         'price_jpy',
+        'price_krw',
         'review_count',
         'monthly_sold_count',
         'is_bestseller',
@@ -410,6 +430,24 @@ function readLatestData(site = 'amazon_jp', country = DEFAULT_COUNTRY, datasetId
   };
 }
 
+async function loadExchangeRateMeta() {
+  return FX.fetchExchangeRate(typeof fetch === 'function' ? fetch.bind(globalThis) : null, {
+    storage: serverRateCache,
+  });
+}
+
+async function readLatestDataWithExchangeRate(site = 'amazon_jp', country = DEFAULT_COUNTRY, datasetId = null) {
+  const data = readLatestData(site, country, datasetId);
+  const exchangeRate = await loadExchangeRateMeta();
+  const items = FX.attachKrwPrices(data.items, exchangeRate);
+  return {
+    ...data,
+    items,
+    summary: summarize(items),
+    exchangeRate,
+  };
+}
+
 function applyFilters(items, queryObj) {
   const q = String(queryObj.q || '').trim().toLowerCase();
   const network = String(queryObj.network || '').trim();
@@ -500,67 +538,74 @@ function sendJson(res, status, body) {
 }
 
 function createServer() {
-  return http.createServer((req, res) => {
+  return http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
 
-    if (parsedUrl.pathname === '/api/index') {
-      sendJson(res, 200, readIndexData());
-      return;
-    }
-
-    if (parsedUrl.pathname === '/api/latest') {
-      const site = String(parsedUrl.query.site || 'amazon_jp');
-      const country = String(parsedUrl.query.country || DEFAULT_COUNTRY);
-      const dataset = parsedUrl.query.dataset ? String(parsedUrl.query.dataset) : null;
-      const data = readLatestData(site, country, dataset);
-      if (!data.found) {
-        sendJson(res, 200, data);
+    try {
+      if (parsedUrl.pathname === '/api/index') {
+        sendJson(res, 200, readIndexData());
         return;
       }
 
-      const filtered = applyFilters(data.items, parsedUrl.query || {});
-      sendJson(res, 200, {
-        found: true,
-        file: data.file,
-        generatedAt: data.generatedAt,
-        items: filtered,
-        summary: summarize(filtered),
-        totalBeforeFilter: data.items.length,
-        site,
-        country,
-        dataset,
+      if (parsedUrl.pathname === '/api/latest') {
+        const site = String(parsedUrl.query.site || 'amazon_jp');
+        const country = String(parsedUrl.query.country || DEFAULT_COUNTRY);
+        const dataset = parsedUrl.query.dataset ? String(parsedUrl.query.dataset) : null;
+        const data = await readLatestDataWithExchangeRate(site, country, dataset);
+        if (!data.found) {
+          sendJson(res, 200, data);
+          return;
+        }
+
+        const filtered = applyFilters(data.items, parsedUrl.query || {});
+        sendJson(res, 200, {
+          found: true,
+          file: data.file,
+          generatedAt: data.generatedAt,
+          items: filtered,
+          summary: summarize(filtered),
+          totalBeforeFilter: data.items.length,
+          site,
+          country,
+          dataset,
+          exchangeRate: data.exchangeRate,
+        });
+        return;
+      }
+
+      if (parsedUrl.pathname === '/api/export.xlsx') {
+        const site = String(parsedUrl.query.site || 'amazon_jp');
+        const country = String(parsedUrl.query.country || DEFAULT_COUNTRY);
+        const dataset = parsedUrl.query.dataset ? String(parsedUrl.query.dataset) : null;
+        const data = await readLatestDataWithExchangeRate(site, country, dataset);
+        if (!data.found) {
+          sendJson(res, 404, { message: data.message || 'No data found.' });
+          return;
+        }
+        const filtered = applyFilters(data.items, parsedUrl.query || {});
+        sendExcel(res, filtered, site);
+        return;
+      }
+
+      const requestPath = parsedUrl.pathname === '/' ? '/index.html' : parsedUrl.pathname;
+      const safePath = requestPath.replace(/^\/+/, '');
+      const fullPath = path.join(DASHBOARD_DIR, safePath);
+
+      if (!fullPath.startsWith(DASHBOARD_DIR) || !fs.existsSync(fullPath) || fs.statSync(fullPath).isDirectory()) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not found');
+        return;
+      }
+
+      const ext = path.extname(fullPath).toLowerCase();
+      const contentType = mime[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
+      fs.createReadStream(fullPath).pipe(res);
+    } catch (error) {
+      sendJson(res, 500, {
+        message: error instanceof Error ? error.message : String(error),
       });
-      return;
     }
-
-    if (parsedUrl.pathname === '/api/export.xlsx') {
-      const site = String(parsedUrl.query.site || 'amazon_jp');
-      const country = String(parsedUrl.query.country || DEFAULT_COUNTRY);
-      const dataset = parsedUrl.query.dataset ? String(parsedUrl.query.dataset) : null;
-      const data = readLatestData(site, country, dataset);
-      if (!data.found) {
-        sendJson(res, 404, { message: data.message || 'No data found.' });
-        return;
-      }
-      const filtered = applyFilters(data.items, parsedUrl.query || {});
-      sendExcel(res, filtered, site);
-      return;
-    }
-
-    const requestPath = parsedUrl.pathname === '/' ? '/index.html' : parsedUrl.pathname;
-    const safePath = requestPath.replace(/^\/+/, '');
-    const fullPath = path.join(DASHBOARD_DIR, safePath);
-
-    if (!fullPath.startsWith(DASHBOARD_DIR) || !fs.existsSync(fullPath) || fs.statSync(fullPath).isDirectory()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Not found');
-      return;
-    }
-
-    const ext = path.extname(fullPath).toLowerCase();
-    const contentType = mime[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store' });
-    fs.createReadStream(fullPath).pipe(res);
   });
 }
 
@@ -581,6 +626,8 @@ module.exports = {
   summarize,
   normalizeIndexShape,
   readLatestData,
+  readLatestDataWithExchangeRate,
+  loadExchangeRateMeta,
   readIndexData,
   applyFilters,
   createServer,
