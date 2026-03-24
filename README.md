@@ -5,17 +5,9 @@
 
 ## Dashboard Preview
 
-현재 대시보드 메인 화면:
+현재 대시보드 전체 화면:
 
-![Dashboard Main](docs/images/dashboard-main.png)
-
-웹 배포 화면 예시:
-
-![Dashboard Web](docs/images/dashboard-web.png)
-
-결과 표 예시:
-
-![Results Preview](docs/images/results-preview.png)
+![Dashboard Full](docs/images/dashboard-full.png)
 
 ## Design Note
 - 실행 단위: `site + country + query`
