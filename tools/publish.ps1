@@ -133,6 +133,44 @@ function Normalize-Runs($RunsValue, [string]$CurrentRunId) {
   return $normalized
 }
 
+function Read-IndexJson([string]$Path) {
+  if (-not (Test-Path $Path)) {
+    return @{
+      latest = [ordered]@{}
+      runs = @()
+    }
+  }
+
+  $lastError = $null
+  foreach ($attempt in 1..5) {
+    try {
+      $raw = Get-Content $Path -Raw -Encoding UTF8
+      if ([string]::IsNullOrWhiteSpace($raw)) {
+        throw "index.json is empty"
+      }
+      return ($raw | ConvertFrom-Json -AsHashtable)
+    } catch {
+      $lastError = $_
+      Start-Sleep -Milliseconds (200 * $attempt)
+    }
+  }
+
+  throw "index.json read/parse failed: $lastError"
+}
+
+function Write-IndexJson([string]$Path, $Value) {
+  $dir = Split-Path $Path -Parent
+  $tmpPath = Join-Path $dir ("index.{0}.tmp" -f [guid]::NewGuid().ToString("N"))
+  try {
+    $Value | ConvertTo-Json -Depth 10 | Set-Content -Path $tmpPath -Encoding UTF8
+    Move-Item -Path $tmpPath -Destination $Path -Force
+  } finally {
+    if (Test-Path $tmpPath) {
+      Remove-Item -Path $tmpPath -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 New-Item -ItemType Directory -Force $DataDir | Out-Null
 $runsDir = Join-Path $DataDir 'runs'
 New-Item -ItemType Directory -Force $runsDir | Out-Null
@@ -173,18 +211,11 @@ $meta | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8
 $indexPath = Join-Path $DataDir 'index.json'
 $latestMap = [ordered]@{}
 $runs = @()
-if (Test-Path $indexPath) {
-  try {
-    $existing = Get-Content $indexPath -Raw | ConvertFrom-Json -AsHashtable
-    $latestMap = Normalize-LatestMap $existing.latest
-    $runs = Normalize-Runs $existing.runs $runId
-  } catch {
-    $latestMap = [ordered]@{}
-    $runs = @()
-  }
-}
+$existing = Read-IndexJson $indexPath
+$latestMap = Normalize-LatestMap $existing.latest
+$runs = Normalize-Runs $existing.runs $runId
 
-if (-not $latestMap.Contains($Site)) {
+if (-not $latestMap.ContainsKey($Site)) {
   $latestMap[$Site] = [ordered]@{}
 }
 
@@ -223,7 +254,7 @@ $indexObj = [ordered]@{
   latest = $latestMap
   runs = $runs
 }
-$indexObj | ConvertTo-Json -Depth 10 | Set-Content -Path $indexPath -Encoding UTF8
+Write-IndexJson $indexPath $indexObj
 
 Write-Host "Copied $results -> $destCsv"
 Write-Host "Copied $resultsJsonl -> $destJsonl"
