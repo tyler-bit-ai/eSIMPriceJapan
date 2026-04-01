@@ -1,10 +1,10 @@
-{
-  "site": "amazon_jp",
-  "country": "us",
-  "query": "eSIM アメリカ",
-  "limit": 200,
-  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_amazon_jp_us\\results.jsonl",
-  "crawled_at": "2026-03-20T10:39:22.784950Z",
-  "published_at": "2026-03-20T11:54:21.837170Z",
-  "item_count": 200
+﻿{
+    "site":  "amazon_jp",
+    "country":  "us",
+    "query":  "",
+    "limit":  200,
+    "source":  ".\\out_live_amazon_jp_us_20260401\\results.jsonl",
+    "crawled_at":  "2026-04-01T05:29:17.9368665Z",
+    "published_at":  "2026-04-01T05:29:23.0063496Z",
+    "item_count":  200
 }

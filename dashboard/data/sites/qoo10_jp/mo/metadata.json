@@ -1,10 +1,10 @@
-{
-  "site": "qoo10_jp",
-  "country": "mo",
-  "query": "eSIM マカオ",
-  "limit": 200,
-  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_qoo10_jp_mo\\results.jsonl",
-  "crawled_at": "2026-03-20T11:53:48.655241Z",
-  "published_at": "2026-03-20T11:54:22.067471Z",
-  "item_count": 100
+﻿{
+    "site":  "qoo10_jp",
+    "country":  "mo",
+    "query":  "",
+    "limit":  200,
+    "source":  ".\\out_live_qoo10_jp_mo_20260401\\results.jsonl",
+    "crawled_at":  "2026-04-01T11:02:22.5716967Z",
+    "published_at":  "2026-04-01T11:03:01.1009451Z",
+    "item_count":  99
 }

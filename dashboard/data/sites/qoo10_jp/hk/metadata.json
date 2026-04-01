@@ -1,10 +1,10 @@
-{
-  "site": "qoo10_jp",
-  "country": "hk",
-  "query": "eSIM 香港",
-  "limit": 200,
-  "source": "C:\\Codex\\eSIMPriceJapan_repo\\out_live_qoo10_jp_hk\\results.jsonl",
-  "crawled_at": "2026-03-20T11:38:38.316246Z",
-  "published_at": "2026-03-20T11:54:21.965231Z",
-  "item_count": 74
+﻿{
+    "site":  "qoo10_jp",
+    "country":  "hk",
+    "query":  "",
+    "limit":  200,
+    "source":  ".\\out_live_qoo10_jp_hk_20260401\\results.jsonl",
+    "crawled_at":  "2026-04-01T10:53:53.2464643Z",
+    "published_at":  "2026-04-01T10:53:59.3588652Z",
+    "item_count":  74
 }
