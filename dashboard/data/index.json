@@ -46,12 +46,12 @@
         "csv": "sites/amazon_jp/th/latest.csv",
         "jsonl": "sites/amazon_jp/th/latest.jsonl",
         "metadata": "sites/amazon_jp/th/metadata.json",
-        "source": "out_live_amazon_jp_th_20260401\\results.jsonl",
-        "crawled_at": "04/01/2026 02:48:27",
-        "published_at": "04/01/2026 02:48:28",
-        "item_count": 174,
+        "source": "C:\\Codex\\eSIMPriceCollector_Japan\\out_refresh_amazon_jp_th_20260406_v2\\results.jsonl",
+        "crawled_at": "2026-04-06T02:44:59.4985645Z",
+        "published_at": "2026-04-06T02:49:38.1260228Z",
+        "item_count": 100,
         "query": "",
-        "limit": 200
+        "limit": 100
       },
       "tw": {
         "site": "amazon_jp",
@@ -139,12 +139,12 @@
         "csv": "sites/qoo10_jp/th/latest.csv",
         "jsonl": "sites/qoo10_jp/th/latest.jsonl",
         "metadata": "sites/qoo10_jp/th/metadata.json",
-        "source": ".\\out_live_qoo10_jp_th_20260401\\results.jsonl",
-        "crawled_at": "04/01/2026 07:38:13",
-        "published_at": "04/01/2026 07:38:22",
-        "item_count": 138,
+        "source": "C:\\Codex\\eSIMPriceCollector_Japan\\out_refresh_qoo10_jp_th_20260406_v2\\results.jsonl",
+        "crawled_at": "2026-04-06T02:48:46.5831006Z",
+        "published_at": "2026-04-06T02:48:56.8965926Z",
+        "item_count": 74,
         "query": "",
-        "limit": 200
+        "limit": 100
       },
       "tw": {
         "site": "qoo10_jp",
@@ -188,6 +188,51 @@
     }
   },
   "runs": [
+    {
+      "id": "20260406T024459Z_amazon_jp_th_out_refresh_amazon_jp_th_20260406_v2",
+      "site": "amazon_jp",
+      "country": "th",
+      "label": "2026-04-06 11:44 | amazon_jp | th | out_refresh_amazon_jp_th_20260406_v2 | 100 items",
+      "source": "C:\\Codex\\eSIMPriceCollector_Japan\\out_refresh_amazon_jp_th_20260406_v2\\results.jsonl",
+      "crawled_at": "2026-04-06T02:44:59.4985645Z",
+      "published_at": "2026-04-06T02:49:38.1260228Z",
+      "item_count": 100,
+      "csv": "runs/20260406T024459Z_amazon_jp_th_out_refresh_amazon_jp_th_20260406_v2.csv",
+      "jsonl": "runs/20260406T024459Z_amazon_jp_th_out_refresh_amazon_jp_th_20260406_v2.jsonl",
+      "metadata": "sites/amazon_jp/th/metadata.json",
+      "query": "",
+      "limit": 100
+    },
+    {
+      "id": "20260406T024846Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260406_v2",
+      "site": "qoo10_jp",
+      "country": "th",
+      "label": "2026-04-06 11:48 | qoo10_jp | th | out_refresh_qoo10_jp_th_20260406_v2 | 74 items",
+      "source": "C:\\Codex\\eSIMPriceCollector_Japan\\out_refresh_qoo10_jp_th_20260406_v2\\results.jsonl",
+      "crawled_at": "2026-04-06T02:48:46.5831006Z",
+      "published_at": "2026-04-06T02:48:56.8965926Z",
+      "item_count": 74,
+      "csv": "runs/20260406T024846Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260406_v2.csv",
+      "jsonl": "runs/20260406T024846Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260406_v2.jsonl",
+      "metadata": "sites/qoo10_jp/th/metadata.json",
+      "query": "",
+      "limit": 100
+    },
+    {
+      "id": "20260401T073813Z_qoo10_jp_th_out_partial_qoo10_jp_th_20260406",
+      "site": "qoo10_jp",
+      "country": "th",
+      "label": "2026-04-01 16:38 | qoo10_jp | th | out_partial_qoo10_jp_th_20260406 | 138 items",
+      "source": "C:\\Codex\\eSIMPriceCollector_Japan\\out_partial_qoo10_jp_th_20260406\\results.jsonl",
+      "crawled_at": "2026-04-01T07:38:13.7846970Z",
+      "published_at": "2026-04-06T02:02:06.9323483Z",
+      "item_count": 138,
+      "csv": "runs/20260401T073813Z_qoo10_jp_th_out_partial_qoo10_jp_th_20260406.csv",
+      "jsonl": "runs/20260401T073813Z_qoo10_jp_th_out_partial_qoo10_jp_th_20260406.jsonl",
+      "metadata": "sites/qoo10_jp/th/metadata.json",
+      "query": "",
+      "limit": 200
+    },
     {
       "id": "20260401T111120Z_qoo10_jp_us_out_live_qoo10_jp_us_20260401",
       "site": "qoo10_jp",

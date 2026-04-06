@@ -80,6 +80,41 @@ powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazo
 powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country us -Limit 50 -OutDir .\out_auto_us
 ```
 
+### One-time Partial Refresh
+이번 1회 배포처럼 전체 재수집 없이 `qoo10_jp/th`만 갱신해야 할 때 사용합니다.
+
+- 이 절차는 `qoo10_jp/th`의 `latest`와 신규 `run`만 갱신합니다.
+- 나머지 `amazon_jp/*`, `qoo10_jp/*` latest 데이터는 마지막 게시본을 그대로 유지합니다.
+- 임시 운영 경로이므로 대시보드 런타임 로직은 바꾸지 않고 `tools/` 레이어에서만 처리합니다.
+
+새로 수집 후 바로 게시:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\run_partial_refresh_qoo10_th.ps1 -OutDir .\out_partial_qoo10_jp_th_20260406 -Limit 200
+```
+
+이미 생성된 태국 결과만 게시:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\run_partial_refresh_qoo10_th.ps1 -PublishOnly -OutDir .\out_partial_qoo10_jp_th_20260406
+```
+
+### Full Refresh After This Batch
+다음 정식 수집부터는 partial refresh를 반복하지 말고, 다시 전체 대상 국가를 재수집하는 원래 방식으로 복귀합니다.
+
+- `run_and_publish.ps1`는 정식 배치용 경로입니다.
+- `amazon_jp`, `qoo10_jp`의 대상 국가를 순차 실행해 각 `site + country` latest를 다시 갱신합니다.
+- 이번에 추가된 `run_partial_refresh_qoo10_th.ps1`는 태국 1회성 대응용으로만 사용합니다.
+
+예시:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country th -Limit 200 -OutDir .\out_auto_amazon_th
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country th -Limit 200 -OutDir .\out_auto_qoo10_th
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country kr -Limit 200 -OutDir .\out_auto_amazon_kr
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country kr -Limit 200 -OutDir .\out_auto_qoo10_kr
+```
+
 게시 후 생성 구조 예시:
 
 ```text
@@ -108,7 +143,7 @@ npm run dashboard
 
 대시보드에서 제공하는 것:
 - 사이트 선택: `Amazon JP`, `Qoo10 JP`
-- 국가 선택: `한국`, `베트남`, `대만`, `홍콩`, `마카오`, `미국`
+- 국가 선택: `한국`, `베트남`, `태국`, `대만`, `홍콩`, `마카오`, `미국`
 - 데이터셋 선택: 선택한 `site + country` 조합의 latest/run 목록
 - 필터: 검색어, 네트워크, 데이터 용량, 사용기간, 통신사 지원, 가격 범위
 - 정렬: 가격, 판매량, 리뷰, 검색 위치, 사용기간
@@ -122,7 +157,7 @@ KRW 환산 동작:
 - 환율 API 실패 시 최근 성공 환율 캐시를 재사용할 수 있음
 
 주의:
-- 태국(`th`)은 수집 대상이지만 현재 상단 국가 selector에는 노출하지 않음
+- 태국(`th`)은 이제 상단 국가 selector에 노출되며, 이번 partial refresh에서는 `qoo10_jp/th` latest만 별도로 갱신할 수 있음
 - 새 스키마는 `carrier_support_local`을 우선 사용
 - 한국(`kr`) 구형 데이터만 `carrier_support_kr` fallback 사용
 - 비한국 구형 데이터는 제목/evidence 기반 경량 fallback으로 carrier 복원

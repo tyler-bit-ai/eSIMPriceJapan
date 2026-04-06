@@ -109,3 +109,48 @@ console.log(JSON.stringify(normalizeItem(raw)));
     assert normalized["carrier_support_local"]["skt"] is True
     assert normalized["carrier_support_local"]["lgu"] is True
     assert normalized["carrier_support_kr"]["skt"] is True
+
+
+def test_dashboard_server_reads_thailand_and_existing_country_datasets():
+    script = """
+const { readLatestData } = require('./dashboard_server');
+const qoo10Th = readLatestData('qoo10_jp', 'th');
+const amazonTh = readLatestData('amazon_jp', 'th');
+const qoo10Kr = readLatestData('qoo10_jp', 'kr');
+console.log(JSON.stringify({
+  qoo10Th: {
+    found: qoo10Th.found,
+    country: qoo10Th.record && qoo10Th.record.country,
+    source: qoo10Th.record && qoo10Th.record.source,
+    total: qoo10Th.items.length,
+  },
+  amazonTh: {
+    found: amazonTh.found,
+    country: amazonTh.record && amazonTh.record.country,
+    source: amazonTh.record && amazonTh.record.source,
+    total: amazonTh.items.length,
+  },
+  qoo10Kr: {
+    found: qoo10Kr.found,
+    country: qoo10Kr.record && qoo10Kr.record.country,
+    source: qoo10Kr.record && qoo10Kr.record.source,
+    total: qoo10Kr.items.length,
+  }
+}));
+"""
+    loaded = json.loads(run_node(script))
+
+    assert loaded["qoo10Th"]["found"] is True
+    assert loaded["qoo10Th"]["country"] == "th"
+    assert "qoo10_jp_th" in loaded["qoo10Th"]["source"]
+    assert loaded["qoo10Th"]["total"] > 0
+
+    assert loaded["amazonTh"]["found"] is True
+    assert loaded["amazonTh"]["country"] == "th"
+    assert "amazon_jp_th" in loaded["amazonTh"]["source"]
+    assert loaded["amazonTh"]["total"] > 0
+
+    assert loaded["qoo10Kr"]["found"] is True
+    assert loaded["qoo10Kr"]["country"] == "kr"
+    assert "out_live_qoo10_jp_kr_20260401" in loaded["qoo10Kr"]["source"]
+    assert loaded["qoo10Kr"]["total"] > 0

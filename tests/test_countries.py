@@ -5,10 +5,10 @@ def test_country_registry_exposes_all_target_countries():
     assert set(COUNTRY_REGISTRY) == {"kr", "vn", "th", "tw", "hk", "mo", "us"}
 
 
-def test_dashboard_country_list_hides_thailand():
-    assert get_dashboard_countries() == ["kr", "vn", "tw", "hk", "mo", "us"]
+def test_dashboard_country_list_includes_thailand():
+    assert get_dashboard_countries() == ["kr", "vn", "th", "tw", "hk", "mo", "us"]
     assert COUNTRY_REGISTRY["th"].crawl_enabled is True
-    assert COUNTRY_REGISTRY["th"].dashboard_enabled is False
+    assert COUNTRY_REGISTRY["th"].dashboard_enabled is True
 
 
 def test_default_query_uses_country_mapping():

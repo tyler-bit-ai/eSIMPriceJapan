@@ -7,6 +7,8 @@ param(
   [int]$Limit = 0
 )
 
+$ErrorActionPreference = 'Stop'
+
 $results = Join-Path $OutDir 'results.csv'
 if (-not (Test-Path $results)) {
   Write-Error "results.csv not found in $OutDir"
@@ -46,25 +48,48 @@ function New-Record(
   }
 }
 
+function Get-ObjectValue($Value, [string]$Key) {
+  if ($null -eq $Value) { return $null }
+  if ($Value -is [System.Collections.IDictionary]) {
+    if ($Value.Contains($Key)) {
+      return $Value[$Key]
+    }
+    return $null
+  }
+  $prop = $Value.PSObject.Properties[$Key]
+  if ($null -ne $prop) {
+    return $prop.Value
+  }
+  return $null
+}
+
 function Convert-ToRecord($Value, [string]$FallbackSite, [string]$FallbackCountry) {
   if ($null -eq $Value) { return $null }
-  $csvValue = [string]$Value.csv
-  $jsonlValue = [string]$Value.jsonl
+  $csvValue = [string](Get-ObjectValue $Value 'csv')
+  $jsonlValue = [string](Get-ObjectValue $Value 'jsonl')
   if ([string]::IsNullOrWhiteSpace($csvValue) -or [string]::IsNullOrWhiteSpace($jsonlValue)) {
     return $null
   }
+  $siteRaw = Get-ObjectValue $Value 'site'
+  $countryRaw = Get-ObjectValue $Value 'country'
+  $itemCountRaw = Get-ObjectValue $Value 'item_count'
+  $limitRaw = Get-ObjectValue $Value 'limit'
+  $siteValue = if ($siteRaw) { [string]$siteRaw } else { $FallbackSite }
+  $countryValue = if ($countryRaw) { [string]$countryRaw } else { $FallbackCountry }
+  $itemCountValue = if ($null -ne $itemCountRaw) { [int]$itemCountRaw } else { $null }
+  $limitValue = if ($null -ne $limitRaw) { [int]$limitRaw } else { 0 }
   return (New-Record `
-    (if ($Value.site) { [string]$Value.site } else { $FallbackSite }) `
-    (if ($Value.country) { [string]$Value.country } else { $FallbackCountry }) `
+    $siteValue `
+    $countryValue `
     $csvValue `
     $jsonlValue `
-    ([string]$Value.metadata) `
-    ([string]$Value.source) `
-    ([string]$Value.crawled_at) `
-    ([string]$Value.published_at) `
-    (if ($null -ne $Value.item_count) { [int]$Value.item_count } else { $null }) `
-    ([string]$Value.query) `
-    (if ($null -ne $Value.limit) { [int]$Value.limit } else { 0 }))
+    ([string](Get-ObjectValue $Value 'metadata')) `
+    ([string](Get-ObjectValue $Value 'source')) `
+    ([string](Get-ObjectValue $Value 'crawled_at')) `
+    ([string](Get-ObjectValue $Value 'published_at')) `
+    $itemCountValue `
+    ([string](Get-ObjectValue $Value 'query')) `
+    $limitValue)
 }
 
 function Normalize-LatestMap($LatestValue) {
@@ -113,24 +138,59 @@ function Normalize-Runs($RunsValue, [string]$CurrentRunId) {
   $normalized = @()
   if ($null -eq $RunsValue) { return $normalized }
   foreach ($run in $RunsValue) {
-    if ([string]$run.id -eq $CurrentRunId) { continue }
+    $runIdValue = [string](Get-ObjectValue $run 'id')
+    if ($runIdValue -eq $CurrentRunId) { continue }
+    $runSiteValue = Get-ObjectValue $run 'site'
+    $runCountryValue = Get-ObjectValue $run 'country'
+    $runItemCountValue = Get-ObjectValue $run 'item_count'
+    $runLimitValue = Get-ObjectValue $run 'limit'
     $normalized += [ordered]@{
-      id = [string]$run.id
-      site = if ($run.site) { [string]$run.site } else { 'amazon_jp' }
-      country = if ($run.country) { [string]$run.country } else { 'kr' }
-      label = [string]$run.label
-      source = [string]$run.source
-      crawled_at = [string]$run.crawled_at
-      published_at = [string]$run.published_at
-      item_count = if ($null -ne $run.item_count) { [int]$run.item_count } else { $null }
-      csv = [string]$run.csv
-      jsonl = [string]$run.jsonl
-      metadata = [string]$run.metadata
-      query = [string]$run.query
-      limit = if ($null -ne $run.limit) { [int]$run.limit } else { 0 }
+      id = $runIdValue
+      site = if ($runSiteValue) { [string]$runSiteValue } else { 'amazon_jp' }
+      country = if ($runCountryValue) { [string]$runCountryValue } else { 'kr' }
+      label = [string](Get-ObjectValue $run 'label')
+      source = [string](Get-ObjectValue $run 'source')
+      crawled_at = [string](Get-ObjectValue $run 'crawled_at')
+      published_at = [string](Get-ObjectValue $run 'published_at')
+      item_count = if ($null -ne $runItemCountValue) { [int]$runItemCountValue } else { $null }
+      csv = [string](Get-ObjectValue $run 'csv')
+      jsonl = [string](Get-ObjectValue $run 'jsonl')
+      metadata = [string](Get-ObjectValue $run 'metadata')
+      query = [string](Get-ObjectValue $run 'query')
+      limit = if ($null -ne $runLimitValue) { [int]$runLimitValue } else { 0 }
     }
   }
   return $normalized
+}
+
+function ConvertTo-NormalizedObject($Value) {
+  if ($null -eq $Value) { return $null }
+
+  if ($Value -is [System.Collections.IDictionary]) {
+    $map = [ordered]@{}
+    foreach ($key in $Value.Keys) {
+      $map[[string]$key] = ConvertTo-NormalizedObject $Value[$key]
+    }
+    return $map
+  }
+
+  if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+    $items = @()
+    foreach ($entry in $Value) {
+      $items += ,(ConvertTo-NormalizedObject $entry)
+    }
+    return $items
+  }
+
+  if ($Value.PSObject -and $Value.PSObject.Properties.Count -gt 0) {
+    $map = [ordered]@{}
+    foreach ($prop in $Value.PSObject.Properties) {
+      $map[$prop.Name] = ConvertTo-NormalizedObject $prop.Value
+    }
+    return $map
+  }
+
+  return $Value
 }
 
 function Read-IndexJson([string]$Path) {
@@ -148,7 +208,7 @@ function Read-IndexJson([string]$Path) {
       if ([string]::IsNullOrWhiteSpace($raw)) {
         throw "index.json is empty"
       }
-      return ($raw | ConvertFrom-Json -AsHashtable)
+      return (ConvertTo-NormalizedObject ($raw | ConvertFrom-Json))
     } catch {
       $lastError = $_
       Start-Sleep -Milliseconds (200 * $attempt)
@@ -209,52 +269,172 @@ $metaPath = Join-Path $countryDir 'metadata.json'
 $meta | ConvertTo-Json | Set-Content -Path $metaPath -Encoding UTF8
 
 $indexPath = Join-Path $DataDir 'index.json'
-$latestMap = [ordered]@{}
-$runs = @()
-$existing = Read-IndexJson $indexPath
-$latestMap = Normalize-LatestMap $existing.latest
-$runs = Normalize-Runs $existing.runs $runId
+$env:PUBLISH_INDEX_PATH = $indexPath
+$env:PUBLISH_SITE = $Site
+$env:PUBLISH_COUNTRY = $Country
+$env:PUBLISH_RESULTS_JSONL = $resultsJsonl
+$env:PUBLISH_CRAWLED_AT = $crawledAt
+$env:PUBLISH_PUBLISHED_AT = $publishedAt
+$env:PUBLISH_LINE_COUNT = [string]$lineCount
+$env:PUBLISH_QUERY = $Query
+$env:PUBLISH_LIMIT = [string]$Limit
+$env:PUBLISH_RUN_ID = $runId
+$env:PUBLISH_RUN_CSV = ('runs/{0}' -f $runCsvName)
+$env:PUBLISH_RUN_JSONL = ('runs/{0}' -f $runJsonlName)
+$env:PUBLISH_RUN_LABEL = ("{0} | {1} | {2} | {3} | {4} items" -f $jsonlInfo.LastWriteTime.ToString('yyyy-MM-dd HH:mm'), $Site, $Country, $outName, $lineCount)
+$env:PUBLISH_LATEST_CSV = ('sites/{0}/{1}/latest.csv' -f $Site, $Country)
+$env:PUBLISH_LATEST_JSONL = ('sites/{0}/{1}/latest.jsonl' -f $Site, $Country)
+$env:PUBLISH_METADATA = ('sites/{0}/{1}/metadata.json' -f $Site, $Country)
 
-if (-not $latestMap.ContainsKey($Site)) {
-  $latestMap[$Site] = [ordered]@{}
+@'
+import json
+import os
+from pathlib import Path
+
+
+def new_record(site, country, csv, jsonl, metadata, source, crawled_at, published_at, item_count, query, limit):
+    return {
+        "site": site,
+        "country": country,
+        "csv": csv,
+        "jsonl": jsonl,
+        "metadata": metadata,
+        "source": source,
+        "crawled_at": crawled_at,
+        "published_at": published_at,
+        "item_count": item_count,
+        "query": query,
+        "limit": limit,
+    }
+
+
+def normalize_record(value, fallback_site, fallback_country):
+    if not isinstance(value, dict):
+        return None
+    csv_value = str(value.get("csv", "") or "")
+    jsonl_value = str(value.get("jsonl", "") or "")
+    if not csv_value or not jsonl_value:
+        return None
+    return new_record(
+        str(value.get("site") or fallback_site),
+        str(value.get("country") or fallback_country),
+        csv_value,
+        jsonl_value,
+        str(value.get("metadata") or ""),
+        str(value.get("source") or ""),
+        str(value.get("crawled_at") or ""),
+        str(value.get("published_at") or ""),
+        int(value["item_count"]) if value.get("item_count") is not None else None,
+        str(value.get("query") or ""),
+        int(value["limit"]) if value.get("limit") is not None else 0,
+    )
+
+
+def normalize_latest_map(raw):
+    latest = {}
+    if not isinstance(raw, dict):
+        return latest
+    if "csv" in raw and "jsonl" in raw:
+        record = normalize_record(raw, "amazon_jp", "kr")
+        if record:
+            latest["amazon_jp"] = {"kr": record}
+        return latest
+
+    for site, record in raw.items():
+        if not isinstance(record, dict):
+            continue
+        if "csv" in record and "jsonl" in record:
+            normalized = normalize_record(record, site, "kr")
+            if normalized:
+                latest[site] = {"kr": normalized}
+            continue
+        country_map = {}
+        for country, country_record in record.items():
+            normalized = normalize_record(country_record, site, country)
+            if normalized:
+                country_map[country] = normalized
+        if country_map:
+            latest[site] = country_map
+    return latest
+
+
+def normalize_runs(raw, current_run_id):
+    runs = []
+    if not isinstance(raw, list):
+        return runs
+    for run in raw:
+        if not isinstance(run, dict):
+            continue
+        if str(run.get("id") or "") == current_run_id:
+            continue
+        runs.append(
+            {
+                "id": str(run.get("id") or ""),
+                "site": str(run.get("site") or "amazon_jp"),
+                "country": str(run.get("country") or "kr"),
+                "label": str(run.get("label") or ""),
+                "source": str(run.get("source") or ""),
+                "crawled_at": str(run.get("crawled_at") or ""),
+                "published_at": str(run.get("published_at") or ""),
+                "item_count": int(run["item_count"]) if run.get("item_count") is not None else None,
+                "csv": str(run.get("csv") or ""),
+                "jsonl": str(run.get("jsonl") or ""),
+                "metadata": str(run.get("metadata") or ""),
+                "query": str(run.get("query") or ""),
+                "limit": int(run["limit"]) if run.get("limit") is not None else 0,
+            }
+        )
+    return runs
+
+
+index_path = Path(os.environ["PUBLISH_INDEX_PATH"])
+if index_path.exists():
+    existing = json.loads(index_path.read_text(encoding="utf-8-sig"))
+else:
+    existing = {}
+
+latest = normalize_latest_map(existing.get("latest"))
+runs = normalize_runs(existing.get("runs"), os.environ["PUBLISH_RUN_ID"])
+
+site = os.environ["PUBLISH_SITE"]
+country = os.environ["PUBLISH_COUNTRY"]
+latest.setdefault(site, {})
+latest[site][country] = new_record(
+    site,
+    country,
+    os.environ["PUBLISH_LATEST_CSV"],
+    os.environ["PUBLISH_LATEST_JSONL"],
+    os.environ["PUBLISH_METADATA"],
+    os.environ["PUBLISH_RESULTS_JSONL"],
+    os.environ["PUBLISH_CRAWLED_AT"],
+    os.environ["PUBLISH_PUBLISHED_AT"],
+    int(os.environ["PUBLISH_LINE_COUNT"]),
+    os.environ.get("PUBLISH_QUERY", ""),
+    int(os.environ["PUBLISH_LIMIT"]),
+)
+
+new_run = {
+    "id": os.environ["PUBLISH_RUN_ID"],
+    "site": site,
+    "country": country,
+    "label": os.environ["PUBLISH_RUN_LABEL"],
+    "source": os.environ["PUBLISH_RESULTS_JSONL"],
+    "crawled_at": os.environ["PUBLISH_CRAWLED_AT"],
+    "published_at": os.environ["PUBLISH_PUBLISHED_AT"],
+    "item_count": int(os.environ["PUBLISH_LINE_COUNT"]),
+    "csv": os.environ["PUBLISH_RUN_CSV"],
+    "jsonl": os.environ["PUBLISH_RUN_JSONL"],
+    "metadata": os.environ["PUBLISH_METADATA"],
+    "query": os.environ.get("PUBLISH_QUERY", ""),
+    "limit": int(os.environ["PUBLISH_LIMIT"]),
 }
 
-$latestMap[$Site][$Country] = New-Record `
-  $Site `
-  $Country `
-  ('sites/{0}/{1}/latest.csv' -f $Site, $Country) `
-  ('sites/{0}/{1}/latest.jsonl' -f $Site, $Country) `
-  ('sites/{0}/{1}/metadata.json' -f $Site, $Country) `
-  $resultsJsonl `
-  $crawledAt `
-  $publishedAt `
-  $lineCount `
-  $Query `
-  $Limit
-
-$label = "{0} | {1} | {2} | {3} | {4} items" -f $jsonlInfo.LastWriteTime.ToString('yyyy-MM-dd HH:mm'), $Site, $Country, $outName, $lineCount
-$newRun = [ordered]@{
-  id = $runId
-  site = $Site
-  country = $Country
-  label = $label
-  source = $resultsJsonl
-  crawled_at = $crawledAt
-  published_at = $publishedAt
-  item_count = $lineCount
-  csv = ('runs/{0}' -f $runCsvName)
-  jsonl = ('runs/{0}' -f $runJsonlName)
-  metadata = ('sites/{0}/{1}/metadata.json' -f $Site, $Country)
-  query = $Query
-  limit = $Limit
+index_obj = {
+    "latest": latest,
+    "runs": [new_run] + runs,
 }
-$runs = @($newRun) + $runs
-
-$indexObj = [ordered]@{
-  latest = $latestMap
-  runs = $runs
-}
-Write-IndexJson $indexPath $indexObj
+index_path.write_text(json.dumps(index_obj, ensure_ascii=False, indent=2), encoding="utf-8")
+'@ | python -
 
 Write-Host "Copied $results -> $destCsv"
 Write-Host "Copied $resultsJsonl -> $destJsonl"

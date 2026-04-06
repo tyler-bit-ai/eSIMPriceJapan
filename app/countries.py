@@ -27,7 +27,6 @@ COUNTRY_REGISTRY: dict[str, CountryConfig] = {
         code="th",
         label="태국",
         search_keyword="eSIM タイ",
-        dashboard_enabled=False,
     ),
     "tw": CountryConfig(
         code="tw",

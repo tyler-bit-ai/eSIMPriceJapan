@@ -58,7 +58,7 @@ const SITE_CONFIG = {
 const COUNTRY_CONFIG = {
   kr: { label: '한국', dashboardEnabled: true },
   vn: { label: '베트남', dashboardEnabled: true },
-  th: { label: '태국', dashboardEnabled: false },
+  th: { label: '태국', dashboardEnabled: true },
   tw: { label: '대만', dashboardEnabled: true },
   hk: { label: '홍콩', dashboardEnabled: true },
   mo: { label: '마카오', dashboardEnabled: true },

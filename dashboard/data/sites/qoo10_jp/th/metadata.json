@@ -2,9 +2,9 @@
     "site":  "qoo10_jp",
     "country":  "th",
     "query":  "",
-    "limit":  200,
-    "source":  ".\\out_live_qoo10_jp_th_20260401\\results.jsonl",
-    "crawled_at":  "2026-04-01T07:38:13.7846970Z",
-    "published_at":  "2026-04-01T07:38:22.6300113Z",
-    "item_count":  138
+    "limit":  100,
+    "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\out_refresh_qoo10_jp_th_20260406_v2\\results.jsonl",
+    "crawled_at":  "2026-04-06T02:48:46.5831006Z",
+    "published_at":  "2026-04-06T02:49:38.1320939Z",
+    "item_count":  74
 }
