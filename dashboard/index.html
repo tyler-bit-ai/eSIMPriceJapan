@@ -10,62 +10,31 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="noise"></div>
   <main class="layout">
+
+    <!-- ═══ Hero Section ═══ -->
     <header class="hero">
-      <section class="heroCopy">
-        <p class="kicker">JAPAN MARKETPLACE RESEARCH BOARD</p>
-        <h1>일본 시장 eSIM<br />가격 비교</h1>
-        <p class="heroLead">일본 마켓플레이스에서 국가별 eSIM 상품을 수집하고, 두 사이트를 같은 조사 체계 안에서 비교할 수 있도록 정리한 분석 화면입니다.</p>
-        <div class="marketCluster">
-          <div class="clusterHeader">
-            <div>
-              <p class="sectionKicker">조사 채널</p>
-              <p class="clusterTitle">Amazon JP · Qoo10 JP 연계 뷰</p>
-            </div>
-            <span id="currentScope" class="clusterNote">사이트: Amazon JP · 국가: 한국</span>
-          </div>
-          <div class="siteBridge" aria-label="조사 채널">
-            <div id="siteAmazonCard" class="sitePill active">
-              <span class="sitePillLabel">Amazon JP</span>
-              <span class="sitePillMeta">리뷰, 판매량, 베스트셀러 지표 중심</span>
-            </div>
-            <div class="siteBridgeLink">동일 조사군</div>
-            <div id="siteQoo10Card" class="sitePill">
-              <span class="sitePillLabel">Qoo10 JP</span>
-              <span class="sitePillMeta">검색 위치, 셀러 배지, 옵션형 상품 중심</span>
-            </div>
-          </div>
+      <div class="heroTop">
+        <div class="heroCopy">
+          <p class="kicker">Japan Marketplace Research Board</p>
+          <h1>일본 시장 eSIM 가격 비교</h1>
+          <p class="heroLead">Amazon JP · Qoo10 JP에서 수집한 국가별 eSIM 상품 데이터를 한눈에 비교합니다.</p>
         </div>
-      </section>
-      <section class="heroMeta">
-        <div class="heroMetaTop">
-          <span class="scopeBadge">현재 조사 조건</span>
+        <div class="heroRight">
+          <div class="datasetSelector">
+            <span class="datasetLabel">데이터셋 선택</span>
+            <select id="datasetSelect" class="datasetSelect">
+              <option value="">로딩 중...</option>
+            </select>
+          </div>
           <div class="heroActions">
             <button id="helpBtn" class="btn ghost">도움말</button>
             <button id="refreshBtn" class="btn">새로고침</button>
           </div>
         </div>
+      </div>
+      <section class="heroMeta">
         <div class="metaStack">
-          <label class="datasetField" for="siteSelect">
-            <span class="filterLabel">사이트</span>
-            <select id="siteSelect">
-              <option value="amazon_jp">Amazon JP</option>
-              <option value="qoo10_jp">Qoo10 JP</option>
-            </select>
-          </label>
-          <label class="datasetField" for="countrySelect">
-            <span class="filterLabel">국가</span>
-            <select id="countrySelect">
-              <option value="kr">한국</option>
-            </select>
-          </label>
-          <label class="datasetField" for="datasetSelect">
-            <span class="filterLabel">데이터셋</span>
-            <select id="datasetSelect">
-              <option value="">로딩 중...</option>
-            </select>
-          </label>
           <div class="metaCard">
             <span class="metaLabel">데이터 상태</span>
             <strong id="metaText" class="metaValue">데이터를 불러오는 중...</strong>
@@ -75,93 +44,156 @@
       </section>
     </header>
 
-    <section id="kpis" class="kpis"></section>
-
-    <section class="card">
-      <div class="panelHeaderCard">
-        <div>
-          <p class="sectionKicker">탐색 조건</p>
-          <h2>필터</h2>
-        </div>
-        <p class="panelNote">현재 선택한 사이트와 국가 기준으로 즉시 다시 계산됩니다.</p>
+    <!-- ═══ Filter Chips ═══ -->
+    <section class="filter-section">
+      <div class="filter-bar" id="filterBar">
+        <!-- JS에서 동적 생성 -->
       </div>
-      <div class="toolbar">
-        <label class="field fieldWide">
-          <span class="filterLabel">검색</span>
-          <input id="searchInput" type="text" placeholder="상품명/셀러/브랜드 검색" />
-        </label>
-        <label class="field">
-          <span class="filterLabel">네트워크</span>
-          <select id="networkFilter"><option value="">네트워크 전체</option></select>
-        </label>
-        <label class="field">
-          <span class="filterLabel">데이터</span>
-          <select id="dataFilter"><option value="">데이터 전체</option></select>
-        </label>
-        <label class="field">
-          <span class="filterLabel">사용기간</span>
-          <select id="usageFilter"><option value="">사용기간 전체</option></select>
-        </label>
-        <label class="field">
-          <span class="filterLabel">통신사</span>
-          <select id="carrierFilter">
-            <option value="">통신사 전체</option>
-            <option value="any">통신사 명시 상품</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="filterLabel">최소 가격</span>
-          <input id="minPrice" type="number" min="0" step="1" placeholder="최소 가격 (JPY)" />
-        </label>
-        <label class="field">
-          <span class="filterLabel">최대 가격</span>
-          <input id="maxPrice" type="number" min="0" step="1" placeholder="최대 가격 (JPY)" />
-        </label>
-        <label class="field">
-          <span class="filterLabel">정렬</span>
-          <select id="sortKey"></select>
-        </label>
+      <div class="advanced-filters">
+        <div class="toolbar">
+          <label class="field fieldWide">
+            <span class="filterLabel">검색</span>
+            <input id="searchInput" type="text" placeholder="상품명/셀러/브랜드 검색" />
+          </label>
+          <label class="field">
+            <span class="filterLabel">네트워크</span>
+            <select id="networkFilter"><option value="">네트워크 전체</option></select>
+          </label>
+          <label class="field">
+            <span class="filterLabel">데이터</span>
+            <select id="dataFilter"><option value="">데이터 전체</option></select>
+          </label>
+          <label class="field">
+            <span class="filterLabel">사용기간</span>
+            <select id="usageFilter"><option value="">사용기간 전체</option></select>
+          </label>
+          <label class="field">
+            <span class="filterLabel">통신사</span>
+            <select id="carrierFilter">
+              <option value="">통신사 전체</option>
+              <option value="any">통신사 명시 상품</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="filterLabel">최소 가격</span>
+            <input id="minPrice" type="number" min="0" step="1" placeholder="최소 (JPY)" />
+          </label>
+          <label class="field">
+            <span class="filterLabel">최대 가격</span>
+            <input id="maxPrice" type="number" min="0" step="1" placeholder="최대 (JPY)" />
+          </label>
+          <label class="field">
+            <span class="filterLabel">정렬</span>
+            <select id="sortKey"></select>
+          </label>
+        </div>
       </div>
     </section>
 
-    <section class="grid">
-      <article class="card">
-        <div class="panelHeaderCard">
-          <div>
-            <p class="sectionKicker">분포 분석</p>
-            <h2>데이터 용량 분포</h2>
-          </div>
-        </div>
-        <div id="dataAmountBars" class="bars"></div>
-      </article>
-      <article class="card">
-        <div class="panelHeaderCard">
-          <div>
-            <p class="sectionKicker">분포 분석</p>
-            <h2>네트워크 비중</h2>
-          </div>
-        </div>
-        <div id="networkBars" class="bars"></div>
-      </article>
-      <article class="card" id="sellerBadgeCard">
-        <div class="panelHeaderCard">
-          <div>
-            <p class="sectionKicker">분포 분석</p>
-            <h2>셀러 배지 분포</h2>
-          </div>
-        </div>
-        <div id="sellerBadgeBars" class="bars"></div>
-      </article>
+    <!-- ═══ Summary KPI Cards ═══ -->
+    <section id="summaryGrid" class="summary-grid">
+      <!-- JS에서 동적 생성 -->
     </section>
 
-    <section class="card">
-      <div class="panelHeaderCard detailHead">
+    <!-- ═══ Price Heatmap ═══ -->
+    <section class="section-card">
+      <div class="section-header">
         <div>
-          <p class="sectionKicker">상세 비교</p>
-          <h2>상세 항목</h2>
+          <p class="section-kicker">가격 히트맵</p>
+          <h2 id="heatmapTitle">국가별 · 기간별 최저가 (1일당, KRW)</h2>
         </div>
-        <div class="panelActions">
-          <button id="downloadExcelBtn" class="btn ghost">엑셀 다운로드</button>
+        <div class="heatmap-mode-chips">
+          <div class="filter-chip active" id="heatmapModeMin" data-mode="min"><span>최저가</span></div>
+          <div class="filter-chip" id="heatmapModeAvg" data-mode="avg"><span>평균가</span></div>
+        </div>
+      </div>
+      <div class="heatmap-wrap">
+        <table class="heatmap-table">
+          <thead id="heatmapHead"></thead>
+          <tbody id="heatmapBody"></tbody>
+        </table>
+      </div>
+      <div class="heatmap-legend">
+        <span>색상 기준:</span>
+        <div class="heatmap-legend-item">
+          <span class="heatmap-legend-swatch" style="background:rgba(47,125,77,0.25);"></span>
+          <span>저렴</span>
+        </div>
+        <div class="heatmap-legend-item">
+          <span class="heatmap-legend-swatch" style="background:rgba(184,134,11,0.12);"></span>
+          <span>보통</span>
+        </div>
+        <div class="heatmap-legend-item">
+          <span class="heatmap-legend-swatch" style="background:rgba(196,67,50,0.16);"></span>
+          <span>비쌈</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Platform Comparison ═══ -->
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">플랫폼 비교</p>
+          <h2>Amazon JP vs Qoo10 JP</h2>
+        </div>
+      </div>
+      <div id="platformGrid" class="platform-grid">
+        <!-- JS에서 동적 생성 -->
+      </div>
+    </section>
+
+    <!-- ═══ Value Ranking TOP 10 ═══ -->
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">가성비 분석</p>
+          <h2>1일당 가격 TOP 10</h2>
+        </div>
+      </div>
+      <div id="rankingList" class="ranking-list">
+        <!-- JS에서 동적 생성 -->
+      </div>
+    </section>
+
+    <!-- ═══ Market Analysis Charts ═══ -->
+    <section class="section-card">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">시장 분석</p>
+          <h2>시장 구조 분포</h2>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title">네트워크 타입 분포</div>
+          <div id="networkChart" class="bar-chart"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">통신사별 상품 수</div>
+          <div id="carrierChart" class="bar-chart"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">가격대 분포 (JPY)</div>
+          <div id="priceChart" class="bar-chart"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">셀러 배지 분포</div>
+          <div id="badgeChart" class="bar-chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Detail Data Table ═══ -->
+    <section class="section-card">
+      <div class="section-header detailHead">
+        <div>
+          <p class="section-kicker">상세 데이터</p>
+          <h2>전체 상품 목록</h2>
+        </div>
+        <div class="download-actions">
+          <button id="downloadExcelBtn" class="btn ghost">엑셀 다운로드 1</button>
+          <button id="downloadExcelBtn2" class="btn">엑셀 다운로드 2</button>
         </div>
       </div>
       <div class="tableWrap">
@@ -176,8 +208,10 @@
         <button id="nextPage" class="btn ghost">다음</button>
       </div>
     </section>
+
   </main>
 
+  <!-- ═══ Help Modal ═══ -->
   <div id="helpOverlay" class="modalOverlay" hidden>
     <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
       <div class="modalHead">
@@ -195,4 +229,3 @@
   <script src="./app.js"></script>
 </body>
 </html>
-

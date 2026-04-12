@@ -1,5 +1,5 @@
 const pageSize = 20;
-const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
+const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io') || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const FX = window.ExchangeRateUtils;
 const SITE_CONFIG = {
   amazon_jp: {
@@ -56,14 +56,33 @@ const SITE_CONFIG = {
   },
 };
 const COUNTRY_CONFIG = {
-  kr: { label: '한국', dashboardEnabled: true },
-  vn: { label: '베트남', dashboardEnabled: true },
-  th: { label: '태국', dashboardEnabled: true },
-  tw: { label: '대만', dashboardEnabled: true },
-  hk: { label: '홍콩', dashboardEnabled: true },
-  mo: { label: '마카오', dashboardEnabled: true },
-  us: { label: '미국', dashboardEnabled: true },
+  kr: { label: '한국', dashboardEnabled: true, flag: '🇰🇷' },
+  vn: { label: '베트남', dashboardEnabled: true, flag: '🇻🇳' },
+  th: { label: '태국', dashboardEnabled: true, flag: '🇹🇭' },
+  tw: { label: '대만', dashboardEnabled: true, flag: '🇹🇼' },
+  hk: { label: '홍콩', dashboardEnabled: true, flag: '🇭🇰' },
+  mo: { label: '마카오', dashboardEnabled: true, flag: '🇲🇴' },
+  us: { label: '미국', dashboardEnabled: true, flag: '🇺🇸' },
 };
+const DETAIL_COLUMNS = [
+  ['_num', '번호'],
+  ['country', '국가'],
+  ['site', '플랫폼'],
+  ['title', '상품명'],
+  ['price_jpy', '가격 (JPY)'],
+  ['price_krw', '가격 (KRW)'],
+  ['unit_price_krw', '1일당 (KRW)'],
+  ['review_count', '리뷰 수'],
+  ['sales_info', '판매량'],
+  ['network_type', '네트워크'],
+  ['data_amount', '데이터'],
+  ['usage_validity', '사용기간'],
+  ['activation_validity', '활성화기간'],
+  ['carrier_support_local', '통신사 지원'],
+  ['seller', '셀러'],
+  ['brand', '브랜드'],
+];
+
 const HELP_CONTENT = {
   common: {
     summary: '이 대시보드는 일본 마켓플레이스에서 국가별 eSIM 검색 결과를 수집하고, 핵심 정보를 정규화해 비교할 수 있도록 만든 분석 화면입니다.',
@@ -130,11 +149,14 @@ let state = {
   sites: [],
   countries: [],
   selectedSite: 'amazon_jp',
-  selectedCountry: 'kr',
+  selectedCountry: 'all',
   selectedDatasetId: null,
   selectedCsvPath: './data/sites/amazon_jp/kr/latest.csv',
   amazonReviewEnabled: true,
   exchangeRate: FX.buildExchangeRateMeta({ unavailable: true, stale: true }),
+  selectedPlatform: 'all',
+  selectedPeriod: 'all',
+  heatmapMode: 'min',
 };
 const CARRIER_CONFIG = {
   kr: [
@@ -279,7 +301,8 @@ function normalizeCarrierLocal(carrierSupport, legacyCarrierSupport, country, ra
 }
 
 function normalizeItem(raw) {
-  const country = raw.country || state.selectedCountry || null;
+  const rawCountry = raw.country || (state.selectedCountry !== 'all' ? state.selectedCountry : null) || null;
+  const country = rawCountry ? String(rawCountry).toLowerCase() : null;
   const carrier = normalizeCarrierLocal(raw.carrier_support_local, raw.carrier_support_kr, country, raw);
   const parsedPrice = Number(raw.price_jpy);
   const parsedPriceKrw = Number(raw.price_krw);
@@ -331,6 +354,19 @@ const el = {
   countrySelect: document.getElementById('countrySelect'),
   datasetSelect: document.getElementById('datasetSelect'),
   kpis: document.getElementById('kpis'),
+  summaryGrid: document.getElementById('summaryGrid'),
+  filterBar: document.getElementById('filterBar'),
+  heatmapHead: document.getElementById('heatmapHead'),
+  heatmapBody: document.getElementById('heatmapBody'),
+  heatmapTitle: document.getElementById('heatmapTitle'),
+  heatmapModeMin: document.getElementById('heatmapModeMin'),
+  heatmapModeAvg: document.getElementById('heatmapModeAvg'),
+  platformGrid: document.getElementById('platformGrid'),
+  rankingList: document.getElementById('rankingList'),
+  networkChart: document.getElementById('networkChart'),
+  carrierChart: document.getElementById('carrierChart'),
+  priceChart: document.getElementById('priceChart'),
+  badgeChart: document.getElementById('badgeChart'),
   dataAmountBars: document.getElementById('dataAmountBars'),
   networkBars: document.getElementById('networkBars'),
   sellerBadgeCard: document.getElementById('sellerBadgeCard'),
@@ -349,16 +385,33 @@ const el = {
   prevPage: document.getElementById('prevPage'),
   nextPage: document.getElementById('nextPage'),
   downloadExcelBtn: document.getElementById('downloadExcelBtn'),
+  downloadExcelBtn2: document.getElementById('downloadExcelBtn2'),
 };
 
 function activeConfig() {
-  const config = SITE_CONFIG[state.selectedSite] || SITE_CONFIG.amazon_jp;
-  if (state.selectedSite !== 'amazon_jp' || state.amazonReviewEnabled) return config;
-  return {
-    ...config,
-    sortOptions: config.sortOptions.filter(([value]) => value !== 'reviewDesc'),
-    columns: config.columns.filter(([key]) => key !== 'review_count'),
-  };
+  let config = SITE_CONFIG[state.selectedSite] || SITE_CONFIG.amazon_jp;
+  if (state.selectedSite !== 'amazon_jp' || state.amazonReviewEnabled) {
+    config = { ...config };
+  } else {
+    config = {
+      ...config,
+      sortOptions: config.sortOptions.filter(([value]) => value !== 'reviewDesc'),
+      columns: config.columns.filter(([key]) => key !== 'review_count'),
+    };
+  }
+  if (state.selectedCountry === 'all') {
+    const hasCountry = config.columns.some(([key]) => key === 'country');
+    if (!hasCountry) {
+      config.columns = [['country', '국가'], ...config.columns];
+    }
+  }
+  if (state.selectedPlatform === 'all') {
+    const hasSite = config.columns.some(([key]) => key === 'site');
+    if (!hasSite) {
+      config.columns = [['site', '플랫폼'], ...config.columns];
+    }
+  }
+  return config;
 }
 
 function siteLabel(site) {
@@ -366,6 +419,7 @@ function siteLabel(site) {
 }
 
 function countryLabel(country) {
+  if (country === 'all') return '전체 국가';
   return (COUNTRY_CONFIG[country] && COUNTRY_CONFIG[country].label) || String(country || '한국').toUpperCase();
 }
 
@@ -439,8 +493,10 @@ function populateSiteOptions(indexData) {
   if (!sites.size) sites.add('amazon_jp');
   state.sites = [...sites];
   if (!state.sites.includes(state.selectedSite)) state.selectedSite = state.sites[0];
-  el.siteSelect.innerHTML = state.sites.map((site) => `<option value="${safe(site)}">${safe(siteLabel(site))}</option>`).join('');
-  el.siteSelect.value = state.selectedSite;
+  if (el.siteSelect) {
+    el.siteSelect.innerHTML = state.sites.map((site) => `<option value="${safe(site)}">${safe(siteLabel(site))}</option>`).join('');
+    el.siteSelect.value = state.selectedSite;
+  }
 }
 
 function populateCountryOptions(indexData) {
@@ -454,10 +510,12 @@ function populateCountryOptions(indexData) {
     if (!run || run.site !== state.selectedSite || !run.country) return;
     if (!COUNTRY_CONFIG[run.country] || COUNTRY_CONFIG[run.country].dashboardEnabled) countries.add(run.country);
   });
-  state.countries = [...countries];
-  if (!state.countries.includes(state.selectedCountry)) state.selectedCountry = state.countries[0] || 'kr';
-  el.countrySelect.innerHTML = state.countries.map((country) => `<option value="${safe(country)}">${safe(countryLabel(country))}</option>`).join('');
-  el.countrySelect.value = state.selectedCountry;
+  state.countries = ['all', ...countries];
+  if (!state.countries.includes(state.selectedCountry)) state.selectedCountry = 'all';
+  if (el.countrySelect) {
+    el.countrySelect.innerHTML = state.countries.map((country) => `<option value="${safe(country)}">${safe(country === 'all' ? '전체 국가' : countryLabel(country))}</option>`).join('');
+    el.countrySelect.value = state.selectedCountry;
+  }
 }
 
 function populateDatasetOptions(datasets) {
@@ -474,7 +532,7 @@ function populateDatasetOptions(datasets) {
 
 function getDatasetsForSelectedSite() {
   return state.datasets.filter(
-    (entry) => (entry.site || 'amazon_jp') === state.selectedSite && (entry.country || 'kr') === state.selectedCountry,
+    (entry) => (entry.site || 'amazon_jp') === state.selectedSite && (state.selectedCountry === 'all' || (entry.country || 'kr') === state.selectedCountry),
   );
 }
 
@@ -740,6 +798,49 @@ async function saveWithPicker(blob, suggestedName) {
   return true;
 }
 
+async function downloadAllExcel() {
+  if (IS_GITHUB_PAGES) {
+    const csv = buildClientExportCsv(state.items);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    a.download = `${state.selectedSite || 'market'}_${state.selectedCountry || 'all'}_all_${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+    return;
+  }
+  const params = new URLSearchParams();
+  params.set('site', state.selectedSite);
+  params.set('country', state.selectedCountry);
+  if (state.selectedDatasetId) params.set('dataset', state.selectedDatasetId);
+  const url = `/api/export.xlsx?${params.toString()}`;
+  try {
+    el.downloadExcelBtn2.disabled = true;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const suggestedName = getFilenameFromDisposition(res.headers.get('content-disposition')) || 'all.xlsx';
+    const saved = await saveWithPicker(blob, suggestedName);
+    if (saved) return;
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = suggestedName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch (err) {
+    alert(`엑셀 다운로드 실패: ${err.message}`);
+  } finally {
+    el.downloadExcelBtn2.disabled = false;
+  }
+}
+
 async function downloadFilteredExcel() {
   if (IS_GITHUB_PAGES) {
     const csv = buildClientExportCsv(state.filtered);
@@ -781,7 +882,7 @@ async function downloadFilteredExcel() {
 
 function renderSiteStructure() {
   const config = activeConfig();
-  el.searchInput.placeholder = config.searchPlaceholder;
+  if (el.searchInput) el.searchInput.placeholder = config.searchPlaceholder;
   if (el.currentScope) {
     el.currentScope.textContent = `사이트: ${siteLabel(state.selectedSite)} · 국가: ${countryLabel(state.selectedCountry)}`;
   }
@@ -791,12 +892,15 @@ function renderSiteStructure() {
   if (el.siteQoo10Card) {
     el.siteQoo10Card.classList.toggle('active', state.selectedSite === 'qoo10_jp');
   }
-  el.sortKey.innerHTML = config.sortOptions.map(([value, label]) => `<option value="${value}">${safe(label)}</option>`).join('');
-  if (!config.sortOptions.some(([value]) => value === el.sortKey.value)) {
-    el.sortKey.value = config.sortOptions[0][0];
+  if (el.sortKey) {
+    el.sortKey.innerHTML = config.sortOptions.map(([value, label]) => `<option value="${value}">${safe(label)}</option>`).join('');
+    if (!config.sortOptions.some(([value]) => value === el.sortKey.value)) {
+      el.sortKey.value = config.sortOptions[0][0];
+    }
   }
-  el.tableHead.innerHTML = `<tr>${config.columns.map(([, label]) => `<th>${safe(label)}</th>`).join('')}</tr>`;
-  el.sellerBadgeCard.style.display = config.showSellerBadgeChart ? '' : 'none';
+  if (el.sellerBadgeCard) {
+    el.sellerBadgeCard.style.display = config.showSellerBadgeChart ? '' : 'none';
+  }
   if (isHelpOpen()) renderHelpModal();
 }
 
@@ -871,18 +975,46 @@ function renderFilterOptions(items) {
   el.carrierFilter.value = Array.from(el.carrierFilter.options).some((opt) => opt.value === keep.carrier) ? keep.carrier : '';
 }
 
-function cellValue(row, key) {
+function cellValue(row, key, rowNum) {
+  if (key === '_num') return String(rowNum);
+  if (key === 'country') {
+    const cfg = COUNTRY_CONFIG[row.country];
+    return cfg ? `${safe(cfg.flag)} ${safe(cfg.label)}` : safe(row.country);
+  }
+  if (key === 'site') {
+    return row.site === 'qoo10_jp'
+      ? '<span style="background:#e11e2b;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;">Qoo10</span>'
+      : '<span style="background:#ff9900;color:#111;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;">Amazon</span>';
+  }
   if (key === 'title') {
     return row.product_url ? `<a class="titleLink" href="${safeHref(row.product_url)}" target="_blank" rel="noopener noreferrer">${safe(row.title)}</a>` : safe(row.title);
   }
-  if (key === 'price_jpy') return yen(row.price_jpy);
-  if (key === 'price_krw') return won(row.price_krw);
-  if (key === 'monthly_sold_count') return Number.isFinite(row.monthly_sold_count) ? `${row.monthly_sold_count.toLocaleString('ko-KR')}개` : '-';
+  if (key === 'price_jpy') return Number.isFinite(row.price_jpy) ? `¥${row.price_jpy.toLocaleString('ja-JP')}` : '-';
+  if (key === 'price_krw') return Number.isFinite(row.price_krw) ? `₩${row.price_krw.toLocaleString('ko-KR')}` : '-';
+  if (key === 'unit_price_krw') {
+    const unit = computeUnitPrice(row);
+    return unit !== null ? `<span style="color:var(--green);font-weight:600;">₩${unit.toLocaleString('ko-KR')}</span>` : '-';
+  }
   if (key === 'review_count') return Number.isFinite(row.review_count) ? `${row.review_count.toLocaleString('ko-KR')}` : '-';
+  if (key === 'sales_info') {
+    if (row.site === 'amazon_jp' && Number.isFinite(row.monthly_sold_count)) return `${row.monthly_sold_count.toLocaleString('ko-KR')}+`;
+    return '-';
+  }
+  if (key === 'network_type') {
+    if (row.network_type === 'local') return '<span class="badge-local">Local</span>';
+    if (row.network_type === 'roaming') return '<span class="badge-roaming">Roaming</span>';
+    return safe(row.network_type);
+  }
+  if (key === 'data_amount') return safe(row.data_amount);
+  if (key === 'usage_validity') return safe(row.usage_validity);
+  if (key === 'activation_validity') return safe(row.activation_validity);
+  if (key === 'carrier_support_local') return safe(carrierLabel(row.carrier_support_local, row.country || state.selectedCountry));
+  if (key === 'seller') return safe(row.seller);
+  if (key === 'brand') return safe(row.brand);
+  if (key === 'monthly_sold_count') return Number.isFinite(row.monthly_sold_count) ? `${row.monthly_sold_count.toLocaleString('ko-KR')}개` : '-';
   if (key === 'is_bestseller') return row.is_bestseller === true ? 'Yes' : (row.is_bestseller === false ? 'No' : '-');
   if (key === 'bestseller_rank') return Number.isFinite(row.bestseller_rank) ? `${row.bestseller_rank.toLocaleString('ko-KR')}위` : '-';
   if (key === 'search_position') return Number.isFinite(row.search_position) ? `${row.search_position}` : '-';
-  if (key === 'carrier_support_local') return safe(carrierLabel(row.carrier_support_local, row.country || state.selectedCountry));
   return safe(row[key]);
 }
 
@@ -891,9 +1023,18 @@ function renderTable() {
   state.currentPage = Math.min(state.currentPage, totalPages);
   const start = (state.currentPage - 1) * pageSize;
   const pageRows = state.filtered.slice(start, start + pageSize);
-  const config = activeConfig();
-  el.rows.innerHTML = pageRows.map((row) => `<tr>${config.columns.map(([key]) => `<td${key === 'title' ? ' class="titleCell"' : ''}>${cellValue(row, key)}</td>`).join('')}</tr>`).join('');
-  el.pageInfo.textContent = `${state.currentPage} / ${totalPages} (총 ${state.filtered.length.toLocaleString('ko-KR')}개)`;
+  el.tableHead.innerHTML = `<tr>${DETAIL_COLUMNS.map(([, label]) => `<th>${safe(label)}</th>`).join('')}</tr>`;
+  const narrowKeys = new Set(['seller', 'brand', 'carrier_support_local', 'activation_validity', 'data_amount', 'usage_validity']);
+  el.rows.innerHTML = pageRows.map((row, idx) => {
+    const rowNum = start + idx + 1;
+    return `<tr>${DETAIL_COLUMNS.map(([key]) => {
+      let cls = '';
+      if (key === 'title') cls = ' class="titleCell"';
+      else if (narrowKeys.has(key)) cls = ' class="narrowCell"';
+      return `<td${cls}>${cellValue(row, key, rowNum)}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+  el.pageInfo.textContent = `전체 ${state.filtered.length.toLocaleString('ko-KR')}건 중 ${start + 1}\u2013${Math.min(start + pageSize, state.filtered.length)} 표시`;
   el.prevPage.disabled = state.currentPage <= 1;
   el.nextPage.disabled = state.currentPage >= totalPages;
 }
@@ -931,16 +1072,396 @@ function applyLocalFilters(items) {
   return filtered;
 }
 
+function getPeriodGroup(days) {
+  if (!Number.isFinite(days)) return 'unknown';
+  if (days <= 3) return '1~3일';
+  if (days <= 7) return '4~7일';
+  return '8일+';
+}
+
+const PERIOD_GROUPS = ['1일', '2일', '3일', '4일', '5일', '7일', '8일+'];
+const PERIOD_RANGES = [
+  [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 7], [8, 999],
+];
+
+function getPeriodForDays(days) {
+  if (!Number.isFinite(days)) return null;
+  for (let i = 0; i < PERIOD_RANGES.length; i++) {
+    const [lo, hi] = PERIOD_RANGES[i];
+    if (days >= lo && days <= hi) return PERIOD_GROUPS[i];
+  }
+  return null;
+}
+
+function computeUnitPrice(item) {
+  if (!Number.isFinite(item.price_krw) || item.price_krw <= 0) return null;
+  const days = item.usage_days;
+  if (!Number.isFinite(days) || days <= 0) return null;
+  return Math.round(item.price_krw / days);
+}
+
+function buildHeatThresholds(allPrices) {
+  const valid = allPrices.filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+  if (!valid.length) return null;
+  const lo = valid[0];
+  const hi = valid[valid.length - 1];
+  if (lo === hi) return null;
+  const step = (hi - lo) / 8;
+  return Array.from({ length: 8 }, (_, i) => lo + step * (i + 1));
+}
+
+function heatClassDynamic(price, thresholds) {
+  if (price === null || price === undefined || !thresholds) return '';
+  for (let i = 0; i < thresholds.length; i++) {
+    if (price < thresholds[i]) return `heat-${i + 1}`;
+  }
+  return 'heat-8';
+}
+
+function renderFilterChips() {
+  if (!el.filterBar) return;
+  const countries = getVisibleCountryCodes();
+
+  let html = '';
+
+  // 국가 칩
+  html += `<div class="filter-chip ${state.selectedCountry === 'all' ? 'active' : ''}" data-filter="country" data-value="all"><span>전체 국가</span></div>`;
+  countries.forEach((code) => {
+    const cfg = COUNTRY_CONFIG[code];
+    const active = state.selectedCountry === code ? 'active' : '';
+    html += `<div class="filter-chip ${active}" data-filter="country" data-value="${safe(code)}"><span class="flag">${safe(cfg.flag)}</span><span>${safe(cfg.label)}</span></div>`;
+  });
+
+  html += '<div class="divider-v"></div>';
+
+  // 플랫폼 칩
+  html += `<div class="filter-chip ${state.selectedPlatform === 'all' ? 'active' : ''}" data-filter="platform" data-value="all"><span>전체 플랫폼</span></div>`;
+  html += `<div class="filter-chip ${state.selectedPlatform === 'amazon_jp' ? 'active' : ''}" data-filter="platform" data-value="amazon_jp"><span>Amazon JP</span></div>`;
+  html += `<div class="filter-chip ${state.selectedPlatform === 'qoo10_jp' ? 'active' : ''}" data-filter="platform" data-value="qoo10_jp"><span>Qoo10 JP</span></div>`;
+
+  html += '<div class="divider-v"></div>';
+
+  // 기간 칩
+  const periods = ['all', '1~3일', '4~7일', '8일+'];
+  const periodLabels = ['전체 기간', '1~3일', '4~7일', '8일+'];
+  periods.forEach((p, i) => {
+    const active = state.selectedPeriod === p ? 'active' : '';
+    html += `<div class="filter-chip ${active}" data-filter="period" data-value="${safe(p)}"><span>${safe(periodLabels[i])}</span></div>`;
+  });
+
+  el.filterBar.innerHTML = html;
+
+  el.filterBar.querySelectorAll('.filter-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const filterType = chip.dataset.filter;
+      const value = chip.dataset.value;
+      if (filterType === 'country') {
+        state.selectedCountry = value;
+      } else if (filterType === 'platform') {
+        state.selectedPlatform = value;
+        if (value !== 'all') state.selectedSite = value;
+      } else if (filterType === 'period') {
+        state.selectedPeriod = value;
+      }
+      triggerReload();
+    });
+  });
+}
+
+function filterByChips(items) {
+  let result = items;
+
+  if (state.selectedCountry !== 'all') {
+    result = result.filter((it) => it.country === state.selectedCountry);
+  }
+  if (state.selectedPlatform !== 'all') {
+    result = result.filter((it) => it.site === state.selectedPlatform);
+  }
+  if (state.selectedPeriod !== 'all') {
+    result = result.filter((it) => {
+      const d = it.usage_days;
+      if (!Number.isFinite(d)) return false;
+      if (state.selectedPeriod === '1~3일') return d >= 1 && d <= 3;
+      if (state.selectedPeriod === '4~7일') return d >= 4 && d <= 7;
+      if (state.selectedPeriod === '8일+') return d >= 8;
+      return true;
+    });
+  }
+
+  return result;
+}
+
+function renderSummaryCards(items) {
+  if (!el.summaryGrid) return;
+  const total = items.length;
+  const withUnit = items.map(computeUnitPrice).filter((n) => Number.isFinite(n));
+  const avgDaily = withUnit.length ? Math.round(withUnit.reduce((a, b) => a + b, 0) / withUnit.length) : null;
+  const minDaily = withUnit.length ? Math.min(...withUnit) : null;
+  const localCount = items.filter((it) => it.network_type === 'local').length;
+  const roamingCount = items.filter((it) => it.network_type === 'roaming').length;
+  const localPct = total ? Math.round((localCount / total) * 100) : 0;
+  const roamingPct = total ? Math.round((roamingCount / total) * 100) : 0;
+  const unknownPct = total ? 100 - localPct - roamingPct : 0;
+
+  const platformCount = new Set(items.map((it) => it.site)).size;
+  const datasetCount = state.datasets.length;
+
+  el.summaryGrid.innerHTML = `
+    <div class="summary-card">
+      <div class="summary-icon">&#128230;</div>
+      <div class="summary-label">전체 상품 수</div>
+      <div class="summary-value">${total.toLocaleString('ko-KR')}</div>
+      <div class="summary-sub">${Object.keys(COUNTRY_CONFIG).length}개국 · ${platformCount}플랫폼 · ${datasetCount}개 데이터셋</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon">&#128176;</div>
+      <div class="summary-label">평균 1일 가격</div>
+      <div class="summary-value green">${avgDaily !== null ? `₩${avgDaily.toLocaleString('ko-KR')}` : '-'}</div>
+      <div class="summary-sub">전체 상품 평균 (JPY&rarr;KRW 환율 적용)</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon">&#127942;</div>
+      <div class="summary-label">최저가 (1일당)</div>
+      <div class="summary-value highlight">${minDaily !== null ? `₩${minDaily.toLocaleString('ko-KR')}` : '-'}</div>
+      <div class="summary-sub">필터 적용 후 최저 1일당 가격</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon">&#128225;</div>
+      <div class="summary-label">Local 네트워크 비율</div>
+      <div class="summary-value teal">${localPct}%</div>
+      <div class="summary-sub">로밍 ${roamingPct}% · 미확인 ${unknownPct}%</div>
+    </div>
+  `;
+}
+
+function renderHeatmap(items) {
+  if (!el.heatmapHead || !el.heatmapBody) return;
+  const countries = getVisibleCountryCodes();
+  const periodLabels = PERIOD_GROUPS;
+  const isAvg = state.heatmapMode === 'avg';
+
+  // 제목 동적 변경
+  if (el.heatmapTitle) {
+    el.heatmapTitle.textContent = `국가별 · 기간별 ${isAvg ? '평균가' : '최저가'} (1일당, KRW)`;
+  }
+
+  // 토글 칩 상태
+  if (el.heatmapModeMin) el.heatmapModeMin.classList.toggle('active', !isAvg);
+  if (el.heatmapModeAvg) el.heatmapModeAvg.classList.toggle('active', isAvg);
+
+  // 전체 히트맵 셀 가격을 수집해 동적 임계값 계산
+  const allCellPrices = [];
+  const precomputed = countries.map((code) => {
+    const cfg = COUNTRY_CONFIG[code];
+    const countryItems = items.filter((it) => it.country === code);
+    const cells = periodLabels.map((period, idx) => {
+      const [lo, hi] = PERIOD_RANGES[idx];
+      const periodItems = countryItems.filter((it) => Number.isFinite(it.usage_days) && it.usage_days >= lo && it.usage_days <= hi);
+      const unitPrices = periodItems.map(computeUnitPrice).filter((n) => Number.isFinite(n));
+      if (!unitPrices.length) return { price: null };
+      const value = isAvg ? Math.round(unitPrices.reduce((a, b) => a + b, 0) / unitPrices.length) : Math.min(...unitPrices);
+      allCellPrices.push(value);
+      return { price: value };
+    });
+    return { code, flag: cfg.flag, label: cfg.label, cells };
+  });
+
+  const thresholds = buildHeatThresholds(allCellPrices);
+
+  // 헤더
+  el.heatmapHead.innerHTML = `<tr><th class="country-header">국가</th>${periodLabels.map((p) => `<th>${safe(p)}</th>`).join('')}</tr>`;
+
+  el.heatmapBody.innerHTML = precomputed.map((row) => `<tr><td><div class="heatmap-country"><span class="flag">${safe(row.flag)}</span> ${safe(row.label)}</div></td>${row.cells.map((c) => {
+    const cls = heatClassDynamic(c.price, thresholds);
+    return `<td class="heatmap-cell ${cls}">${c.price !== null ? `<span class="heatmap-price">₩${c.price.toLocaleString('ko-KR')}</span><span class="heatmap-unit">/일</span>` : '<span style="color:var(--muted);">-</span>'}</td>`;
+  }).join('')}</tr>`).join('');
+}
+
+function renderPlatformComparison(items) {
+  if (!el.platformGrid) return;
+  const sites = [
+    { key: 'amazon_jp', name: 'Amazon JP', sub: '리뷰, 판매량, 베스트셀러 중심', cls: 'amazon', letter: 'A' },
+    { key: 'qoo10_jp', name: 'Qoo10 JP', sub: '검색 위치, 셀러 배지, 옵션형 중심', cls: 'qoo10', letter: 'Q' },
+  ];
+
+  el.platformGrid.innerHTML = sites.map((s) => {
+    const siteItems = items.filter((it) => it.site === s.key);
+    const total = siteItems.length;
+    const prices = siteItems.map((it) => it.price_jpy).filter((n) => Number.isFinite(n) && n > 0);
+    const avgPrice = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null;
+    const unitPrices = siteItems.map(computeUnitPrice).filter((n) => Number.isFinite(n));
+    const minDaily = unitPrices.length ? Math.min(...unitPrices) : null;
+    const reviews = siteItems.map((it) => it.review_count).filter((n) => Number.isFinite(n));
+    const avgReview = reviews.length ? Math.round(reviews.reduce((a, b) => a + b, 0) / reviews.length) : null;
+
+    return `<div class="platform-card">
+      <div class="platform-header">
+        <div class="platform-logo ${s.cls}">${s.letter}</div>
+        <div>
+          <div class="platform-name">${safe(s.name)}</div>
+          <div class="platform-sub">${safe(s.sub)}</div>
+        </div>
+      </div>
+      <div class="platform-stats">
+        <div class="stat-item"><div class="stat-label">상품 수</div><div class="stat-value">${total.toLocaleString('ko-KR')}</div></div>
+        <div class="stat-item"><div class="stat-label">평균 가격</div><div class="stat-value">${avgPrice !== null ? `¥${avgPrice.toLocaleString('ja-JP')}` : '-'}</div></div>
+        <div class="stat-item"><div class="stat-label">최저가/일</div><div class="stat-value" style="color:var(--green);">${minDaily !== null ? `₩${minDaily.toLocaleString('ko-KR')}` : '-'}</div></div>
+        <div class="stat-item"><div class="stat-label">평균 리뷰</div><div class="stat-value">${avgReview !== null ? avgReview.toLocaleString('ko-KR') : '-'}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRanking(items) {
+  if (!el.rankingList) return;
+  const ranked = items
+    .map((it) => ({ ...it, unitPrice: computeUnitPrice(it) }))
+    .filter((it) => Number.isFinite(it.unitPrice))
+    .sort((a, b) => a.unitPrice - b.unitPrice)
+    .slice(0, 10);
+
+  if (!ranked.length) {
+    el.rankingList.innerHTML = '<p class="empty">표시할 데이터가 없습니다.</p>';
+    return;
+  }
+
+  el.rankingList.innerHTML = ranked.map((it, idx) => {
+    const rankCls = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
+    const rankSymbol = idx < 3 ? ['🥇', '🥈', '🥉'][idx] : String(idx + 1);
+    const countryCfg = COUNTRY_CONFIG[it.country] || {};
+    const flag = countryCfg.flag || '';
+    const siteLabel = it.site === 'qoo10_jp' ? 'Qoo10' : 'Amazon';
+    const badge = it.network_type === 'local' ? '<span class="ranking-badge-tag badge-local">Local</span>' : it.network_type === 'roaming' ? '<span class="ranking-badge-tag badge-roaming">Roaming</span>' : '';
+
+    return `<div class="ranking-item">
+      <div class="ranking-rank ${rankCls}">${rankSymbol}</div>
+      <div class="ranking-product">
+        <div class="ranking-title">${safe(it.title)}</div>
+        <div class="ranking-meta">${flag} ${safe(countryCfg.label || it.country)} · ${safe(siteLabel)} · ${safe(it.usage_validity || '-')} · ${safe(it.data_amount || '-')} · ${safe(it.seller || '-')}</div>
+      </div>
+      <div class="ranking-price">${yen(it.price_jpy)}</div>
+      <div class="ranking-unit-price">₩${it.unitPrice.toLocaleString('ko-KR')}/일</div>
+      <div class="ranking-badge">${badge}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBarChart(container, entries, barColor) {
+  if (!container) return;
+  if (!entries.length) {
+    container.innerHTML = '<p class="empty">표시할 데이터가 없습니다.</p>';
+    return;
+  }
+  const max = Math.max(...entries.map((e) => e[1]), 1);
+  container.innerHTML = entries.map(([label, count]) => {
+    const pct = Math.max(4, Math.round((count / max) * 100));
+    const total = entries.reduce((s, e) => s + e[1], 0);
+    const ratio = total ? Math.round((count / total) * 100) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${safe(label)}</div>
+      <div class="bar-track-lg"><div class="bar-fill-lg ${barColor}" style="width:${pct}%">${ratio}%</div></div>
+      <div class="bar-count">${count.toLocaleString('ko-KR')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCharts(items) {
+  // 네트워크 분포
+  const networkMap = {};
+  items.forEach((it) => { const n = it.network_type || 'unknown'; networkMap[n] = (networkMap[n] || 0) + 1; });
+  const networkOrder = ['local', 'roaming', 'unknown'];
+  const networkLabels = { local: 'Local', roaming: 'Roaming', unknown: '미확인' };
+  const networkColors = { local: 'green-bar', roaming: 'amber-bar', unknown: 'red-bar' };
+  const networkEntries = networkOrder
+    .filter((k) => (networkMap[k] || 0) > 0)
+    .map((k) => [networkLabels[k], networkMap[k], networkColors[k]]);
+  if (el.networkChart) {
+    const max = Math.max(...networkEntries.map((e) => e[1]), 1);
+    const total = networkEntries.reduce((s, e) => s + e[1], 0);
+    el.networkChart.innerHTML = networkEntries.map(([label, count, color]) => {
+      const pct = Math.max(4, Math.round((count / max) * 100));
+      const ratio = total ? Math.round((count / total) * 100) : 0;
+      return `<div class="bar-row">
+        <div class="bar-label">${safe(label)}</div>
+        <div class="bar-track-lg"><div class="bar-fill-lg ${color}" style="width:${pct}%">${ratio}%</div></div>
+        <div class="bar-count">${count.toLocaleString('ko-KR')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // 통신사별 상품 수 (미확인 포함)
+  const countryCode = state.selectedCountry === 'all' ? 'kr' : state.selectedCountry;
+  const carrierDefs = getCarrierDefinitions(countryCode);
+  const carrierEntries = carrierDefs
+    .map(([code, label]) => [label, items.filter((it) => it.carrier_support_local && it.carrier_support_local[code]).length])
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const carrierKnownCount = items.filter((it) => Object.values(it.carrier_support_local || {}).some(Boolean)).length;
+  const carrierUnknownCount = items.length - carrierKnownCount;
+  if (carrierUnknownCount > 0) carrierEntries.push(['미확인', carrierUnknownCount]);
+  renderBarChart(el.carrierChart, carrierEntries, 'teal-bar');
+  if (el.carrierChart) {
+    el.carrierChart.querySelectorAll('.bar-fill-lg').forEach((fill, i) => {
+      if (carrierEntries[i] && carrierEntries[i][0] === '미확인') {
+        fill.className = 'bar-fill-lg red-bar';
+      }
+    });
+  }
+
+  // 가격대 분포 (색상별)
+  const priceBuckets = [
+    ['~500', (p) => p <= 500, 'green-bar'],
+    ['500~1K', (p) => p > 500 && p <= 1000, 'green-bar'],
+    ['1K~2K', (p) => p > 1000 && p <= 2000, 'teal-bar'],
+    ['2K~3K', (p) => p > 2000 && p <= 3000, 'amber-bar'],
+    ['3K~', (p) => p > 3000, 'red-bar'],
+  ];
+  const priceEntries = priceBuckets.map(([label, fn, color]) => ({
+    label,
+    count: items.filter((it) => Number.isFinite(it.price_jpy) && fn(it.price_jpy)).length,
+    color,
+  }));
+  if (el.priceChart) {
+    const max = Math.max(...priceEntries.map((e) => e.count), 1);
+    const total = priceEntries.reduce((s, e) => s + e.count, 0);
+    el.priceChart.innerHTML = priceEntries.map(({ label, count, color }) => {
+      const pct = Math.max(4, Math.round((count / max) * 100));
+      const ratio = total ? Math.round((count / total) * 100) : 0;
+      return `<div class="bar-row">
+        <div class="bar-label">${safe(label)}</div>
+        <div class="bar-track-lg"><div class="bar-fill-lg ${color}" style="width:${pct}%">${ratio}%</div></div>
+        <div class="bar-count">${count.toLocaleString('ko-KR')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // 셀러 배지 분포 (Qoo10)
+  const badgeMap = {};
+  items.forEach((it) => { const b = it.seller_badge || 'unknown'; badgeMap[b] = (badgeMap[b] || 0) + 1; });
+  const badgeEntries = Object.entries(badgeMap).sort((a, b) => b[1] - a[1]);
+  const badgeColors = { 'Power seller': 'highlight-bar', 'Good seller': 'teal-bar', 'General seller': 'amber-bar', unknown: 'red-bar' };
+  renderBarChart(el.badgeChart, badgeEntries, 'highlight-bar');
+  if (el.badgeChart) {
+    el.badgeChart.querySelectorAll('.bar-fill-lg').forEach((fill, i) => {
+      const key = badgeEntries[i] && badgeEntries[i][0];
+      fill.className = `bar-fill-lg ${badgeColors[key] || 'highlight-bar'}`;
+    });
+  }
+}
+
 function renderLocalView() {
   updateAmazonReviewVisibility(state.items);
   renderSiteStructure();
-  state.filtered = applyLocalFilters(state.items);
+  renderFilterChips();
+  const chipFiltered = filterByChips(state.items);
+  state.filtered = applyLocalFilters(chipFiltered);
   state.currentPage = 1;
   const summary = summarize(state.filtered);
-  renderKpis(summary);
-  renderBars(el.dataAmountBars, summary.byDataAmount);
-  renderBars(el.networkBars, summary.byNetwork);
-  if (activeConfig().showSellerBadgeChart) renderBars(el.sellerBadgeBars, summary.badgeCounts);
+  renderSummaryCards(chipFiltered);
+  renderHeatmap(chipFiltered);
+  renderPlatformComparison(chipFiltered);
+  renderRanking(state.filtered);
+  renderCharts(state.filtered);
   renderTable();
 }
 
@@ -964,17 +1485,18 @@ async function loadIndexData() {
 }
 
 async function loadDataStaticFromRecord(record) {
-  const jsonlPath = resolveDataPath(record && record.jsonl, `./data/sites/${state.selectedSite}/latest.jsonl`);
-  const jsonlFallback = `./data/sites/${state.selectedSite}/${state.selectedCountry}/latest.jsonl`;
-  const csvPath = resolveDataPath(record && record.csv, `./data/sites/${state.selectedSite}/${state.selectedCountry}/latest.csv`);
-  const metaPath = resolveDataPath(record && record.metadata, `./data/sites/${state.selectedSite}/${state.selectedCountry}/metadata.json`);
+  const country = (record && record.country) || state.selectedCountry || 'kr';
+  const site = (record && record.site) || state.selectedSite;
+  const jsonlFallback = `./data/sites/${site}/${country}/latest.jsonl`;
   const finalJsonlPath = resolveDataPath(record && record.jsonl, jsonlFallback);
+  const csvPath = resolveDataPath(record && record.csv, `./data/sites/${site}/${country}/latest.csv`);
+  const metaPath = resolveDataPath(record && record.metadata, `./data/sites/${site}/${country}/metadata.json`);
   const res = await fetch(finalJsonlPath, { cache: 'no-store' });
   if (!res.ok) throw new Error(`정적 데이터 로드 실패: HTTP ${res.status}`);
   const items = parseJsonl(await res.text()).map(normalizeItem).filter(keepDashboardItem);
   let metadata = null;
   if (record && (record.crawled_at || record.published_at || record.source || record.item_count)) {
-    metadata = { source: record.source || finalJsonlPath, crawled_at: record.crawled_at || null, published_at: record.published_at || null, item_count: record.item_count || items.length, site: record.site || state.selectedSite, country: record.country || state.selectedCountry };
+    metadata = { source: record.source || finalJsonlPath, crawled_at: record.crawled_at || null, published_at: record.published_at || null, item_count: record.item_count || items.length, site: record.site || site, country: record.country || country };
   } else {
     try {
       const metaRes = await fetch(metaPath, { cache: 'no-store' });
@@ -987,7 +1509,7 @@ async function loadDataStaticFromRecord(record) {
   state.file = metadata && metadata.source ? metadata.source : finalJsonlPath;
   state.generatedAt = metadata && metadata.crawled_at ? metadata.crawled_at : null;
   state.selectedCsvPath = csvPath;
-  el.metaText.textContent = `사이트: ${siteLabel(state.selectedSite)} | 국가: ${countryLabel(state.selectedCountry)} | 파일: ${state.file} | 추출: ${isoToLocal(state.generatedAt)} | 반영: ${isoToLocal(metadata && metadata.published_at)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  el.metaText.textContent = `사이트: ${siteLabel(site)} | 국가: ${countryLabel(country)} | 파일: ${state.file} | 추출: ${isoToLocal(state.generatedAt)} | 반영: ${isoToLocal(metadata && metadata.published_at)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
   renderExchangeRateMeta();
   renderSiteStructure();
   renderFilterOptions(state.items);
@@ -1006,8 +1528,52 @@ async function loadDataStatic() {
     const selected = datasets.find((d) => String(d.id) === String(state.selectedDatasetId));
     if (selected) return loadDataStaticFromRecord(selected);
   }
-  const latestBySite = index.latest && index.latest[state.selectedSite] ? index.latest[state.selectedSite] : null;
-  return loadDataStaticFromRecord(latestBySite && latestBySite[state.selectedCountry] ? latestBySite[state.selectedCountry] : null);
+
+  if (state.selectedCountry === 'all') {
+    return loadAllCountriesStatic(index);
+  }
+
+  // 특정 국가 + 특정 플랫폼 조합
+  const sites = state.selectedPlatform === 'all' ? state.sites : [state.selectedPlatform];
+  if (sites.length === 1) {
+    const latestBySite = index.latest && index.latest[sites[0]] ? index.latest[sites[0]] : null;
+    return loadDataStaticFromRecord(latestBySite && latestBySite[state.selectedCountry] ? latestBySite[state.selectedCountry] : null);
+  }
+
+  // 특정 국가 + 전체 플랫폼: 모든 사이트에서 로드
+  return loadAllCountriesStatic(index);
+}
+
+async function loadAllCountriesStatic(index) {
+  const sites = state.selectedPlatform === 'all' ? state.sites : [state.selectedPlatform];
+  const countries = getVisibleCountryCodes();
+  const loads = [];
+
+  for (const site of sites) {
+    for (const country of countries) {
+      const latestBySite = index.latest && index.latest[site] ? index.latest[site] : null;
+      const record = latestBySite && latestBySite[country] ? latestBySite[country] : null;
+      const jsonlPath = record && record.jsonl ? resolveDataPath(record.jsonl, `./data/sites/${site}/${country}/latest.jsonl`) : `./data/sites/${site}/${country}/latest.jsonl`;
+      loads.push(
+        fetch(jsonlPath, { cache: 'no-store' })
+          .then((res) => (res.ok ? res.text() : ''))
+          .then((text) => parseJsonl(text).map(normalizeItem).filter(keepDashboardItem))
+          .catch(() => []),
+      );
+    }
+  }
+
+  const allItems = (await Promise.all(loads)).flat();
+  state.exchangeRate = await resolveExchangeRateMeta(null);
+  state.items = FX.attachKrwPrices(allItems, state.exchangeRate);
+  state.totalBeforeFilter = allItems.length;
+  state.file = '전체 국가';
+  state.generatedAt = null;
+  el.metaText.textContent = `전체 국가 · ${sites.map(siteLabel).join(', ')} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  renderExchangeRateMeta();
+  renderFilterChips();
+  renderFilterOptions(state.items);
+  renderLocalView();
 }
 
 async function loadData() {
@@ -1029,10 +1595,11 @@ async function loadData() {
     state.exchangeRate = FX.buildExchangeRateMeta({ unavailable: true, stale: true });
     el.metaText.textContent = data.message || '데이터가 없습니다.';
     renderExchangeRateMeta();
-    renderKpis(summarize([]));
-    renderBars(el.dataAmountBars, {});
-    renderBars(el.networkBars, {});
-    if (activeConfig().showSellerBadgeChart) renderBars(el.sellerBadgeBars, {});
+    renderSummaryCards([]);
+    renderHeatmap([]);
+    renderPlatformComparison([]);
+    renderRanking([]);
+    renderCharts([]);
     renderTable();
     return;
   }
@@ -1055,20 +1622,21 @@ function triggerReload() {
   });
 }
 
-for (const input of [el.searchInput, el.networkFilter, el.dataFilter, el.usageFilter, el.carrierFilter, el.minPrice, el.maxPrice, el.sortKey]) {
+for (const input of [el.searchInput, el.networkFilter, el.dataFilter, el.usageFilter, el.carrierFilter, el.minPrice, el.maxPrice, el.sortKey].filter(Boolean)) {
   const evt = input.tagName === 'INPUT' ? 'input' : 'change';
   input.addEventListener(evt, triggerReload);
 }
 
-el.siteSelect.addEventListener('change', () => {
+if (el.siteSelect) el.siteSelect.addEventListener('change', () => {
   state.selectedSite = el.siteSelect.value || 'amazon_jp';
+  state.selectedPlatform = state.selectedSite;
   state.selectedDatasetId = null;
   renderSiteStructure();
   triggerReload();
 });
 
-el.countrySelect.addEventListener('change', () => {
-  state.selectedCountry = el.countrySelect.value || 'kr';
+if (el.countrySelect) el.countrySelect.addEventListener('change', () => {
+  state.selectedCountry = el.countrySelect.value || 'all';
   state.selectedDatasetId = null;
   triggerReload();
 });
@@ -1081,6 +1649,14 @@ el.datasetSelect.addEventListener('change', () => {
 el.refreshBtn.addEventListener('click', triggerReload);
 el.helpBtn.addEventListener('click', openHelpModal);
 el.helpCloseBtn.addEventListener('click', closeHelpModal);
+
+// 히트맵 모드 토글
+[el.heatmapModeMin, el.heatmapModeAvg].filter(Boolean).forEach((chip) => {
+  chip.addEventListener('click', () => {
+    state.heatmapMode = chip.dataset.mode;
+    renderLocalView();
+  });
+});
 el.helpOverlay.addEventListener('click', (event) => {
   if (event.target === el.helpOverlay) closeHelpModal();
 });
@@ -1090,6 +1666,7 @@ document.addEventListener('keydown', (event) => {
 el.prevPage.addEventListener('click', () => { state.currentPage = Math.max(1, state.currentPage - 1); renderTable(); });
 el.nextPage.addEventListener('click', () => { const totalPages = Math.max(1, Math.ceil(state.filtered.length / pageSize)); state.currentPage = Math.min(totalPages, state.currentPage + 1); renderTable(); });
 el.downloadExcelBtn.addEventListener('click', downloadFilteredExcel);
+el.downloadExcelBtn2.addEventListener('click', downloadAllExcel);
 
 renderSiteStructure();
 renderExchangeRateMeta();
