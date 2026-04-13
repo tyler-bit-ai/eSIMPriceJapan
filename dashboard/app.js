@@ -1287,7 +1287,7 @@ function renderPlatformComparison(items) {
   el.platformGrid.innerHTML = sites.map((s) => {
     const siteItems = items.filter((it) => it.site === s.key);
     const total = siteItems.length;
-    const prices = siteItems.map((it) => it.price_jpy).filter((n) => Number.isFinite(n) && n > 0);
+    const prices = siteItems.map((it) => it.price_krw).filter((n) => Number.isFinite(n) && n > 0);
     const avgPrice = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null;
     const unitPrices = siteItems.map(computeUnitPrice).filter((n) => Number.isFinite(n));
     const minDaily = unitPrices.length ? Math.min(...unitPrices) : null;
@@ -1304,7 +1304,7 @@ function renderPlatformComparison(items) {
       </div>
       <div class="platform-stats">
         <div class="stat-item"><div class="stat-label">상품 수</div><div class="stat-value">${total.toLocaleString('ko-KR')}</div></div>
-        <div class="stat-item"><div class="stat-label">평균 가격</div><div class="stat-value">${avgPrice !== null ? `¥${avgPrice.toLocaleString('ja-JP')}` : '-'}</div></div>
+        <div class="stat-item"><div class="stat-label">평균 가격</div><div class="stat-value">${avgPrice !== null ? `₩${avgPrice.toLocaleString('ko-KR')}` : '-'}</div></div>
         <div class="stat-item"><div class="stat-label">최저가/일</div><div class="stat-value" style="color:var(--green);">${minDaily !== null ? `₩${minDaily.toLocaleString('ko-KR')}` : '-'}</div></div>
         <div class="stat-item"><div class="stat-label">평균 리뷰</div><div class="stat-value">${avgReview !== null ? avgReview.toLocaleString('ko-KR') : '-'}</div></div>
       </div>
@@ -1410,15 +1410,15 @@ function renderCharts(items) {
 
   // 가격대 분포 (색상별)
   const priceBuckets = [
-    ['~500', (p) => p <= 500, 'green-bar'],
-    ['500~1K', (p) => p > 500 && p <= 1000, 'green-bar'],
-    ['1K~2K', (p) => p > 1000 && p <= 2000, 'teal-bar'],
-    ['2K~3K', (p) => p > 2000 && p <= 3000, 'amber-bar'],
-    ['3K~', (p) => p > 3000, 'red-bar'],
+    ['~₩5K', (p) => p <= 5000, 'green-bar'],
+    ['₩5K~₩10K', (p) => p > 5000 && p <= 10000, 'green-bar'],
+    ['₩10K~₩20K', (p) => p > 10000 && p <= 20000, 'teal-bar'],
+    ['₩20K~₩30K', (p) => p > 20000 && p <= 30000, 'amber-bar'],
+    ['₩30K~', (p) => p > 30000, 'red-bar'],
   ];
   const priceEntries = priceBuckets.map(([label, fn, color]) => ({
     label,
-    count: items.filter((it) => Number.isFinite(it.price_jpy) && fn(it.price_jpy)).length,
+    count: items.filter((it) => Number.isFinite(it.price_krw) && fn(it.price_krw)).length,
     color,
   }));
   if (el.priceChart) {
