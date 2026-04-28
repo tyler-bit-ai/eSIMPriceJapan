@@ -3,8 +3,8 @@
     "country":  "vn",
     "query":  "",
     "limit":  200,
-    "source":  "out_live_amazon_jp_vn_20260401\\results.jsonl",
-    "crawled_at":  "2026-04-01T02:40:08.3200905Z",
-    "published_at":  "2026-04-01T02:40:08.8573769Z",
+    "source":  ".\\\\out_refresh_amazon_jp_vn_20260428_200\\results.jsonl",
+    "crawled_at":  "2026-04-28T01:00:16.8969639Z",
+    "published_at":  "2026-04-28T01:00:17.5266550Z",
     "item_count":  200
 }

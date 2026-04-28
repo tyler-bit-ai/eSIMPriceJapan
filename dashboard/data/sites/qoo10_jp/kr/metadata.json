@@ -3,8 +3,8 @@
     "country":  "kr",
     "query":  "",
     "limit":  200,
-    "source":  "out_live_qoo10_jp_kr_20260401\\results.jsonl",
-    "crawled_at":  "2026-04-01T05:37:25.9979116Z",
-    "published_at":  "2026-04-01T05:37:26.5151790Z",
-    "item_count":  146
+    "source":  ".\\\\out_refresh_qoo10_jp_kr_20260428_200\\results.jsonl",
+    "crawled_at":  "2026-04-28T07:31:16.1941514Z",
+    "published_at":  "2026-04-28T07:31:16.6727537Z",
+    "item_count":  140
 }

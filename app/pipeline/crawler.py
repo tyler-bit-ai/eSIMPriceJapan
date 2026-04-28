@@ -23,6 +23,7 @@ class CrawlPipeline:
         min_delay: float = 1.0,
         max_delay: float = 3.0,
         max_retries: int = 3,
+        detail_timeout: float = 90.0,
     ) -> None:
         self.adapter = adapter
         self.out_dir = out_dir
@@ -30,6 +31,7 @@ class CrawlPipeline:
         self.min_delay = min_delay
         self.max_delay = max_delay
         self.max_retries = max_retries
+        self.detail_timeout = max(0.01, detail_timeout)
 
     async def run(self, query: str, limit: int, country: str | None = None) -> CrawlResult:
         stubs = await self.adapter.search(query=query, limit=limit)
@@ -82,7 +84,15 @@ class CrawlPipeline:
                 reraise=True,
             ):
                 with attempt:
-                    return await self.adapter.fetch_detail(stub)
+                    try:
+                        return await asyncio.wait_for(
+                            self.adapter.fetch_detail(stub),
+                            timeout=self.detail_timeout,
+                        )
+                    except TimeoutError as exc:
+                        raise RuntimeError(
+                            f"detail fetch timed out after {self.detail_timeout:.0f}s"
+                        ) from exc
         except RetryError as retry_error:
             raise retry_error.last_attempt.exception() or retry_error
 

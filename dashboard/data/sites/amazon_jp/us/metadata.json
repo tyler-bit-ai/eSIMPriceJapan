@@ -3,8 +3,8 @@
     "country":  "us",
     "query":  "",
     "limit":  200,
-    "source":  ".\\out_live_amazon_jp_us_20260401\\results.jsonl",
-    "crawled_at":  "2026-04-01T05:29:17.9368665Z",
-    "published_at":  "2026-04-01T05:29:23.0063496Z",
+    "source":  ".\\\\out_refresh_amazon_jp_us_20260428_200\\results.jsonl",
+    "crawled_at":  "2026-04-28T07:22:38.6905536Z",
+    "published_at":  "2026-04-28T07:22:40.1482527Z",
     "item_count":  200
 }

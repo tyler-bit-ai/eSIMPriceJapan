@@ -3,8 +3,8 @@
     "country":  "hk",
     "query":  "",
     "limit":  200,
-    "source":  ".\\out_live_amazon_jp_hk_20260401\\results.jsonl",
-    "crawled_at":  "2026-04-01T04:31:32.3834860Z",
-    "published_at":  "2026-04-01T04:31:40.7590662Z",
+    "source":  ".\\\\out_refresh_amazon_jp_hk_20260428_200\\results.jsonl",
+    "crawled_at":  "2026-04-28T07:02:58.6762619Z",
+    "published_at":  "2026-04-28T07:02:59.3721013Z",
     "item_count":  200
 }

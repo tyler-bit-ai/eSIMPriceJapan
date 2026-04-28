@@ -79,3 +79,45 @@ def test_pipeline_smoke(tmp_path: Path):
     assert (tmp_path / "invalid.csv").exists()
     assert '"country": "kr"' in (tmp_path / "results.jsonl").read_text(encoding="utf-8")
     assert "country" in (tmp_path / "results.csv").read_text(encoding="utf-8-sig")
+
+
+class HangingAdapter(MarketplaceAdapter):
+    name = "hanging"
+
+    async def search(self, query: str, limit: int) -> list[ProductStub]:
+        return [ProductStub(product_url="https://www.amazon.co.jp/dp/B000000009", asin="B000000009")]
+
+    async def fetch_detail(self, stub: ProductStub) -> ProductDetail:
+        await asyncio.sleep(0.2)
+        return ProductDetail(
+            title="never reached",
+            price_jpy=1000,
+            validity="1일",
+            network_type="unknown",
+            product_url=stub.product_url,
+            asin=stub.asin,
+        )
+
+    async def close(self) -> None:
+        return None
+
+
+def test_pipeline_times_out_stuck_detail(tmp_path: Path):
+    adapter = HangingAdapter()
+    pipeline = CrawlPipeline(
+        adapter=adapter,
+        out_dir=tmp_path,
+        concurrency=1,
+        min_delay=0,
+        max_delay=0,
+        max_retries=1,
+        detail_timeout=0.05,
+    )
+
+    result = asyncio.run(pipeline.run(query="eSIM 台湾", limit=1, country="tw"))
+
+    assert len(result.items) == 0
+    assert len(result.invalid_items) == 0
+    assert len(result.failures) == 1
+    assert result.failures[0].country == "tw"
+    assert "timed out" in result.failures[0].error_message

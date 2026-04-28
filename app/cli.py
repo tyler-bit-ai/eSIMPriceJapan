@@ -39,6 +39,7 @@ def crawl(
     min_delay: float = typer.Option(1.0, "--min-delay"),
     max_delay: float = typer.Option(3.0, "--max-delay"),
     max_retries: int = typer.Option(3, "--max-retries", min=1, max=10),
+    detail_timeout: float = typer.Option(90.0, "--detail-timeout", min=1.0),
     verbose: bool = typer.Option(False, "--verbose"),
 ) -> None:
     """Crawl marketplace and export JSONL/CSV results."""
@@ -70,6 +71,7 @@ def crawl(
             min_delay=min_delay,
             max_delay=max_delay,
             max_retries=max_retries,
+            detail_timeout=detail_timeout,
         )
     )
 
@@ -84,6 +86,7 @@ async def _run_crawl(
     min_delay: float,
     max_delay: float,
     max_retries: int,
+    detail_timeout: float,
 ) -> None:
     out.mkdir(parents=True, exist_ok=True)
     screenshot_dir = out / "screenshots"
@@ -97,6 +100,7 @@ async def _run_crawl(
             min_delay=min_delay,
             max_delay=max_delay,
             max_retries=max_retries,
+            detail_timeout=detail_timeout,
         )
         result = await pipeline.run(query=query, limit=limit, country=country)
     finally:
