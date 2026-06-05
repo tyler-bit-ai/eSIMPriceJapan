@@ -1,7 +1,9 @@
 from bs4 import BeautifulSoup
 
 from app.adapters.amazon_jp import AmazonJPAdapter
+from app.extractors.heuristics import extract_network_generation
 from app.extractors.heuristics import extract_review_count
+from app.models import NetworkGeneration
 def test_amazon_search_card_extracts_review_count():
     html = """
     <div data-component-type="s-search-result" data-asin="B000000001">
@@ -82,3 +84,24 @@ def test_amazon_extract_carrier_support_kr_for_kr_country():
     assert support.kt is True
     assert support.lgu is True
     assert evidence
+
+
+def test_amazon_collect_network_generation_texts_uses_source_prefixes():
+    html = """
+    <html>
+      <body>
+        <div id="feature-bullets">
+          <ul><li>SKTキャリア 5G対応 データ専用</li></ul>
+        </div>
+        <div id="comparison">関連商品 4G/LTE対応</div>
+      </body>
+    </html>
+    """
+    adapter = object.__new__(AmazonJPAdapter)
+    soup = BeautifulSoup(html, "lxml")
+
+    strong, fallback = adapter._collect_network_generation_texts(soup, "韓国 eSIM")
+    generation, evidence = extract_network_generation(strong, fallback)
+
+    assert generation == NetworkGeneration.five_g_capable
+    assert any(item.startswith("strong_5g: source:feature_bullets") for item in evidence)

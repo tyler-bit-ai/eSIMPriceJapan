@@ -6,6 +6,7 @@ from app.extractors.heuristics import (
     extract_carrier_support_kr,
     extract_data_amount,
     extract_monthly_sold_count,
+    extract_network_generation,
     extract_network_type,
     extract_price_jpy,
     extract_price_jpy_with_evidence,
@@ -14,7 +15,7 @@ from app.extractors.heuristics import (
     extract_validity_split,
     parse_price_text,
 )
-from app.models import NetworkType
+from app.models import NetworkGeneration, NetworkType
 
 
 def test_extract_price_jpy():
@@ -121,6 +122,48 @@ def test_extract_network_type_korean_carrier_line_is_unknown():
 def test_extract_network_type_phone_number_is_local():
     net, _ = extract_network_type(["韓国 eSIM 010電話番号付き 電話/SMS可"])
     assert net == NetworkType.local
+
+
+def test_extract_network_generation_4g_5g_capable():
+    gen, evidence = extract_network_generation(["韓国 eSIM 4G/5G対応 データ専用"])
+    assert gen == NetworkGeneration.five_g_capable
+    assert evidence
+
+
+def test_extract_network_generation_5g_capable():
+    gen, evidence = extract_network_generation(["SK Telecom回線 5G対応 QRコード簡単設定"])
+    assert gen == NetworkGeneration.five_g_capable
+    assert evidence
+
+
+def test_extract_network_generation_lte_4g_only():
+    gen, evidence = extract_network_generation(["韓国 SIM 4G/LTE対応 電話番号付き"])
+    assert gen == NetworkGeneration.lte_4g_only
+    assert evidence
+
+
+def test_extract_network_generation_unknown_for_speed_only():
+    gen, evidence = extract_network_generation(["韓国 eSIM 超高速データ通信 無制限"])
+    assert gen == NetworkGeneration.unknown
+    assert evidence == ["no_lte_4g_or_5g_keyword_matched"]
+
+
+def test_extract_network_generation_ignores_fallback_only_5g():
+    gen, evidence = extract_network_generation(
+        ["韓国 SIM 3日間 無制限"],
+        ["関連商品: 韓国 eSIM 5G対応"],
+    )
+    assert gen == NetworkGeneration.unknown
+    assert any("fallback_only" in item for item in evidence)
+
+
+def test_extract_network_generation_conflict_uses_unknown():
+    gen, evidence = extract_network_generation(
+        ["韓国 SIM 4G/LTE対応"],
+        ["関連商品: 韓国 eSIM 5G対応"],
+    )
+    assert gen == NetworkGeneration.unknown
+    assert any("conflicts" in item for item in evidence)
 
 
 def test_extract_carrier_support_kr():

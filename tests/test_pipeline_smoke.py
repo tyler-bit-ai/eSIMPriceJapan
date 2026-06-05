@@ -78,7 +78,9 @@ def test_pipeline_smoke(tmp_path: Path):
     assert (tmp_path / "invalid.jsonl").exists()
     assert (tmp_path / "invalid.csv").exists()
     assert '"country": "kr"' in (tmp_path / "results.jsonl").read_text(encoding="utf-8")
-    assert "country" in (tmp_path / "results.csv").read_text(encoding="utf-8-sig")
+    csv_text = (tmp_path / "results.csv").read_text(encoding="utf-8-sig")
+    assert "country" in csv_text
+    assert "network_generation" in csv_text
 
 
 class HangingAdapter(MarketplaceAdapter):

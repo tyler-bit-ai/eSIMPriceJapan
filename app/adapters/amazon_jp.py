@@ -16,6 +16,7 @@ from app.extractors.heuristics import (
     extract_carrier_support_for_country,
     extract_data_amount,
     extract_monthly_sold_count,
+    extract_network_generation,
     extract_network_type,
     extract_price_jpy_with_evidence,
     extract_review_count,
@@ -250,6 +251,14 @@ class AmazonJPAdapter(MarketplaceAdapter):
             else:
                 evidence["network_type"] = ["no_local_or_roaming_keyword_matched"]
 
+            generation_strong, generation_fallback = self._collect_network_generation_texts(soup, title)
+            network_generation, generation_ev = extract_network_generation(
+                generation_strong,
+                generation_fallback,
+            )
+            if generation_ev:
+                evidence["network_generation"] = generation_ev
+
             carrier_support_local, carrier_support_kr, carrier_ev = self._extract_carrier_support(
                 text_blocks=text_blocks,
                 country=stub.country,
@@ -312,6 +321,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 activation_validity=validity_split.activation_validity,
                 validity=validity_split.usage_validity or validity_split.activation_validity,
                 network_type=network_type,
+                network_generation=network_generation,
                 carrier_support_local=carrier_support_local,
                 carrier_support_kr=carrier_support_kr,
                 data_amount=data_amount.value if isinstance(data_amount.value, str) else None,
@@ -352,6 +362,44 @@ class AmazonJPAdapter(MarketplaceAdapter):
         if all_text:
             blocks.append(all_text[:5000])
         return blocks
+
+    def _collect_network_generation_texts(
+        self,
+        soup: BeautifulSoup,
+        title: str | None,
+    ) -> tuple[list[str], list[str]]:
+        strong: list[str] = []
+        fallback: list[str] = []
+        if title:
+            strong.append(f"source:title: {title}")
+
+        strong_selectors = [
+            ("feature_bullets", "#feature-bullets li"),
+            ("product_description", "#productDescription"),
+            ("aplus", "#aplus_feature_div"),
+            ("product_details", "#productDetails_feature_div tr"),
+            ("detail_bullets", "#detailBullets_feature_div li"),
+        ]
+        for source, selector in strong_selectors:
+            for node in soup.select(selector):
+                text = node.get_text(" ", strip=True)
+                if text:
+                    strong.append(f"source:{source}: {text}")
+
+        fallback_selectors = [
+            ("meta_description", "meta[name='description']"),
+            ("image_alt", "img[alt]"),
+        ]
+        for source, selector in fallback_selectors:
+            for node in soup.select(selector):
+                text = node.get("content") if node.name == "meta" else node.get("alt")
+                if text:
+                    fallback.append(f"source:{source}: {text}")
+
+        all_text = soup.get_text(" ", strip=True)
+        if all_text:
+            fallback.append(f"source:fallback_all_text: {all_text[:5000]}")
+        return strong, fallback
 
     def _extract_carrier_support(
         self,

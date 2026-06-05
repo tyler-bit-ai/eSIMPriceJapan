@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 
 from app.adapters.qoo10_jp import Qoo10JPAdapter
+from app.extractors.heuristics import extract_network_generation
+from app.models import NetworkGeneration
 def test_extract_site_product_id():
     url = "https://www.qoo10.jp/item/ESIM/1133241666?banner_no=1170169"
     assert Qoo10JPAdapter.extract_site_product_id(url) == "1133241666"
@@ -253,3 +255,28 @@ def test_qoo10_extract_carrier_support_kr_for_kr_country():
     assert support.kt is True
     assert support.lgu is True
     assert evidence
+
+
+def test_qoo10_collect_network_generation_texts_prefers_representative_option():
+    html = """
+    <html>
+      <body>
+        <div id="item_detail">商品詳細 4G/5G対応</div>
+        <div class="review_list">レビュー内の関連文言 LTE</div>
+      </body>
+    </html>
+    """
+    adapter = object.__new__(Qoo10JPAdapter)
+    soup = BeautifulSoup(html, "lxml")
+    option = adapter._parse_option_candidate("韓国 3日 72時間 5G対応", "1")
+
+    strong, fallback = adapter._collect_network_generation_texts(
+        soup=soup,
+        title="韓国 eSIM",
+        representative_option=option,
+        option_candidates=[],
+    )
+    generation, evidence = extract_network_generation(strong, fallback)
+
+    assert generation == NetworkGeneration.five_g_capable
+    assert any(item.startswith("strong_5g: source:representative_option") for item in evidence)

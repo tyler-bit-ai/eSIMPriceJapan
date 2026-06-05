@@ -6,6 +6,35 @@ from pathlib import Path
 
 from app.models import CrawlError, InvalidItem, ProductDetail, model_to_row
 
+PRODUCT_CSV_FIELDNAMES = [
+    "site",
+    "country",
+    "title",
+    "price_jpy",
+    "review_count",
+    "seller_badge",
+    "search_position",
+    "monthly_sold_count",
+    "is_bestseller",
+    "bestseller_rank",
+    "validity",
+    "usage_validity",
+    "activation_validity",
+    "network_type",
+    "network_generation",
+    "network_generation_inferred",
+    "network_generation_confidence",
+    "carrier_support_local",
+    "carrier_support_kr",
+    "data_amount",
+    "product_url",
+    "asin",
+    "site_product_id",
+    "seller",
+    "brand",
+    "evidence",
+]
+
 
 def write_jsonl(path: Path, items: list[ProductDetail]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -16,33 +45,8 @@ def write_jsonl(path: Path, items: list[ProductDetail]) -> None:
 
 def write_csv(path: Path, items: list[ProductDetail]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = [
-        "site",
-        "country",
-        "title",
-        "price_jpy",
-        "review_count",
-        "seller_badge",
-        "search_position",
-        "monthly_sold_count",
-        "is_bestseller",
-        "bestseller_rank",
-        "validity",
-        "usage_validity",
-        "activation_validity",
-        "network_type",
-        "carrier_support_local",
-        "carrier_support_kr",
-        "data_amount",
-        "product_url",
-        "asin",
-        "site_product_id",
-        "seller",
-        "brand",
-        "evidence",
-    ]
     with path.open("w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=PRODUCT_CSV_FIELDNAMES)
         writer.writeheader()
         for item in items:
             row = model_to_row(item)

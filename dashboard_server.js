@@ -185,6 +185,9 @@ function normalizeItem(raw) {
     is_bestseller: typeof raw.is_bestseller === 'boolean' ? raw.is_bestseller : null,
     bestseller_rank: Number.isFinite(Number(raw.bestseller_rank)) ? Number(raw.bestseller_rank) : null,
     network_type: raw.network_type || 'unknown',
+    network_generation: raw.network_generation || 'unknown',
+    network_generation_inferred: raw.network_generation_inferred || raw.network_generation || 'unknown',
+    network_generation_confidence: raw.network_generation_confidence || (raw.network_generation && raw.network_generation !== 'unknown' ? 'high' : 'low'),
     data_amount: raw.data_amount || null,
     usage_validity: raw.usage_validity || raw.validity || null,
     activation_validity: raw.activation_validity || null,
@@ -197,6 +200,28 @@ function normalizeItem(raw) {
     usage_days: extractDays(raw.usage_validity || raw.validity || null),
     activation_days: extractDays(raw.activation_validity || null),
   };
+}
+
+function buildNetworkGenerationCounts(items, field = 'network_generation') {
+  const keys = ['5g_capable', 'lte_4g_only', 'unknown'];
+  const labels = {
+    '5g_capable': '5G 지원',
+    'lte_4g_only': 'LTE/4G 전용',
+    unknown: '미확인',
+  };
+  const counts = {};
+  keys.forEach((key) => {
+    counts[key] = items.filter((it) => (it[field] || 'unknown') === key).length;
+  });
+  const total = items.length || 0;
+  const knownTotal = counts['5g_capable'] + counts['lte_4g_only'];
+  const shares = {};
+  const knownOnlyShares = {};
+  keys.forEach((key) => {
+    shares[key] = total ? Math.round((counts[key] / total) * 100) : 0;
+    knownOnlyShares[key] = key === 'unknown' ? 0 : (knownTotal ? Math.round((counts[key] / knownTotal) * 100) : 0);
+  });
+  return { counts, shares, knownOnlyShares, labels };
 }
 
 function keepDashboardItem(item) {
@@ -239,6 +264,7 @@ function summarize(items) {
   const roamingCount = items.filter((it) => it.network_type === 'roaming').length;
   const localCount = items.filter((it) => it.network_type === 'local').length;
   const unlimitedCount = items.filter((it) => String(it.data_amount || '').toLowerCase() === 'unlimited').length;
+  const generationSummary = buildNetworkGenerationCounts(items, 'network_generation');
 
   const carrierCounts = {};
   getCarrierDefinitions(items[0] && items[0].country ? items[0].country : DEFAULT_COUNTRY).forEach(([code]) => {
@@ -287,6 +313,9 @@ function summarize(items) {
     priceKrwMedian: FX.summarizeNumbers(pricesKrw).median,
     roamingCount,
     localCount,
+    networkGenerationCounts: generationSummary.counts,
+    networkGenerationShares: generationSummary.shares,
+    networkGenerationKnownOnlyShares: generationSummary.knownOnlyShares,
     unlimitedCount,
     carrierCounts,
     reviewKnownCount,
@@ -316,6 +345,7 @@ function sendExcel(res, items, site) {
       price_jpy: it.price_jpy ?? '',
       price_krw: it.price_krw ?? '',
       network_type: it.network_type || '',
+      network_generation: it.network_generation || 'unknown',
       data_amount: it.data_amount || '',
       usage_validity: it.usage_validity || '',
       activation_validity: it.activation_validity || '',
@@ -352,6 +382,7 @@ function sendExcel(res, items, site) {
         'seller_badge',
         'search_position',
         'network_type',
+        'network_generation',
         'data_amount',
         'usage_validity',
         'activation_validity',
@@ -370,6 +401,7 @@ function sendExcel(res, items, site) {
         'is_bestseller',
         'bestseller_rank',
         'network_type',
+        'network_generation',
         'data_amount',
         'usage_validity',
         'activation_validity',
@@ -561,6 +593,7 @@ async function readLatestDataWithExchangeRate(site = 'amazon_jp', country = DEFA
 function applyFilters(items, queryObj) {
   const q = String(queryObj.q || '').trim().toLowerCase();
   const network = String(queryObj.network || '').trim();
+  const generation = String(queryObj.generation || '').trim();
   const dataAmount = String(queryObj.dataAmount || '').trim();
   const usage = String(queryObj.usage || '').trim();
   const activation = String(queryObj.activation || '').trim();
@@ -571,6 +604,7 @@ function applyFilters(items, queryObj) {
 
   const filtered = items.filter((it) => {
     if (network && it.network_type !== network) return false;
+    if (generation && (it.network_generation || 'unknown') !== generation) return false;
     if (dataAmount && (it.data_amount || '') !== dataAmount) return false;
     if (usage && (it.usage_validity || '') !== usage) return false;
     if (activation && (it.activation_validity || '') !== activation) return false;
@@ -586,7 +620,17 @@ function applyFilters(items, queryObj) {
     if (Number.isFinite(maxPrice) && Number.isFinite(it.price_jpy) && it.price_jpy > maxPrice) return false;
 
     if (!q) return true;
-    const bag = [it.title, it.seller, it.brand, it.seller_badge, it.network_type, it.data_amount, it.usage_validity, it.activation_validity]
+    const bag = [
+      it.title,
+      it.seller,
+      it.brand,
+      it.seller_badge,
+      it.network_type,
+      it.network_generation,
+      it.data_amount,
+      it.usage_validity,
+      it.activation_validity,
+    ]
       .join(' ')
       .toLowerCase();
     return bag.includes(q);

@@ -19,6 +19,7 @@ const SITE_CONFIG = {
       ['is_bestseller', '베스트셀러'],
       ['bestseller_rank', '판매순위'],
       ['network_type', '네트워크'],
+      ['network_generation', '망 세대'],
       ['data_amount', '데이터'],
       ['usage_validity', '사용기간'],
       ['activation_validity', '활성화기간'],
@@ -45,6 +46,7 @@ const SITE_CONFIG = {
       ['seller_badge', '셀러 배지'],
       ['search_position', '검색 위치'],
       ['network_type', '네트워크'],
+      ['network_generation', '망 세대'],
       ['data_amount', '데이터'],
       ['usage_validity', '사용기간'],
       ['activation_validity', '활성화기간'],
@@ -75,6 +77,7 @@ const DETAIL_COLUMNS = [
   ['review_count', '리뷰 수'],
   ['sales_info', '판매량'],
   ['network_type', '네트워크'],
+  ['network_generation', '망 세대'],
   ['data_amount', '데이터'],
   ['usage_validity', '사용기간'],
   ['activation_validity', '활성화기간'],
@@ -320,6 +323,9 @@ function normalizeItem(raw) {
     is_bestseller: typeof raw.is_bestseller === 'boolean' ? raw.is_bestseller : null,
     bestseller_rank: Number.isFinite(Number(raw.bestseller_rank)) ? Number(raw.bestseller_rank) : null,
     network_type: raw.network_type || 'unknown',
+    network_generation: raw.network_generation || 'unknown',
+    network_generation_inferred: raw.network_generation_inferred || raw.network_generation || 'unknown',
+    network_generation_confidence: raw.network_generation_confidence || (raw.network_generation && raw.network_generation !== 'unknown' ? 'high' : 'low'),
     data_amount: raw.data_amount || null,
     usage_validity: raw.usage_validity || raw.validity || null,
     activation_validity: raw.activation_validity || null,
@@ -373,6 +379,7 @@ const el = {
   sellerBadgeBars: document.getElementById('sellerBadgeBars'),
   searchInput: document.getElementById('searchInput'),
   networkFilter: document.getElementById('networkFilter'),
+  generationFilter: document.getElementById('generationFilter'),
   dataFilter: document.getElementById('dataFilter'),
   usageFilter: document.getElementById('usageFilter'),
   carrierFilter: document.getElementById('carrierFilter'),
@@ -577,6 +584,7 @@ function summarize(items) {
   const localCount = items.filter((it) => it.network_type === 'local').length;
   const roamingCount = items.filter((it) => it.network_type === 'roaming').length;
   const unlimitedCount = items.filter((it) => String(it.data_amount || '').toLowerCase() === 'unlimited').length;
+  const generationSummary = buildNetworkGenerationCounts(items, 'network_generation');
   const bestsellerCount = items.filter((it) => it.is_bestseller === true).length;
   const bestsellerRankKnownCount = items.filter((it) => Number.isFinite(it.bestseller_rank)).length;
   const top10Count = items.filter((it) => Number.isFinite(it.search_position) && it.search_position <= 10).length;
@@ -609,6 +617,9 @@ function summarize(items) {
     priceKrwMedian: median(pricesKrw),
     roamingCount,
     localCount,
+    networkGenerationCounts: generationSummary.counts,
+    networkGenerationShares: generationSummary.shares,
+    networkGenerationKnownOnlyShares: generationSummary.knownOnlyShares,
     unlimitedCount,
     salesKnownCount: sales.length,
     salesMedian: median(sales),
@@ -658,6 +669,36 @@ function carrierLabel(carrier, country) {
   return out.length ? out.join(', ') : 'unknown';
 }
 
+function networkGenerationLabel(value) {
+  if (value === '5g_capable') return '5G 지원';
+  if (value === 'lte_4g_only') return 'LTE/4G 전용';
+  return '미확인';
+}
+
+function networkGenerationConfidenceLabel(value) {
+  if (value === 'high') return '확정';
+  if (value === 'medium') return '추정';
+  if (value === 'low') return '낮음';
+  return '미확인';
+}
+
+function buildNetworkGenerationCounts(items, field = 'network_generation') {
+  const keys = ['5g_capable', 'lte_4g_only', 'unknown'];
+  const counts = {};
+  keys.forEach((value) => {
+    counts[value] = items.filter((it) => (it[field] || 'unknown') === value).length;
+  });
+  const total = items.length || 0;
+  const knownTotal = counts['5g_capable'] + counts['lte_4g_only'];
+  const shares = {};
+  const knownOnlyShares = {};
+  keys.forEach((key) => {
+    shares[key] = total ? Math.round((counts[key] / total) * 100) : 0;
+    knownOnlyShares[key] = key === 'unknown' ? 0 : (knownTotal ? Math.round((counts[key] / knownTotal) * 100) : 0);
+  });
+  return { counts, shares, knownOnlyShares };
+}
+
 function buildCarrierKpiEntries(summary) {
   return getCarrierDefinitions(state.selectedCountry).map(([code, label]) => [
     `${label} 명시`,
@@ -673,6 +714,7 @@ function toQuery(includeDataset = true) {
   const q = el.searchInput.value.trim();
   if (q) params.set('q', q);
   if (el.networkFilter.value) params.set('network', el.networkFilter.value);
+  if (el.generationFilter.value) params.set('generation', el.generationFilter.value);
   if (el.dataFilter.value) params.set('dataAmount', el.dataFilter.value);
   if (el.usageFilter.value) params.set('usage', el.usageFilter.value);
   if (el.carrierFilter.value) params.set('carrier', el.carrierFilter.value);
@@ -711,6 +753,7 @@ function buildClientExportRows(items) {
       price_jpy: it.price_jpy ?? '',
       price_krw: it.price_krw ?? '',
       network_type: it.network_type || '',
+      network_generation: it.network_generation || 'unknown',
       data_amount: it.data_amount || '',
       usage_validity: it.usage_validity || '',
       activation_validity: it.activation_validity || '',
@@ -750,6 +793,7 @@ function buildClientExportCsv(items) {
         'seller_badge',
         'search_position',
         'network_type',
+        'network_generation',
         'data_amount',
         'usage_validity',
         'activation_validity',
@@ -768,6 +812,7 @@ function buildClientExportCsv(items) {
         'is_bestseller',
         'bestseller_rank',
         'network_type',
+        'network_generation',
         'data_amount',
         'usage_validity',
         'activation_validity',
@@ -909,6 +954,8 @@ function renderKpis(summary) {
   const roamingPct = total ? Math.round((summary.roamingCount / total) * 100) : 0;
   const localPct = total ? Math.round((summary.localCount / total) * 100) : 0;
   const unlimitedPct = total ? Math.round((summary.unlimitedCount / total) * 100) : 0;
+  const fiveGShare = summary.networkGenerationShares?.['5g_capable'] || 0;
+  const knownFiveGShare = summary.networkGenerationKnownOnlyShares?.['5g_capable'] || 0;
   const kpis = state.selectedSite === 'qoo10_jp'
     ? [
         ['사이트', siteLabel(state.selectedSite)],
@@ -924,6 +971,7 @@ function renderKpis(summary) {
         ['Good seller', `${summary.badgeCounts['Good seller'] || 0}`],
         ['General seller', `${summary.badgeCounts['General seller'] || 0}`],
         ['로밍 / 로컬', `${roamingPct}% / ${localPct}%`],
+        ['5G 지원', `${fiveGShare}% (확인분 ${knownFiveGShare}%)`],
         ['무제한 비중', `${unlimitedPct}%`],
         ...buildCarrierKpiEntries(summary),
       ]
@@ -936,6 +984,7 @@ function renderKpis(summary) {
         ['최고 가격 (KRW)', won(summary.priceKrwMax)],
         ['판매량 수집', `${summary.salesKnownCount.toLocaleString('ko-KR')}개`],
         ['로밍 / 로컬', `${roamingPct}% / ${localPct}%`],
+        ['5G 지원', `${fiveGShare}% (확인분 ${knownFiveGShare}%)`],
         ['무제한 비중', `${unlimitedPct}%`],
         ['베스트셀러 배지', `${summary.bestsellerCount}`],
         ['랭크 확인 상품', `${summary.bestsellerRankKnownCount}`],
@@ -962,14 +1011,27 @@ function renderFilterOptions(items) {
   const networkOptions = unique(items.map((it) => it.network_type));
   const dataOptions = unique(items.map((it) => it.data_amount));
   const usageOptions = unique(items.map((it) => it.usage_validity));
-  const keep = { network: el.networkFilter.value, data: el.dataFilter.value, usage: el.usageFilter.value, carrier: el.carrierFilter.value };
+  const keep = {
+    network: el.networkFilter.value,
+    generation: el.generationFilter.value,
+    data: el.dataFilter.value,
+    usage: el.usageFilter.value,
+    carrier: el.carrierFilter.value,
+  };
   el.networkFilter.innerHTML = '<option value="">네트워크 전체</option>' + networkOptions.map((v) => `<option>${safe(v)}</option>`).join('');
+  el.generationFilter.innerHTML = [
+    '<option value="">망 세대 전체</option>',
+    '<option value="5g_capable">5G 지원</option>',
+    '<option value="lte_4g_only">LTE/4G 전용</option>',
+    '<option value="unknown">미확인</option>',
+  ].join('');
   el.dataFilter.innerHTML = '<option value="">데이터 전체</option>' + dataOptions.map((v) => `<option>${safe(v)}</option>`).join('');
   el.usageFilter.innerHTML = '<option value="">사용기간 전체</option>' + usageOptions.map((v) => `<option>${safe(v)}</option>`).join('');
   el.carrierFilter.innerHTML = ['<option value="">통신사 전체</option>', '<option value="any">통신사 명시 상품</option>']
     .concat(getCarrierDefinitions(state.selectedCountry).map(([code, label]) => `<option value="${safe(code)}">${safe(label)} 지원</option>`))
     .join('');
   el.networkFilter.value = keep.network;
+  el.generationFilter.value = keep.generation;
   el.dataFilter.value = keep.data;
   el.usageFilter.value = keep.usage;
   el.carrierFilter.value = Array.from(el.carrierFilter.options).some((opt) => opt.value === keep.carrier) ? keep.carrier : '';
@@ -1005,6 +1067,7 @@ function cellValue(row, key, rowNum) {
     if (row.network_type === 'roaming') return '<span class="badge-roaming">Roaming</span>';
     return safe(row.network_type);
   }
+  if (key === 'network_generation') return safe(networkGenerationLabel(row.network_generation));
   if (key === 'data_amount') return safe(row.data_amount);
   if (key === 'usage_validity') return safe(row.usage_validity);
   if (key === 'activation_validity') return safe(row.activation_validity);
@@ -1042,6 +1105,7 @@ function renderTable() {
 function applyLocalFilters(items) {
   const q = el.searchInput.value.trim().toLowerCase();
   const network = String(el.networkFilter.value || '').trim();
+  const generation = String(el.generationFilter.value || '').trim();
   const dataAmount = String(el.dataFilter.value || '').trim();
   const usage = String(el.usageFilter.value || '').trim();
   const carrier = String(el.carrierFilter.value || '').trim();
@@ -1051,6 +1115,7 @@ function applyLocalFilters(items) {
 
   const filtered = items.filter((it) => {
     if (network && it.network_type !== network) return false;
+    if (generation && it.network_generation !== generation) return false;
     if (dataAmount && (it.data_amount || '') !== dataAmount) return false;
     if (usage && (it.usage_validity || '') !== usage) return false;
     if (carrier === 'any' && !Object.values(it.carrier_support_local || {}).some(Boolean)) return false;
@@ -1058,7 +1123,18 @@ function applyLocalFilters(items) {
     if (Number.isFinite(minPrice) && Number.isFinite(it.price_jpy) && it.price_jpy < minPrice) return false;
     if (Number.isFinite(maxPrice) && Number.isFinite(it.price_jpy) && it.price_jpy > maxPrice) return false;
     if (!q) return true;
-    const bag = [it.title, it.seller, it.brand, it.seller_badge, it.network_type, it.data_amount, it.usage_validity, it.activation_validity].join(' ').toLowerCase();
+    const bag = [
+      it.title,
+      it.seller,
+      it.brand,
+      it.seller_badge,
+      it.network_type,
+      it.network_generation,
+      networkGenerationLabel(it.network_generation),
+      it.data_amount,
+      it.usage_validity,
+      it.activation_validity,
+    ].join(' ').toLowerCase();
     return bag.includes(q);
   });
 
@@ -1202,6 +1278,11 @@ function renderSummaryCards(items) {
   const localPct = total ? Math.round((localCount / total) * 100) : 0;
   const roamingPct = total ? Math.round((roamingCount / total) * 100) : 0;
   const unknownPct = total ? 100 - localPct - roamingPct : 0;
+  const generationSummary = buildNetworkGenerationCounts(items, 'network_generation');
+  const fiveGShare = generationSummary.shares['5g_capable'] || 0;
+  const lteShare = generationSummary.shares['lte_4g_only'] || 0;
+  const generationUnknownShare = generationSummary.shares.unknown || 0;
+  const knownFiveGShare = generationSummary.knownOnlyShares['5g_capable'] || 0;
 
   const platformCount = new Set(items.map((it) => it.site)).size;
   const datasetCount = state.datasets.length;
@@ -1230,6 +1311,12 @@ function renderSummaryCards(items) {
       <div class="summary-label">Local 네트워크 비율</div>
       <div class="summary-value teal">${localPct}%</div>
       <div class="summary-sub">로밍 ${roamingPct}% · 미확인 ${unknownPct}%</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon">&#128246;</div>
+      <div class="summary-label">5G 지원 비율</div>
+      <div class="summary-value teal">${fiveGShare}%</div>
+      <div class="summary-sub">확정 기준 · LTE/4G ${lteShare}% · 미확인 ${generationUnknownShare}% · 확인분 기준 5G ${knownFiveGShare}%</div>
     </div>
   `;
 }
@@ -1622,7 +1709,7 @@ function triggerReload() {
   });
 }
 
-for (const input of [el.searchInput, el.networkFilter, el.dataFilter, el.usageFilter, el.carrierFilter, el.minPrice, el.maxPrice, el.sortKey].filter(Boolean)) {
+for (const input of [el.searchInput, el.networkFilter, el.generationFilter, el.dataFilter, el.usageFilter, el.carrierFilter, el.minPrice, el.maxPrice, el.sortKey].filter(Boolean)) {
   const evt = input.tagName === 'INPUT' ? 'input' : 'change';
   input.addEventListener(evt, triggerReload);
 }

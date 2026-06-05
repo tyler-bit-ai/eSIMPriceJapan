@@ -74,11 +74,13 @@ body::before {
    Layout
    ═══════════════════════════════════════════ */
 .layout {
-  width: min(1380px, calc(100% - 32px));
-  margin: 0 auto;
+  width: min(1380px, calc(100vw - 48px));
+  margin-left: auto;
+  margin-right: auto;
   padding: 24px 0 64px;
   display: grid;
   gap: 20px;
+  justify-self: center;
 }
 
 /* ═══════════════════════════════════════════
@@ -298,14 +300,15 @@ h1 {
 
 .toolbar {
   display: grid;
-  grid-template-columns: 1.55fr repeat(4, minmax(0, 0.95fr)) 0.92fr 0.92fr 0.82fr;
-  gap: 10px;
+  grid-template-columns: minmax(180px, 1.45fr) repeat(5, minmax(0, 0.82fr)) repeat(2, minmax(0, 0.72fr)) minmax(0, 0.72fr);
+  gap: 8px;
   align-items: end;
 }
 
 .field {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .fieldWide {
@@ -341,15 +344,15 @@ input::placeholder { color: #7a8276; }
    ═══════════════════════════════════════════ */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .summary-card {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 20px 22px 18px;
+  padding: 16px 16px 14px;
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow);
   transition: transform 0.15s, box-shadow 0.15s;
@@ -357,7 +360,7 @@ input::placeholder { color: #7a8276; }
 }
 .summary-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-strong); }
 
-.summary-icon { font-size: 24px; margin-bottom: 8px; }
+.summary-icon { font-size: 20px; margin-bottom: 6px; }
 
 .summary-label {
   font-size: 12px;
@@ -370,12 +373,12 @@ input::placeholder { color: #7a8276; }
 
 .summary-value {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.2;
 }
 
-.summary-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.summary-sub { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
 .summary-value.green { color: var(--green); }
 .summary-value.highlight { color: var(--highlight); }
 .summary-value.teal { color: var(--teal); }

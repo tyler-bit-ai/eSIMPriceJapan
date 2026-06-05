@@ -12,6 +12,12 @@ class NetworkType(str, Enum):
     unknown = "unknown"
 
 
+class NetworkGeneration(str, Enum):
+    five_g_capable = "5g_capable"
+    lte_4g_only = "lte_4g_only"
+    unknown = "unknown"
+
+
 class CarrierSupportKR(BaseModel):
     skt: Optional[bool] = None
     kt: Optional[bool] = None
@@ -49,6 +55,7 @@ class ProductDetail(BaseModel):
     usage_validity: Optional[str] = None
     activation_validity: Optional[str] = None
     network_type: NetworkType = NetworkType.unknown
+    network_generation: NetworkGeneration = NetworkGeneration.unknown
     carrier_support_local: dict[str, Optional[bool]] = Field(default_factory=dict)
     carrier_support_kr: CarrierSupportKR = Field(default_factory=CarrierSupportKR)
     data_amount: Optional[str] = None

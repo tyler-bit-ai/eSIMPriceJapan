@@ -8,7 +8,7 @@ from app.carriers import (
     get_country_carriers,
     get_country_carrier_codes,
 )
-from app.models import CarrierSupportKR, NetworkType
+from app.models import CarrierSupportKR, NetworkGeneration, NetworkType
 
 PRICE_PATTERN = re.compile(r"(?:(?:￥|¥|JPY\s?)\s*([0-9][0-9,]*)|([0-9][0-9,]*)\s*円)")
 AMOUNT_PATTERN = re.compile(r"([0-9][0-9,]+)")
@@ -33,6 +33,25 @@ REVIEW_PATTERNS = [
     re.compile(r"(?:レビュー|評価)\s*[:：]?\s*([0-9][0-9,]*)", re.IGNORECASE),
     re.compile(r'"(?:reviewCount|ratingCount)"\s*:\s*"?([0-9][0-9,]*)"?', re.IGNORECASE),
 ]
+NETWORK_GENERATION_5G_PATTERNS = [
+    re.compile(r"(?:5\s*G|５\s*G)\s*(?:対応|利用可|利用可能|サポート|通信|回線)", re.IGNORECASE),
+    re.compile(r"(?:5\s*G|５\s*G)\s*(?:support|supported|available|network|capable)", re.IGNORECASE),
+    re.compile(r"(?:4\s*G|４\s*G)\s*/\s*(?:5\s*G|５\s*G)", re.IGNORECASE),
+    re.compile(r"(?:5\s*G|５\s*G)\s*/\s*(?:4\s*G|４\s*G)", re.IGNORECASE),
+]
+NETWORK_GENERATION_4G_PATTERNS = [
+    re.compile(r"(?:4\s*G|４\s*G)\s*/\s*(?:LTE|ＬＴＥ)", re.IGNORECASE),
+    re.compile(r"(?:LTE|ＬＴＥ)\s*/\s*(?:4\s*G|４\s*G)", re.IGNORECASE),
+    re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)\s*(?:対応|利用可|利用可能|サポート|通信|回線)", re.IGNORECASE),
+    re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)\s*(?:support|supported|available|network|capable)", re.IGNORECASE),
+]
+NETWORK_GENERATION_5G_NEGATIVE_PATTERNS = [
+    re.compile(r"(?:5\s*G|５\s*G)\s*(?:非対応|不可|未対応|なし|無し)", re.IGNORECASE),
+    re.compile(r"(?:no|not)\s*(?:5\s*G|５\s*G)", re.IGNORECASE),
+    re.compile(r"(?:5\s*G|５\s*G)\s*not\s+supported", re.IGNORECASE),
+]
+NETWORK_GENERATION_ANY_5G_PATTERN = re.compile(r"(?:5\s*G|５\s*G)", re.IGNORECASE)
+NETWORK_GENERATION_ANY_4G_PATTERN = re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)", re.IGNORECASE)
 
 
 @dataclass
@@ -417,6 +436,87 @@ def extract_network_type(texts: list[str]) -> tuple[NetworkType, list[str]]:
     if local_score != 0 or roaming_score != 0:
         evidence.append(f"insufficient_or_conflicting_signals(local={local_score}, roaming={roaming_score})")
     return NetworkType.unknown, evidence
+
+
+def extract_network_generation(
+    strong_texts: list[str],
+    fallback_texts: list[str] | None = None,
+) -> tuple[NetworkGeneration, list[str]]:
+    strong_5g_hits = _collect_network_generation_hits(
+        strong_texts,
+        NETWORK_GENERATION_5G_PATTERNS,
+        "strong_5g",
+    )
+    strong_4g_hits = _collect_network_generation_hits(
+        strong_texts,
+        NETWORK_GENERATION_4G_PATTERNS,
+        "strong_4g_lte",
+    )
+    negative_5g_hits = _collect_network_generation_hits(
+        strong_texts,
+        NETWORK_GENERATION_5G_NEGATIVE_PATTERNS,
+        "strong_5g_negative",
+    )
+    fallback = fallback_texts or []
+    fallback_5g_hits = _collect_network_generation_hits(
+        fallback,
+        [NETWORK_GENERATION_ANY_5G_PATTERN],
+        "fallback_5g",
+    )
+    fallback_4g_hits = _collect_network_generation_hits(
+        fallback,
+        [NETWORK_GENERATION_ANY_4G_PATTERN],
+        "fallback_4g_lte",
+    )
+
+    if strong_5g_hits and negative_5g_hits:
+        return NetworkGeneration.unknown, (
+            strong_5g_hits[:1]
+            + negative_5g_hits[:1]
+            + ["conflicting_strong_network_generation_signals"]
+        )
+
+    if strong_5g_hits:
+        evidence = strong_5g_hits[:2]
+        if strong_4g_hits:
+            evidence.append("4g_lte_signal_present_but_5g_capable_takes_precedence")
+        return NetworkGeneration.five_g_capable, evidence
+
+    if negative_5g_hits:
+        return NetworkGeneration.lte_4g_only, negative_5g_hits[:2]
+
+    if strong_4g_hits:
+        if fallback_5g_hits:
+            return NetworkGeneration.unknown, (
+                strong_4g_hits[:1]
+                + fallback_5g_hits[:1]
+                + ["fallback_5g_conflicts_with_strong_4g_lte"]
+            )
+        return NetworkGeneration.lte_4g_only, strong_4g_hits[:2]
+
+    if fallback_5g_hits or fallback_4g_hits:
+        return NetworkGeneration.unknown, (
+            fallback_5g_hits[:1]
+            + fallback_4g_hits[:1]
+            + ["fallback_only_network_generation_signal"]
+        )
+
+    return NetworkGeneration.unknown, ["no_lte_4g_or_5g_keyword_matched"]
+
+
+def _collect_network_generation_hits(
+    texts: list[str],
+    patterns: list[re.Pattern[str]],
+    label: str,
+) -> list[str]:
+    hits: list[str] = []
+    for raw in texts:
+        text = normalize_text(raw)
+        if not text:
+            continue
+        if any(pattern.search(text) for pattern in patterns):
+            hits.append(f"{label}: {text[:180]}")
+    return hits
 
 
 def extract_carrier_support_kr(texts: list[str]) -> tuple[CarrierSupportKR, list[str]]:

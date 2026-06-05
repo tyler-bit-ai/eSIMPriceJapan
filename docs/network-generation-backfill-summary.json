@@ -1,0 +1,1839 @@
+{
+  "generated_at": "2026-06-05T08:26:04.755698+00:00",
+  "dry_run": false,
+  "overwrite": true,
+  "include_runs": true,
+  "files": [
+    {
+      "path": "dashboard\\data\\runs\\20260304T131919Z_out_200_v5.jsonl",
+      "csv": "dashboard\\data\\runs\\20260304T131919Z_out_200_v5.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 73,
+        "lte_4g_only": 11,
+        "unknown": 116
+      },
+      "inferred_counts": {
+        "5g_capable": 160,
+        "lte_4g_only": 19,
+        "unknown": 21
+      },
+      "confidence_counts": {
+        "medium": 95,
+        "high": 84,
+        "low": 21
+      },
+      "known_5g_share": 87,
+      "known_lte_share": 13
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260304T140521Z_out_quick_test.jsonl",
+      "csv": "dashboard\\data\\runs\\20260304T140521Z_out_quick_test.csv",
+      "total": 1,
+      "changed": 1,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 0
+      },
+      "inferred_counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 0
+      },
+      "confidence_counts": {
+        "high": 1
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260307T024303Z_qoo10_jp_out_smoke_qoo10.jsonl",
+      "csv": "dashboard\\data\\runs\\20260307T024303Z_qoo10_jp_out_smoke_qoo10.csv",
+      "total": 5,
+      "changed": 5,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 5
+      },
+      "inferred_counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 5
+      },
+      "confidence_counts": {
+        "low": 5
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260307T024505Z_qoo10_jp_out_smoke_qoo10.jsonl",
+      "csv": "dashboard\\data\\runs\\20260307T024505Z_qoo10_jp_out_smoke_qoo10.csv",
+      "total": 5,
+      "changed": 5,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 5
+      },
+      "inferred_counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 5
+      },
+      "confidence_counts": {
+        "low": 5
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260307T033226Z_qoo10_jp_out_smoke_qoo10.jsonl",
+      "csv": "dashboard\\data\\runs\\20260307T033226Z_qoo10_jp_out_smoke_qoo10.csv",
+      "total": 5,
+      "changed": 5,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 5
+      },
+      "inferred_counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 5
+      },
+      "confidence_counts": {
+        "low": 5
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260307T041400Z_qoo10_jp_out_qoo10_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260307T041400Z_qoo10_jp_out_qoo10_200.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 200
+      },
+      "inferred_counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 199
+      },
+      "confidence_counts": {
+        "low": 199,
+        "medium": 1
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260307T045224Z_qoo10_jp_out_qoo10_200_reclass.jsonl",
+      "csv": "dashboard\\data\\runs\\20260307T045224Z_qoo10_jp_out_qoo10_200_reclass.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 200
+      },
+      "inferred_counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 199
+      },
+      "confidence_counts": {
+        "low": 199,
+        "medium": 1
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260308T110046Z_amazon_jp_out_amazon_review_refresh.jsonl",
+      "csv": "dashboard\\data\\runs\\20260308T110046Z_amazon_jp_out_amazon_review_refresh.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 89,
+        "lte_4g_only": 11,
+        "unknown": 100
+      },
+      "inferred_counts": {
+        "5g_capable": 162,
+        "lte_4g_only": 17,
+        "unknown": 21
+      },
+      "confidence_counts": {
+        "medium": 79,
+        "high": 100,
+        "low": 21
+      },
+      "known_5g_share": 89,
+      "known_lte_share": 11
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260308T115600Z_amazon_jp_out_amazon_review_refresh_v2.jsonl",
+      "csv": "dashboard\\data\\runs\\20260308T115600Z_amazon_jp_out_amazon_review_refresh_v2.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 80,
+        "lte_4g_only": 8,
+        "unknown": 112
+      },
+      "inferred_counts": {
+        "5g_capable": 161,
+        "lte_4g_only": 16,
+        "unknown": 23
+      },
+      "confidence_counts": {
+        "medium": 89,
+        "high": 88,
+        "low": 23
+      },
+      "known_5g_share": 91,
+      "known_lte_share": 9
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T092926Z_amazon_jp_vn_out_live_amazon_jp_vn.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T092926Z_amazon_jp_vn_out_live_amazon_jp_vn.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 33,
+        "lte_4g_only": 4,
+        "unknown": 163
+      },
+      "inferred_counts": {
+        "5g_capable": 145,
+        "lte_4g_only": 17,
+        "unknown": 38
+      },
+      "confidence_counts": {
+        "medium": 125,
+        "high": 37,
+        "low": 38
+      },
+      "known_5g_share": 89,
+      "known_lte_share": 11
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T094116Z_amazon_jp_th_out_live_amazon_jp_th.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T094116Z_amazon_jp_th_out_live_amazon_jp_th.csv",
+      "total": 168,
+      "changed": 168,
+      "counts": {
+        "5g_capable": 48,
+        "lte_4g_only": 5,
+        "unknown": 115
+      },
+      "inferred_counts": {
+        "5g_capable": 116,
+        "lte_4g_only": 13,
+        "unknown": 39
+      },
+      "confidence_counts": {
+        "high": 53,
+        "medium": 76,
+        "low": 39
+      },
+      "known_5g_share": 91,
+      "known_lte_share": 9
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T095749Z_amazon_jp_tw_out_live_amazon_jp_tw.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T095749Z_amazon_jp_tw_out_live_amazon_jp_tw.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 65,
+        "lte_4g_only": 9,
+        "unknown": 126
+      },
+      "inferred_counts": {
+        "5g_capable": 113,
+        "lte_4g_only": 24,
+        "unknown": 63
+      },
+      "confidence_counts": {
+        "low": 63,
+        "medium": 63,
+        "high": 74
+      },
+      "known_5g_share": 88,
+      "known_lte_share": 12
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T101315Z_amazon_jp_hk_out_live_amazon_jp_hk.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T101315Z_amazon_jp_hk_out_live_amazon_jp_hk.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 49,
+        "lte_4g_only": 11,
+        "unknown": 140
+      },
+      "inferred_counts": {
+        "5g_capable": 102,
+        "lte_4g_only": 29,
+        "unknown": 69
+      },
+      "confidence_counts": {
+        "medium": 71,
+        "low": 69,
+        "high": 60
+      },
+      "known_5g_share": 82,
+      "known_lte_share": 18
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T102618Z_amazon_jp_mo_out_live_amazon_jp_mo.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T102618Z_amazon_jp_mo_out_live_amazon_jp_mo.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 43,
+        "lte_4g_only": 10,
+        "unknown": 147
+      },
+      "inferred_counts": {
+        "5g_capable": 105,
+        "lte_4g_only": 22,
+        "unknown": 73
+      },
+      "confidence_counts": {
+        "medium": 74,
+        "low": 73,
+        "high": 53
+      },
+      "known_5g_share": 81,
+      "known_lte_share": 19
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T103922Z_amazon_jp_us_out_live_amazon_jp_us.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T103922Z_amazon_jp_us_out_live_amazon_jp_us.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 79,
+        "lte_4g_only": 1,
+        "unknown": 120
+      },
+      "inferred_counts": {
+        "5g_capable": 173,
+        "lte_4g_only": 8,
+        "unknown": 19
+      },
+      "confidence_counts": {
+        "high": 80,
+        "medium": 101,
+        "low": 19
+      },
+      "known_5g_share": 99,
+      "known_lte_share": 1
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T105100Z_qoo10_jp_kr_out_live_qoo10_jp_kr.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T105100Z_qoo10_jp_kr_out_live_qoo10_jp_kr.csv",
+      "total": 134,
+      "changed": 134,
+      "counts": {
+        "5g_capable": 2,
+        "lte_4g_only": 0,
+        "unknown": 132
+      },
+      "inferred_counts": {
+        "5g_capable": 5,
+        "lte_4g_only": 0,
+        "unknown": 129
+      },
+      "confidence_counts": {
+        "low": 129,
+        "medium": 3,
+        "high": 2
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T110117Z_qoo10_jp_vn_out_live_qoo10_jp_vn.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T110117Z_qoo10_jp_vn_out_live_qoo10_jp_vn.csv",
+      "total": 136,
+      "changed": 136,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 2,
+        "unknown": 134
+      },
+      "inferred_counts": {
+        "5g_capable": 15,
+        "lte_4g_only": 2,
+        "unknown": 119
+      },
+      "confidence_counts": {
+        "medium": 15,
+        "low": 119,
+        "high": 2
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 100
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T111204Z_qoo10_jp_th_out_live_qoo10_jp_th.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T111204Z_qoo10_jp_th_out_live_qoo10_jp_th.csv",
+      "total": 139,
+      "changed": 139,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 2,
+        "unknown": 136
+      },
+      "inferred_counts": {
+        "5g_capable": 18,
+        "lte_4g_only": 2,
+        "unknown": 119
+      },
+      "confidence_counts": {
+        "low": 119,
+        "medium": 17,
+        "high": 3
+      },
+      "known_5g_share": 33,
+      "known_lte_share": 67
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T112035Z_qoo10_jp_tw_out_live_qoo10_jp_tw.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T112035Z_qoo10_jp_tw_out_live_qoo10_jp_tw.csv",
+      "total": 129,
+      "changed": 129,
+      "counts": {
+        "5g_capable": 6,
+        "lte_4g_only": 1,
+        "unknown": 122
+      },
+      "inferred_counts": {
+        "5g_capable": 18,
+        "lte_4g_only": 1,
+        "unknown": 110
+      },
+      "confidence_counts": {
+        "low": 110,
+        "medium": 12,
+        "high": 7
+      },
+      "known_5g_share": 86,
+      "known_lte_share": 14
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T113838Z_qoo10_jp_hk_out_live_qoo10_jp_hk.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T113838Z_qoo10_jp_hk_out_live_qoo10_jp_hk.csv",
+      "total": 74,
+      "changed": 74,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 74
+      },
+      "inferred_counts": {
+        "5g_capable": 8,
+        "lte_4g_only": 0,
+        "unknown": 66
+      },
+      "confidence_counts": {
+        "low": 66,
+        "medium": 8
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T114303Z_amazon_jp_kr_out_live_amazon_jp_kr.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T114303Z_amazon_jp_kr_out_live_amazon_jp_kr.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 93,
+        "lte_4g_only": 12,
+        "unknown": 95
+      },
+      "inferred_counts": {
+        "5g_capable": 160,
+        "lte_4g_only": 14,
+        "unknown": 26
+      },
+      "confidence_counts": {
+        "high": 105,
+        "medium": 69,
+        "low": 26
+      },
+      "known_5g_share": 89,
+      "known_lte_share": 11
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T115345Z_qoo10_jp_us_out_live_qoo10_jp_us.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T115345Z_qoo10_jp_us_out_live_qoo10_jp_us.csv",
+      "total": 145,
+      "changed": 145,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 145
+      },
+      "inferred_counts": {
+        "5g_capable": 24,
+        "lte_4g_only": 1,
+        "unknown": 120
+      },
+      "confidence_counts": {
+        "low": 120,
+        "medium": 25
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260320T115348Z_qoo10_jp_mo_out_live_qoo10_jp_mo.jsonl",
+      "csv": "dashboard\\data\\runs\\20260320T115348Z_qoo10_jp_mo_out_live_qoo10_jp_mo.csv",
+      "total": 100,
+      "changed": 100,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 100
+      },
+      "inferred_counts": {
+        "5g_capable": 13,
+        "lte_4g_only": 0,
+        "unknown": 87
+      },
+      "confidence_counts": {
+        "low": 87,
+        "medium": 13
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T023059Z_amazon_jp_kr_out_live_amazon_jp_kr_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T023059Z_amazon_jp_kr_out_live_amazon_jp_kr_20260401.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 91,
+        "lte_4g_only": 9,
+        "unknown": 100
+      },
+      "inferred_counts": {
+        "5g_capable": 160,
+        "lte_4g_only": 19,
+        "unknown": 21
+      },
+      "confidence_counts": {
+        "medium": 79,
+        "high": 100,
+        "low": 21
+      },
+      "known_5g_share": 91,
+      "known_lte_share": 9
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T024008Z_amazon_jp_vn_out_live_amazon_jp_vn_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T024008Z_amazon_jp_vn_out_live_amazon_jp_vn_20260401.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 42,
+        "lte_4g_only": 4,
+        "unknown": 154
+      },
+      "inferred_counts": {
+        "5g_capable": 160,
+        "lte_4g_only": 27,
+        "unknown": 13
+      },
+      "confidence_counts": {
+        "medium": 141,
+        "high": 46,
+        "low": 13
+      },
+      "known_5g_share": 91,
+      "known_lte_share": 9
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T024827Z_amazon_jp_th_out_live_amazon_jp_th_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T024827Z_amazon_jp_th_out_live_amazon_jp_th_20260401.csv",
+      "total": 174,
+      "changed": 174,
+      "counts": {
+        "5g_capable": 41,
+        "lte_4g_only": 4,
+        "unknown": 129
+      },
+      "inferred_counts": {
+        "5g_capable": 116,
+        "lte_4g_only": 19,
+        "unknown": 39
+      },
+      "confidence_counts": {
+        "medium": 90,
+        "high": 45,
+        "low": 39
+      },
+      "known_5g_share": 91,
+      "known_lte_share": 9
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T025811Z_amazon_jp_tw_out_live_amazon_jp_tw_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T025811Z_amazon_jp_tw_out_live_amazon_jp_tw_20260401.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 78,
+        "lte_4g_only": 5,
+        "unknown": 117
+      },
+      "inferred_counts": {
+        "5g_capable": 151,
+        "lte_4g_only": 9,
+        "unknown": 40
+      },
+      "confidence_counts": {
+        "medium": 77,
+        "high": 83,
+        "low": 40
+      },
+      "known_5g_share": 94,
+      "known_lte_share": 6
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T043132Z_amazon_jp_hk_out_live_amazon_jp_hk_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T043132Z_amazon_jp_hk_out_live_amazon_jp_hk_20260401.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 57,
+        "lte_4g_only": 11,
+        "unknown": 132
+      },
+      "inferred_counts": {
+        "5g_capable": 105,
+        "lte_4g_only": 35,
+        "unknown": 60
+      },
+      "confidence_counts": {
+        "medium": 72,
+        "high": 68,
+        "low": 60
+      },
+      "known_5g_share": 84,
+      "known_lte_share": 16
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T044148Z_amazon_jp_mo_out_live_amazon_jp_mo_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T044148Z_amazon_jp_mo_out_live_amazon_jp_mo_20260401.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 53,
+        "lte_4g_only": 12,
+        "unknown": 135
+      },
+      "inferred_counts": {
+        "5g_capable": 94,
+        "lte_4g_only": 35,
+        "unknown": 71
+      },
+      "confidence_counts": {
+        "medium": 64,
+        "low": 71,
+        "high": 65
+      },
+      "known_5g_share": 82,
+      "known_lte_share": 18
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T052917Z_amazon_jp_us_out_live_amazon_jp_us_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T052917Z_amazon_jp_us_out_live_amazon_jp_us_20260401.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 84,
+        "lte_4g_only": 0,
+        "unknown": 116
+      },
+      "inferred_counts": {
+        "5g_capable": 181,
+        "lte_4g_only": 4,
+        "unknown": 15
+      },
+      "confidence_counts": {
+        "high": 84,
+        "medium": 101,
+        "low": 15
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T053725Z_qoo10_jp_kr_out_live_qoo10_jp_kr_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T053725Z_qoo10_jp_kr_out_live_qoo10_jp_kr_20260401.csv",
+      "total": 146,
+      "changed": 146,
+      "counts": {
+        "5g_capable": 3,
+        "lte_4g_only": 0,
+        "unknown": 143
+      },
+      "inferred_counts": {
+        "5g_capable": 7,
+        "lte_4g_only": 0,
+        "unknown": 139
+      },
+      "confidence_counts": {
+        "low": 139,
+        "medium": 4,
+        "high": 3
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T054503Z_qoo10_jp_vn_out_live_qoo10_jp_vn_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T054503Z_qoo10_jp_vn_out_live_qoo10_jp_vn_20260401.csv",
+      "total": 136,
+      "changed": 136,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 2,
+        "unknown": 133
+      },
+      "inferred_counts": {
+        "5g_capable": 16,
+        "lte_4g_only": 2,
+        "unknown": 118
+      },
+      "confidence_counts": {
+        "low": 118,
+        "medium": 15,
+        "high": 3
+      },
+      "known_5g_share": 33,
+      "known_lte_share": 67
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T073813Z_qoo10_jp_th_out_live_qoo10_jp_th_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T073813Z_qoo10_jp_th_out_live_qoo10_jp_th_20260401.csv",
+      "total": 138,
+      "changed": 138,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 1,
+        "unknown": 136
+      },
+      "inferred_counts": {
+        "5g_capable": 22,
+        "lte_4g_only": 1,
+        "unknown": 115
+      },
+      "confidence_counts": {
+        "low": 115,
+        "medium": 21,
+        "high": 2
+      },
+      "known_5g_share": 50,
+      "known_lte_share": 50
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T073813Z_qoo10_jp_th_out_partial_qoo10_jp_th_20260406.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T073813Z_qoo10_jp_th_out_partial_qoo10_jp_th_20260406.csv",
+      "total": 138,
+      "changed": 138,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 1,
+        "unknown": 136
+      },
+      "inferred_counts": {
+        "5g_capable": 22,
+        "lte_4g_only": 1,
+        "unknown": 115
+      },
+      "confidence_counts": {
+        "low": 115,
+        "medium": 21,
+        "high": 2
+      },
+      "known_5g_share": 50,
+      "known_lte_share": 50
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T105353Z_qoo10_jp_hk_out_live_qoo10_jp_hk_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T105353Z_qoo10_jp_hk_out_live_qoo10_jp_hk_20260401.csv",
+      "total": 74,
+      "changed": 74,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 73
+      },
+      "inferred_counts": {
+        "5g_capable": 10,
+        "lte_4g_only": 0,
+        "unknown": 64
+      },
+      "confidence_counts": {
+        "low": 64,
+        "high": 1,
+        "medium": 9
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T110222Z_qoo10_jp_mo_out_live_qoo10_jp_mo_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T110222Z_qoo10_jp_mo_out_live_qoo10_jp_mo_20260401.csv",
+      "total": 99,
+      "changed": 99,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 98
+      },
+      "inferred_counts": {
+        "5g_capable": 14,
+        "lte_4g_only": 1,
+        "unknown": 84
+      },
+      "confidence_counts": {
+        "low": 84,
+        "high": 1,
+        "medium": 14
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260401T111120Z_qoo10_jp_us_out_live_qoo10_jp_us_20260401.jsonl",
+      "csv": "dashboard\\data\\runs\\20260401T111120Z_qoo10_jp_us_out_live_qoo10_jp_us_20260401.csv",
+      "total": 144,
+      "changed": 144,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 144
+      },
+      "inferred_counts": {
+        "5g_capable": 24,
+        "lte_4g_only": 1,
+        "unknown": 119
+      },
+      "confidence_counts": {
+        "low": 119,
+        "medium": 25
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260406T024459Z_amazon_jp_th_out_refresh_amazon_jp_th_20260406_v2.jsonl",
+      "csv": "dashboard\\data\\runs\\20260406T024459Z_amazon_jp_th_out_refresh_amazon_jp_th_20260406_v2.csv",
+      "total": 100,
+      "changed": 100,
+      "counts": {
+        "5g_capable": 32,
+        "lte_4g_only": 0,
+        "unknown": 68
+      },
+      "inferred_counts": {
+        "5g_capable": 86,
+        "lte_4g_only": 4,
+        "unknown": 10
+      },
+      "confidence_counts": {
+        "medium": 58,
+        "high": 32,
+        "low": 10
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260406T024846Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260406_v2.jsonl",
+      "csv": "dashboard\\data\\runs\\20260406T024846Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260406_v2.csv",
+      "total": 74,
+      "changed": 74,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 1,
+        "unknown": 73
+      },
+      "inferred_counts": {
+        "5g_capable": 7,
+        "lte_4g_only": 1,
+        "unknown": 66
+      },
+      "confidence_counts": {
+        "low": 66,
+        "medium": 7,
+        "high": 1
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 100
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023026Z_amazon_jp_kr_out_refresh_amazon_jp_kr_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023026Z_amazon_jp_kr_out_refresh_amazon_jp_kr_20260427.csv",
+      "total": 20,
+      "changed": 20,
+      "counts": {
+        "5g_capable": 9,
+        "lte_4g_only": 0,
+        "unknown": 11
+      },
+      "inferred_counts": {
+        "5g_capable": 20,
+        "lte_4g_only": 0,
+        "unknown": 0
+      },
+      "confidence_counts": {
+        "high": 9,
+        "medium": 11
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023206Z_amazon_jp_vn_out_refresh_amazon_jp_vn_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023206Z_amazon_jp_vn_out_refresh_amazon_jp_vn_20260427.csv",
+      "total": 20,
+      "changed": 20,
+      "counts": {
+        "5g_capable": 4,
+        "lte_4g_only": 0,
+        "unknown": 16
+      },
+      "inferred_counts": {
+        "5g_capable": 20,
+        "lte_4g_only": 0,
+        "unknown": 0
+      },
+      "confidence_counts": {
+        "medium": 16,
+        "high": 4
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023314Z_amazon_jp_th_out_refresh_amazon_jp_th_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023314Z_amazon_jp_th_out_refresh_amazon_jp_th_20260427.csv",
+      "total": 20,
+      "changed": 20,
+      "counts": {
+        "5g_capable": 8,
+        "lte_4g_only": 0,
+        "unknown": 12
+      },
+      "inferred_counts": {
+        "5g_capable": 20,
+        "lte_4g_only": 0,
+        "unknown": 0
+      },
+      "confidence_counts": {
+        "high": 8,
+        "medium": 12
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023433Z_amazon_jp_tw_out_refresh_amazon_jp_tw_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023433Z_amazon_jp_tw_out_refresh_amazon_jp_tw_20260427.csv",
+      "total": 20,
+      "changed": 20,
+      "counts": {
+        "5g_capable": 8,
+        "lte_4g_only": 0,
+        "unknown": 12
+      },
+      "inferred_counts": {
+        "5g_capable": 20,
+        "lte_4g_only": 0,
+        "unknown": 0
+      },
+      "confidence_counts": {
+        "medium": 12,
+        "high": 8
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023555Z_amazon_jp_hk_out_refresh_amazon_jp_hk_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023555Z_amazon_jp_hk_out_refresh_amazon_jp_hk_20260427.csv",
+      "total": 20,
+      "changed": 20,
+      "counts": {
+        "5g_capable": 7,
+        "lte_4g_only": 2,
+        "unknown": 11
+      },
+      "inferred_counts": {
+        "5g_capable": 11,
+        "lte_4g_only": 4,
+        "unknown": 5
+      },
+      "confidence_counts": {
+        "medium": 6,
+        "high": 9,
+        "low": 5
+      },
+      "known_5g_share": 78,
+      "known_lte_share": 22
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023711Z_amazon_jp_mo_out_refresh_amazon_jp_mo_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023711Z_amazon_jp_mo_out_refresh_amazon_jp_mo_20260427.csv",
+      "total": 20,
+      "changed": 20,
+      "counts": {
+        "5g_capable": 6,
+        "lte_4g_only": 0,
+        "unknown": 14
+      },
+      "inferred_counts": {
+        "5g_capable": 13,
+        "lte_4g_only": 1,
+        "unknown": 6
+      },
+      "confidence_counts": {
+        "medium": 8,
+        "low": 6,
+        "high": 6
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023815Z_amazon_jp_us_out_refresh_amazon_jp_us_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023815Z_amazon_jp_us_out_refresh_amazon_jp_us_20260427.csv",
+      "total": 20,
+      "changed": 20,
+      "counts": {
+        "5g_capable": 14,
+        "lte_4g_only": 0,
+        "unknown": 6
+      },
+      "inferred_counts": {
+        "5g_capable": 20,
+        "lte_4g_only": 0,
+        "unknown": 0
+      },
+      "confidence_counts": {
+        "high": 14,
+        "medium": 6
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T023910Z_qoo10_jp_kr_out_refresh_qoo10_jp_kr_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T023910Z_qoo10_jp_kr_out_refresh_qoo10_jp_kr_20260427.csv",
+      "total": 15,
+      "changed": 15,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 15
+      },
+      "inferred_counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 14
+      },
+      "confidence_counts": {
+        "low": 14,
+        "medium": 1
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T024001Z_qoo10_jp_vn_out_refresh_qoo10_jp_vn_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T024001Z_qoo10_jp_vn_out_refresh_qoo10_jp_vn_20260427.csv",
+      "total": 8,
+      "changed": 8,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 8
+      },
+      "inferred_counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 7
+      },
+      "confidence_counts": {
+        "low": 7,
+        "medium": 1
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T024051Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T024051Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260427.csv",
+      "total": 12,
+      "changed": 12,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 11
+      },
+      "inferred_counts": {
+        "5g_capable": 3,
+        "lte_4g_only": 0,
+        "unknown": 9
+      },
+      "confidence_counts": {
+        "low": 9,
+        "high": 1,
+        "medium": 2
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T024147Z_qoo10_jp_tw_out_refresh_qoo10_jp_tw_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T024147Z_qoo10_jp_tw_out_refresh_qoo10_jp_tw_20260427.csv",
+      "total": 10,
+      "changed": 10,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 10
+      },
+      "inferred_counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 10
+      },
+      "confidence_counts": {
+        "low": 10
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T024237Z_qoo10_jp_hk_out_refresh_qoo10_jp_hk_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T024237Z_qoo10_jp_hk_out_refresh_qoo10_jp_hk_20260427.csv",
+      "total": 10,
+      "changed": 10,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 10
+      },
+      "inferred_counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 9
+      },
+      "confidence_counts": {
+        "low": 9,
+        "medium": 1
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T024326Z_qoo10_jp_mo_out_refresh_qoo10_jp_mo_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T024326Z_qoo10_jp_mo_out_refresh_qoo10_jp_mo_20260427.csv",
+      "total": 8,
+      "changed": 8,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 8
+      },
+      "inferred_counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 7
+      },
+      "confidence_counts": {
+        "low": 7,
+        "medium": 1
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260427T024421Z_qoo10_jp_us_out_refresh_qoo10_jp_us_20260427.jsonl",
+      "csv": "dashboard\\data\\runs\\20260427T024421Z_qoo10_jp_us_out_refresh_qoo10_jp_us_20260427.csv",
+      "total": 10,
+      "changed": 10,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 10
+      },
+      "inferred_counts": {
+        "5g_capable": 3,
+        "lte_4g_only": 0,
+        "unknown": 7
+      },
+      "confidence_counts": {
+        "low": 7,
+        "medium": 3
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T005023Z_amazon_jp_kr_out_refresh_amazon_jp_kr_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T005023Z_amazon_jp_kr_out_refresh_amazon_jp_kr_20260428_200.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 106,
+        "lte_4g_only": 7,
+        "unknown": 87
+      },
+      "inferred_counts": {
+        "5g_capable": 164,
+        "lte_4g_only": 9,
+        "unknown": 27
+      },
+      "confidence_counts": {
+        "medium": 60,
+        "high": 113,
+        "low": 27
+      },
+      "known_5g_share": 94,
+      "known_lte_share": 6
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T010016Z_amazon_jp_vn_out_refresh_amazon_jp_vn_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T010016Z_amazon_jp_vn_out_refresh_amazon_jp_vn_20260428_200.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 45,
+        "lte_4g_only": 3,
+        "unknown": 152
+      },
+      "inferred_counts": {
+        "5g_capable": 148,
+        "lte_4g_only": 14,
+        "unknown": 38
+      },
+      "confidence_counts": {
+        "medium": 114,
+        "high": 48,
+        "low": 38
+      },
+      "known_5g_share": 94,
+      "known_lte_share": 6
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T010936Z_amazon_jp_th_out_refresh_amazon_jp_th_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T010936Z_amazon_jp_th_out_refresh_amazon_jp_th_20260428_200.csv",
+      "total": 169,
+      "changed": 169,
+      "counts": {
+        "5g_capable": 42,
+        "lte_4g_only": 5,
+        "unknown": 122
+      },
+      "inferred_counts": {
+        "5g_capable": 133,
+        "lte_4g_only": 8,
+        "unknown": 28
+      },
+      "confidence_counts": {
+        "medium": 94,
+        "high": 47,
+        "low": 28
+      },
+      "known_5g_share": 89,
+      "known_lte_share": 11
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T065240Z_amazon_jp_tw_out_refresh_amazon_jp_tw_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T065240Z_amazon_jp_tw_out_refresh_amazon_jp_tw_20260428_200.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 74,
+        "lte_4g_only": 3,
+        "unknown": 123
+      },
+      "inferred_counts": {
+        "5g_capable": 143,
+        "lte_4g_only": 4,
+        "unknown": 53
+      },
+      "confidence_counts": {
+        "medium": 70,
+        "high": 77,
+        "low": 53
+      },
+      "known_5g_share": 96,
+      "known_lte_share": 4
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T070258Z_amazon_jp_hk_out_refresh_amazon_jp_hk_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T070258Z_amazon_jp_hk_out_refresh_amazon_jp_hk_20260428_200.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 64,
+        "lte_4g_only": 10,
+        "unknown": 126
+      },
+      "inferred_counts": {
+        "5g_capable": 130,
+        "lte_4g_only": 18,
+        "unknown": 52
+      },
+      "confidence_counts": {
+        "medium": 74,
+        "high": 74,
+        "low": 52
+      },
+      "known_5g_share": 86,
+      "known_lte_share": 14
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T071229Z_amazon_jp_mo_out_refresh_amazon_jp_mo_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T071229Z_amazon_jp_mo_out_refresh_amazon_jp_mo_20260428_200.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 60,
+        "lte_4g_only": 6,
+        "unknown": 134
+      },
+      "inferred_counts": {
+        "5g_capable": 133,
+        "lte_4g_only": 11,
+        "unknown": 56
+      },
+      "confidence_counts": {
+        "low": 56,
+        "medium": 78,
+        "high": 66
+      },
+      "known_5g_share": 91,
+      "known_lte_share": 9
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T072238Z_amazon_jp_us_out_refresh_amazon_jp_us_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T072238Z_amazon_jp_us_out_refresh_amazon_jp_us_20260428_200.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 90,
+        "lte_4g_only": 1,
+        "unknown": 109
+      },
+      "inferred_counts": {
+        "5g_capable": 188,
+        "lte_4g_only": 4,
+        "unknown": 8
+      },
+      "confidence_counts": {
+        "high": 91,
+        "medium": 101,
+        "low": 8
+      },
+      "known_5g_share": 99,
+      "known_lte_share": 1
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T073116Z_qoo10_jp_kr_out_refresh_qoo10_jp_kr_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T073116Z_qoo10_jp_kr_out_refresh_qoo10_jp_kr_20260428_200.csv",
+      "total": 140,
+      "changed": 140,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 139
+      },
+      "inferred_counts": {
+        "5g_capable": 6,
+        "lte_4g_only": 0,
+        "unknown": 134
+      },
+      "confidence_counts": {
+        "low": 134,
+        "medium": 5,
+        "high": 1
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T073934Z_qoo10_jp_vn_out_refresh_qoo10_jp_vn_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T073934Z_qoo10_jp_vn_out_refresh_qoo10_jp_vn_20260428_200.csv",
+      "total": 136,
+      "changed": 136,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 2,
+        "unknown": 134
+      },
+      "inferred_counts": {
+        "5g_capable": 15,
+        "lte_4g_only": 2,
+        "unknown": 119
+      },
+      "confidence_counts": {
+        "low": 119,
+        "medium": 15,
+        "high": 2
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 100
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T074739Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T074739Z_qoo10_jp_th_out_refresh_qoo10_jp_th_20260428_200.csv",
+      "total": 138,
+      "changed": 138,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 1,
+        "unknown": 136
+      },
+      "inferred_counts": {
+        "5g_capable": 15,
+        "lte_4g_only": 1,
+        "unknown": 122
+      },
+      "confidence_counts": {
+        "low": 122,
+        "high": 2,
+        "medium": 14
+      },
+      "known_5g_share": 50,
+      "known_lte_share": 50
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T075534Z_qoo10_jp_tw_out_refresh_qoo10_jp_tw_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T075534Z_qoo10_jp_tw_out_refresh_qoo10_jp_tw_20260428_200.csv",
+      "total": 128,
+      "changed": 128,
+      "counts": {
+        "5g_capable": 6,
+        "lte_4g_only": 1,
+        "unknown": 121
+      },
+      "inferred_counts": {
+        "5g_capable": 18,
+        "lte_4g_only": 2,
+        "unknown": 108
+      },
+      "confidence_counts": {
+        "low": 108,
+        "medium": 13,
+        "high": 7
+      },
+      "known_5g_share": 86,
+      "known_lte_share": 14
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T080413Z_qoo10_jp_hk_out_refresh_qoo10_jp_hk_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T080413Z_qoo10_jp_hk_out_refresh_qoo10_jp_hk_20260428_200.csv",
+      "total": 75,
+      "changed": 75,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 75
+      },
+      "inferred_counts": {
+        "5g_capable": 9,
+        "lte_4g_only": 0,
+        "unknown": 66
+      },
+      "confidence_counts": {
+        "low": 66,
+        "medium": 9
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T081225Z_qoo10_jp_mo_out_refresh_qoo10_jp_mo_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T081225Z_qoo10_jp_mo_out_refresh_qoo10_jp_mo_20260428_200.csv",
+      "total": 99,
+      "changed": 99,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 99
+      },
+      "inferred_counts": {
+        "5g_capable": 13,
+        "lte_4g_only": 0,
+        "unknown": 86
+      },
+      "confidence_counts": {
+        "low": 86,
+        "medium": 13
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\runs\\20260428T082015Z_qoo10_jp_us_out_refresh_qoo10_jp_us_20260428_200.jsonl",
+      "csv": "dashboard\\data\\runs\\20260428T082015Z_qoo10_jp_us_out_refresh_qoo10_jp_us_20260428_200.csv",
+      "total": 144,
+      "changed": 144,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 144
+      },
+      "inferred_counts": {
+        "5g_capable": 20,
+        "lte_4g_only": 0,
+        "unknown": 124
+      },
+      "confidence_counts": {
+        "low": 124,
+        "medium": 20
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\sites\\amazon_jp\\hk\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\amazon_jp\\hk\\latest.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 64,
+        "lte_4g_only": 10,
+        "unknown": 126
+      },
+      "inferred_counts": {
+        "5g_capable": 130,
+        "lte_4g_only": 18,
+        "unknown": 52
+      },
+      "confidence_counts": {
+        "medium": 74,
+        "high": 74,
+        "low": 52
+      },
+      "known_5g_share": 86,
+      "known_lte_share": 14
+    },
+    {
+      "path": "dashboard\\data\\sites\\amazon_jp\\kr\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\amazon_jp\\kr\\latest.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 106,
+        "lte_4g_only": 7,
+        "unknown": 87
+      },
+      "inferred_counts": {
+        "5g_capable": 164,
+        "lte_4g_only": 9,
+        "unknown": 27
+      },
+      "confidence_counts": {
+        "medium": 60,
+        "high": 113,
+        "low": 27
+      },
+      "known_5g_share": 94,
+      "known_lte_share": 6
+    },
+    {
+      "path": "dashboard\\data\\sites\\amazon_jp\\mo\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\amazon_jp\\mo\\latest.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 60,
+        "lte_4g_only": 6,
+        "unknown": 134
+      },
+      "inferred_counts": {
+        "5g_capable": 133,
+        "lte_4g_only": 11,
+        "unknown": 56
+      },
+      "confidence_counts": {
+        "low": 56,
+        "medium": 78,
+        "high": 66
+      },
+      "known_5g_share": 91,
+      "known_lte_share": 9
+    },
+    {
+      "path": "dashboard\\data\\sites\\amazon_jp\\th\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\amazon_jp\\th\\latest.csv",
+      "total": 169,
+      "changed": 169,
+      "counts": {
+        "5g_capable": 42,
+        "lte_4g_only": 5,
+        "unknown": 122
+      },
+      "inferred_counts": {
+        "5g_capable": 133,
+        "lte_4g_only": 8,
+        "unknown": 28
+      },
+      "confidence_counts": {
+        "medium": 94,
+        "high": 47,
+        "low": 28
+      },
+      "known_5g_share": 89,
+      "known_lte_share": 11
+    },
+    {
+      "path": "dashboard\\data\\sites\\amazon_jp\\tw\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\amazon_jp\\tw\\latest.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 74,
+        "lte_4g_only": 3,
+        "unknown": 123
+      },
+      "inferred_counts": {
+        "5g_capable": 143,
+        "lte_4g_only": 4,
+        "unknown": 53
+      },
+      "confidence_counts": {
+        "medium": 70,
+        "high": 77,
+        "low": 53
+      },
+      "known_5g_share": 96,
+      "known_lte_share": 4
+    },
+    {
+      "path": "dashboard\\data\\sites\\amazon_jp\\us\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\amazon_jp\\us\\latest.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 90,
+        "lte_4g_only": 1,
+        "unknown": 109
+      },
+      "inferred_counts": {
+        "5g_capable": 188,
+        "lte_4g_only": 4,
+        "unknown": 8
+      },
+      "confidence_counts": {
+        "high": 91,
+        "medium": 101,
+        "low": 8
+      },
+      "known_5g_share": 99,
+      "known_lte_share": 1
+    },
+    {
+      "path": "dashboard\\data\\sites\\amazon_jp\\vn\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\amazon_jp\\vn\\latest.csv",
+      "total": 200,
+      "changed": 200,
+      "counts": {
+        "5g_capable": 45,
+        "lte_4g_only": 3,
+        "unknown": 152
+      },
+      "inferred_counts": {
+        "5g_capable": 148,
+        "lte_4g_only": 14,
+        "unknown": 38
+      },
+      "confidence_counts": {
+        "medium": 114,
+        "high": 48,
+        "low": 38
+      },
+      "known_5g_share": 94,
+      "known_lte_share": 6
+    },
+    {
+      "path": "dashboard\\data\\sites\\qoo10_jp\\hk\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\qoo10_jp\\hk\\latest.csv",
+      "total": 75,
+      "changed": 75,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 75
+      },
+      "inferred_counts": {
+        "5g_capable": 9,
+        "lte_4g_only": 0,
+        "unknown": 66
+      },
+      "confidence_counts": {
+        "low": 66,
+        "medium": 9
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\sites\\qoo10_jp\\kr\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\qoo10_jp\\kr\\latest.csv",
+      "total": 140,
+      "changed": 140,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 0,
+        "unknown": 139
+      },
+      "inferred_counts": {
+        "5g_capable": 6,
+        "lte_4g_only": 0,
+        "unknown": 134
+      },
+      "confidence_counts": {
+        "low": 134,
+        "medium": 5,
+        "high": 1
+      },
+      "known_5g_share": 100,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\sites\\qoo10_jp\\mo\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\qoo10_jp\\mo\\latest.csv",
+      "total": 99,
+      "changed": 99,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 99
+      },
+      "inferred_counts": {
+        "5g_capable": 13,
+        "lte_4g_only": 0,
+        "unknown": 86
+      },
+      "confidence_counts": {
+        "low": 86,
+        "medium": 13
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\sites\\qoo10_jp\\th\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\qoo10_jp\\th\\latest.csv",
+      "total": 138,
+      "changed": 138,
+      "counts": {
+        "5g_capable": 1,
+        "lte_4g_only": 1,
+        "unknown": 136
+      },
+      "inferred_counts": {
+        "5g_capable": 15,
+        "lte_4g_only": 1,
+        "unknown": 122
+      },
+      "confidence_counts": {
+        "low": 122,
+        "high": 2,
+        "medium": 14
+      },
+      "known_5g_share": 50,
+      "known_lte_share": 50
+    },
+    {
+      "path": "dashboard\\data\\sites\\qoo10_jp\\tw\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\qoo10_jp\\tw\\latest.csv",
+      "total": 128,
+      "changed": 128,
+      "counts": {
+        "5g_capable": 6,
+        "lte_4g_only": 1,
+        "unknown": 121
+      },
+      "inferred_counts": {
+        "5g_capable": 18,
+        "lte_4g_only": 2,
+        "unknown": 108
+      },
+      "confidence_counts": {
+        "low": 108,
+        "medium": 13,
+        "high": 7
+      },
+      "known_5g_share": 86,
+      "known_lte_share": 14
+    },
+    {
+      "path": "dashboard\\data\\sites\\qoo10_jp\\us\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\qoo10_jp\\us\\latest.csv",
+      "total": 144,
+      "changed": 144,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 0,
+        "unknown": 144
+      },
+      "inferred_counts": {
+        "5g_capable": 20,
+        "lte_4g_only": 0,
+        "unknown": 124
+      },
+      "confidence_counts": {
+        "low": 124,
+        "medium": 20
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 0
+    },
+    {
+      "path": "dashboard\\data\\sites\\qoo10_jp\\vn\\latest.jsonl",
+      "csv": "dashboard\\data\\sites\\qoo10_jp\\vn\\latest.csv",
+      "total": 136,
+      "changed": 136,
+      "counts": {
+        "5g_capable": 0,
+        "lte_4g_only": 2,
+        "unknown": 134
+      },
+      "inferred_counts": {
+        "5g_capable": 15,
+        "lte_4g_only": 2,
+        "unknown": 119
+      },
+      "confidence_counts": {
+        "low": 119,
+        "medium": 15,
+        "high": 2
+      },
+      "known_5g_share": 0,
+      "known_lte_share": 100
+    }
+  ]
+}

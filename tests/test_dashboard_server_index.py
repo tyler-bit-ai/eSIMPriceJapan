@@ -111,6 +111,59 @@ console.log(JSON.stringify(normalizeItem(raw)));
     assert normalized["carrier_support_kr"]["skt"] is True
 
 
+def test_dashboard_server_network_generation_defaults_unknown_and_summarizes():
+    script = """
+const { normalizeItem, summarize } = require('./dashboard_server');
+const legacy = normalizeItem({
+  site: 'amazon_jp',
+  country: 'kr',
+  title: 'legacy item',
+  price_jpy: 1000,
+  product_url: 'https://example.com/legacy'
+});
+const fiveG = normalizeItem({
+  site: 'amazon_jp',
+  country: 'kr',
+  title: '5g item',
+  price_jpy: 1200,
+  product_url: 'https://example.com/5g',
+  network_generation: '5g_capable'
+});
+const lte = normalizeItem({
+  site: 'amazon_jp',
+  country: 'kr',
+  title: 'lte item',
+  price_jpy: 900,
+  product_url: 'https://example.com/lte',
+  network_generation: 'lte_4g_only'
+});
+console.log(JSON.stringify({ legacy, summary: summarize([legacy, fiveG, lte]) }));
+"""
+    result = json.loads(run_node(script))
+
+    assert result["legacy"]["network_generation"] == "unknown"
+    assert result["summary"]["networkGenerationCounts"]["5g_capable"] == 1
+    assert result["summary"]["networkGenerationCounts"]["lte_4g_only"] == 1
+    assert result["summary"]["networkGenerationCounts"]["unknown"] == 1
+    assert result["summary"]["networkGenerationKnownOnlyShares"]["5g_capable"] == 50
+
+
+def test_dashboard_server_filters_by_network_generation():
+    script = """
+const { applyFilters } = require('./dashboard_server');
+const items = [
+  { title: '5g', price_jpy: 1000, network_generation: '5g_capable', carrier_support_local: {} },
+  { title: 'lte', price_jpy: 900, network_generation: 'lte_4g_only', carrier_support_local: {} },
+  { title: 'unknown', price_jpy: 800, network_generation: 'unknown', carrier_support_local: {} }
+];
+console.log(JSON.stringify(applyFilters(items, { generation: '5g_capable' })));
+"""
+    filtered = json.loads(run_node(script))
+
+    assert len(filtered) == 1
+    assert filtered[0]["title"] == "5g"
+
+
 def test_dashboard_server_reads_thailand_and_existing_country_datasets():
     script = """
 const { readLatestData } = require('./dashboard_server');
@@ -152,5 +205,5 @@ console.log(JSON.stringify({
 
     assert loaded["qoo10Kr"]["found"] is True
     assert loaded["qoo10Kr"]["country"] == "kr"
-    assert "out_live_qoo10_jp_kr_20260401" in loaded["qoo10Kr"]["source"]
+    assert "qoo10_jp_kr" in loaded["qoo10Kr"]["source"]
     assert loaded["qoo10Kr"]["total"] > 0

@@ -15,6 +15,7 @@ from app.extractors.heuristics import (
     ExtractedValue,
     extract_carrier_support_for_country,
     extract_data_amount,
+    extract_network_generation,
     extract_network_type,
     extract_price_jpy_with_evidence,
     extract_validity_split,
@@ -251,6 +252,19 @@ class Qoo10JPAdapter(MarketplaceAdapter):
             else:
                 evidence["network_type"] = ["no_local_or_roaming_keyword_matched"]
 
+            generation_strong, generation_fallback = self._collect_network_generation_texts(
+                soup=soup,
+                title=title or "",
+                representative_option=representative_option,
+                option_candidates=option_candidates,
+            )
+            network_generation, generation_ev = extract_network_generation(
+                generation_strong,
+                generation_fallback,
+            )
+            if generation_ev:
+                evidence["network_generation"] = generation_ev
+
             carrier_texts = list(validity_texts)
             if representative_option:
                 carrier_texts.insert(0, representative_option.raw_text)
@@ -292,6 +306,7 @@ class Qoo10JPAdapter(MarketplaceAdapter):
                 usage_validity=resolved_usage,
                 activation_validity=resolved_activation,
                 network_type=network_type,
+                network_generation=network_generation,
                 carrier_support_local=carrier_support_local,
                 carrier_support_kr=carrier_support_kr,
                 data_amount=data_amount.value if isinstance(data_amount.value, str) else None,
@@ -403,6 +418,53 @@ class Qoo10JPAdapter(MarketplaceAdapter):
         if all_text:
             blocks.append(all_text[:7000])
         return blocks
+
+    def _collect_network_generation_texts(
+        self,
+        soup: BeautifulSoup,
+        title: str,
+        representative_option: OptionCandidate | None,
+        option_candidates: list[OptionCandidate],
+    ) -> tuple[list[str], list[str]]:
+        strong: list[str] = []
+        fallback: list[str] = []
+        if title:
+            strong.append(f"source:title: {title}")
+        if representative_option:
+            strong.append(f"source:representative_option: {representative_option.raw_text}")
+        elif option_candidates:
+            for option in option_candidates[:8]:
+                strong.append(f"source:option_candidates: {option.raw_text}")
+
+        strong_selectors = [
+            ("item_detail", "#item_detail"),
+            ("goods_info", "#goods_info"),
+            ("tab_content", "#tabCon"),
+            ("item_contents", "#item_contents"),
+            ("option_select", ".option_select"),
+        ]
+        for source, selector in strong_selectors:
+            for node in soup.select(selector):
+                text = normalize_text(node.get_text(" ", strip=True))
+                if text:
+                    strong.append(f"source:{source}: {text[:1500]}")
+
+        fallback_selectors = [
+            ("meta_description", "meta[name='description']"),
+            ("og_title", "meta[property='og:title']"),
+            ("review_list", ".review_list"),
+        ]
+        for source, selector in fallback_selectors:
+            for node in soup.select(selector):
+                text = node.get("content") if node.name == "meta" else node.get_text(" ", strip=True)
+                text = normalize_text(text or "")
+                if text:
+                    fallback.append(f"source:{source}: {text[:1500]}")
+
+        all_text = normalize_text(soup.get_text(" ", strip=True))
+        if all_text:
+            fallback.append(f"source:fallback_all_text: {all_text[:7000]}")
+        return strong, fallback
 
     def _collect_price_candidates(self, soup: BeautifulSoup, text_blocks: list[str]) -> list[str]:
         candidates: list[str] = []
