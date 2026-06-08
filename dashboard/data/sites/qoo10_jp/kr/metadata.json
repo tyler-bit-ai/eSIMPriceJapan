@@ -1,10 +1,10 @@
-﻿{
-    "site":  "qoo10_jp",
-    "country":  "kr",
-    "query":  "",
-    "limit":  200,
-    "source":  ".\\\\out_refresh_qoo10_jp_kr_20260428_200\\results.jsonl",
-    "crawled_at":  "2026-04-28T07:31:16.1941514Z",
-    "published_at":  "2026-04-28T07:31:16.6727537Z",
-    "item_count":  140
+{
+  "site": "qoo10_jp",
+  "country": "kr",
+  "query": "",
+  "limit": 200,
+  "source": "data/crawls/out_refresh_qoo10_jp_kr_20260428_200/results.jsonl",
+  "crawled_at": "2026-04-28T07:31:16.1941514Z",
+  "published_at": "2026-04-28T07:31:16.6727537Z",
+  "item_count": 140
 }

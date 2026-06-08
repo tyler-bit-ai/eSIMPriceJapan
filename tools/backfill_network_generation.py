@@ -27,14 +27,13 @@ NOISY_CONTEXT_RE = re.compile(
     re.IGNORECASE,
 )
 MEDIUM_EVIDENCE_KEYS = {
-    "usage_validity",
-    "activation_validity",
-    "data_amount",
     "network_type",
     "carrier_support_local",
     "carrier_support_kr",
     "option_candidates",
     "representative_option",
+    "network_generation_product_info",
+    "network_generation_transmission_speed",
 }
 
 

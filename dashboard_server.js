@@ -9,6 +9,7 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 4173;
 const ROOT = __dirname;
 const DASHBOARD_DIR = path.join(ROOT, 'dashboard');
 const DATA_DIR = path.join(DASHBOARD_DIR, 'data');
+const CRAWLS_DIR = path.join(ROOT, 'data', 'crawls');
 const INDEX_PATH = path.join(DATA_DIR, 'index.json');
 const DEFAULT_COUNTRY = 'kr';
 const CARRIER_CONFIG = {
@@ -229,18 +230,19 @@ function keepDashboardItem(item) {
 }
 
 function getLatestResultsFile() {
+  if (!fs.existsSync(CRAWLS_DIR)) return null;
   const dirs = fs
-    .readdirSync(ROOT, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && /^out_/i.test(d.name))
+    .readdirSync(CRAWLS_DIR, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^out/i.test(d.name))
     .map((d) => {
-      const fullDir = path.join(ROOT, d.name);
+      const fullDir = path.join(CRAWLS_DIR, d.name);
       const fullPath = path.join(fullDir, 'results.jsonl');
       if (!fs.existsSync(fullPath)) return null;
       const stat = fs.statSync(fullPath);
       return {
         dir: d.name,
         fullPath,
-        file: path.join(d.name, 'results.jsonl'),
+        file: path.join('data', 'crawls', d.name, 'results.jsonl'),
         mtimeMs: stat.mtimeMs,
       };
     })
@@ -508,7 +510,14 @@ function readIndexData() {
 function resolveRepoPath(relPath) {
   if (!relPath) return null;
   if (path.isAbsolute(relPath)) return relPath;
-  return path.join(DATA_DIR, relPath.replace(/^\.\//, ''));
+  const cleanPath = relPath.replace(/^\.\//, '');
+  if (cleanPath.startsWith('data/') || cleanPath.startsWith('data\\')) {
+    return path.join(ROOT, cleanPath);
+  }
+  if (cleanPath.startsWith('dashboard/data/') || cleanPath.startsWith('dashboard\\data\\')) {
+    return path.join(ROOT, cleanPath);
+  }
+  return path.join(DATA_DIR, cleanPath);
 }
 
 function getDatasetRecord(indexData, site, country, datasetId) {

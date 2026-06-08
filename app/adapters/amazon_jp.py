@@ -370,6 +370,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
     ) -> tuple[list[str], list[str]]:
         strong: list[str] = []
         fallback: list[str] = []
+        strong.extend(self._collect_product_information_network_texts(soup))
         if title:
             strong.append(f"source:title: {title}")
 
@@ -400,6 +401,41 @@ class AmazonJPAdapter(MarketplaceAdapter):
         if all_text:
             fallback.append(f"source:fallback_all_text: {all_text[:5000]}")
         return strong, fallback
+
+    def _collect_product_information_network_texts(self, soup: BeautifulSoup) -> list[str]:
+        texts: list[str] = []
+        selectors = [
+            "#productOverview_feature_div tr",
+            "#productDetails_techSpec_section_1 tr",
+            "#productDetails_detailBullets_sections1 tr",
+            "#productDetails_feature_div tr",
+            "#detailBullets_feature_div li",
+        ]
+        cellular_labels = (
+            "cellular technology",
+            "セルラー",
+            "通信方式",
+            "通信規格",
+            "対応通信規格",
+        )
+        transmission_labels = (
+            "transmission speed",
+            "通信速度",
+            "伝送速度",
+            "通信スピード",
+        )
+
+        for selector in selectors:
+            for node in soup.select(selector):
+                text = node.get_text(" ", strip=True)
+                if not text:
+                    continue
+                lower = text.lower()
+                if any(label in lower for label in cellular_labels):
+                    texts.append(f"source:product_info_cellular: {text}")
+                elif any(label in lower for label in transmission_labels):
+                    texts.append(f"source:product_info_transmission: {text}")
+        return texts
 
     def _extract_carrier_support(
         self,

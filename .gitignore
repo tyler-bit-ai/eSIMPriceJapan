@@ -6,6 +6,7 @@ __pycache__/
 out/
 out_*/
 out_smoke/
+data/crawls/
 .pytest_cache/
 node_modules/
 화면캡처/

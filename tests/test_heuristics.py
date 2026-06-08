@@ -130,6 +130,12 @@ def test_extract_network_generation_4g_5g_capable():
     assert evidence
 
 
+def test_extract_network_generation_space_separated_5g_4g_capable():
+    gen, evidence = extract_network_generation(["香港 eSIM 5G 4G-LTE対応 プリペイド"])
+    assert gen == NetworkGeneration.five_g_capable
+    assert evidence
+
+
 def test_extract_network_generation_5g_capable():
     gen, evidence = extract_network_generation(["SK Telecom回線 5G対応 QRコード簡単設定"])
     assert gen == NetworkGeneration.five_g_capable
@@ -164,6 +170,42 @@ def test_extract_network_generation_conflict_uses_unknown():
     )
     assert gen == NetworkGeneration.unknown
     assert any("conflicts" in item for item in evidence)
+
+
+def test_extract_network_generation_cellular_technology_lte_overrides_title_5g():
+    gen, evidence = extract_network_generation(
+        [
+            "source:title: 香港 eSIM 5G対応 高速通信",
+            "source:product_info_cellular: Cellular Technology LTE",
+        ],
+        [],
+    )
+    assert gen == NetworkGeneration.lte_4g_only
+    assert any("product_info_cellular_4g_lte" in item for item in evidence)
+
+
+def test_extract_network_generation_cellular_priority_over_transmission_speed():
+    gen, evidence = extract_network_generation(
+        [
+            "source:product_info_cellular: Cellular Technology LTE",
+            "source:product_info_transmission: Transmission speed: 5G/4G high speed",
+        ],
+        [],
+    )
+    assert gen == NetworkGeneration.lte_4g_only
+    assert any("product_info_cellular" in item for item in evidence)
+
+
+def test_extract_network_generation_transmission_speed_overrides_title_4g():
+    gen, evidence = extract_network_generation(
+        [
+            "source:title: 香港 eSIM 4G/LTE対応",
+            "source:product_info_transmission: Transmission speed: 5G/4G high speed",
+        ],
+        [],
+    )
+    assert gen == NetworkGeneration.five_g_capable
+    assert any("product_info_transmission_5g" in item for item in evidence)
 
 
 def test_extract_carrier_support_kr():

@@ -34,7 +34,7 @@ def crawl(
     country: str = typer.Option("kr", "--country"),
     query: Optional[str] = typer.Option(None, "--query"),
     limit: int = typer.Option(50, "--limit", min=1, max=200),
-    out: Path = typer.Option(Path("./out"), "--out"),
+    out: Path = typer.Option(Path("./data/crawls/out"), "--out"),
     concurrency: int = typer.Option(3, "--concurrency", min=1, max=8),
     min_delay: float = typer.Option(1.0, "--min-delay"),
     max_delay: float = typer.Option(3.0, "--max-delay"),

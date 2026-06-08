@@ -37,16 +37,18 @@ NEGATIVE_5G_RE = re.compile(
 
 STRONG_EVIDENCE_KEYS = {
     "title",
+    "network_generation_product_info",
+    "network_generation_transmission_speed",
     "representative_option",
     "option_candidates",
-    "usage_validity",
-    "activation_validity",
-    "data_amount",
 }
 FALLBACK_EVIDENCE_KEYS = {
     "network_type",
     "carrier_support_kr",
     "carrier_support_local",
+    "usage_validity",
+    "activation_validity",
+    "data_amount",
     "monthly_sold_count",
     "review_count",
     "bestseller_rank",

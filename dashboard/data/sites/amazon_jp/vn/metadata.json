@@ -2,9 +2,9 @@
     "site":  "amazon_jp",
     "country":  "vn",
     "query":  "",
-    "limit":  200,
-    "source":  ".\\\\out_refresh_amazon_jp_vn_20260428_200\\results.jsonl",
-    "crawled_at":  "2026-04-28T01:00:16.8969639Z",
-    "published_at":  "2026-04-28T01:00:17.5266550Z",
-    "item_count":  200
+    "limit":  100,
+    "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\data\\crawls\\out_refresh_amazon_jp_vn_20260608_100\\results.jsonl",
+    "crawled_at":  "2026-06-08T12:00:37.0544802Z",
+    "published_at":  "2026-06-08T12:00:37.3780786Z",
+    "item_count":  100
 }

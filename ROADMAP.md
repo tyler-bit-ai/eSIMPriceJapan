@@ -18,7 +18,7 @@
 
 ## Verification Checklist
 - [x] `python -m pytest -q`
-- [x] `python -m app crawl --site qoo10_jp --query "eSIM 韓国" --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\out_smoke_qoo10`
+- [x] `python -m app crawl --site qoo10_jp --query "eSIM 韓国" --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\data\crawls\out_smoke_qoo10`
 - [x] Validate generated `results.jsonl`, `results.csv`, and `failed.jsonl`.
 - [x] Validate published dashboard index and site switching behavior.
 
@@ -31,6 +31,6 @@
 - Implemented.
 - Test result:
   - `python -m pytest -q` -> `29 passed`
-  - `python -m app crawl --site qoo10_jp --query "eSIM 韓国" --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\out_smoke_qoo10` -> success, `results.jsonl/results.csv/failed.jsonl` generated
-  - `powershell -ExecutionPolicy Bypass -File .\tools\publish.ps1 -OutDir .\out_smoke_qoo10 -DataDir dashboard\data -Site qoo10_jp -Query "eSIM 韓国" -Limit 5` -> success
+  - `python -m app crawl --site qoo10_jp --query "eSIM 韓国" --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\data\crawls\out_smoke_qoo10` -> success, `results.jsonl/results.csv/failed.jsonl` generated
+  - `powershell -ExecutionPolicy Bypass -File .\tools\publish.ps1 -OutDir .\data\crawls\out_smoke_qoo10 -DataDir dashboard\data -Site qoo10_jp -Query "eSIM 韓国" -Limit 5` -> success
   - `node -e "const srv=require('./dashboard_server'); ..."` -> Amazon/Qoo10 latest dataset resolution verified

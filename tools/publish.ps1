@@ -1,5 +1,5 @@
 param(
-  [string]$OutDir = '.\out',
+  [string]$OutDir = '.\data\crawls\out',
   [string]$DataDir = 'dashboard\data',
   [string]$Site = 'amazon_jp',
   [string]$Country = 'kr',

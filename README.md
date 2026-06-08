@@ -53,22 +53,22 @@ npm install
 기본 query는 `--country`에 맞춰 자동 선택됩니다.
 
 ```powershell
-python -m app crawl --site amazon_jp --country kr --limit 50 --out .\out_amazon_kr
-python -m app crawl --site amazon_jp --country vn --limit 50 --out .\out_amazon_vn
-python -m app crawl --site qoo10_jp --country tw --limit 50 --out .\out_qoo10_tw
+python -m app crawl --site amazon_jp --country kr --limit 50 --out .\data\crawls\out_amazon_kr
+python -m app crawl --site amazon_jp --country vn --limit 50 --out .\data\crawls\out_amazon_vn
+python -m app crawl --site qoo10_jp --country tw --limit 50 --out .\data\crawls\out_qoo10_tw
 ```
 
 직접 query를 지정할 수도 있습니다.
 
 ```powershell
-python -m app crawl --site qoo10_jp --country hk --query "eSIM 香港 5G" --limit 30 --out .\out_qoo10_hk_custom
+python -m app crawl --site qoo10_jp --country hk --query "eSIM 香港 5G" --limit 30 --out .\data\crawls\out_qoo10_hk_custom
 ```
 
 스모크 실행:
 
 ```powershell
-python -m app crawl --site amazon_jp --country kr --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\out_smoke_amazon_kr
-python -m app crawl --site qoo10_jp --country vn --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\out_smoke_qoo10_vn
+python -m app crawl --site amazon_jp --country kr --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\data\crawls\out_smoke_amazon_kr
+python -m app crawl --site qoo10_jp --country vn --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\data\crawls\out_smoke_qoo10_vn
 ```
 
 ## Publish Workflow
@@ -77,16 +77,16 @@ python -m app crawl --site qoo10_jp --country vn --limit 5 --concurrency 2 --min
 이미 생성된 `results.jsonl`, `results.csv`를 대시보드 데이터로 반영할 때 사용합니다.
 
 ```powershell
-.\tools\publish.ps1 -OutDir .\out_amazon_vn -DataDir dashboard\data -Site amazon_jp -Country vn -Query "eSIM ベトナム" -Limit 50
+.\tools\publish.ps1 -OutDir .\data\crawls\out_amazon_vn -DataDir dashboard\data -Site amazon_jp -Country vn -Query "eSIM ベトナム" -Limit 50
 ```
 
 ### One-click
 크롤링 후 정적 대시보드 데이터 반영, 커밋/푸시까지 한 번에 진행합니다.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country kr -Limit 200 -OutDir .\out_auto_kr
-powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country vn -Limit 100 -OutDir .\out_auto_vn
-powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country us -Limit 50 -OutDir .\out_auto_us
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country kr -Limit 200 -OutDir .\data\crawls\out_auto_kr
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country vn -Limit 100 -OutDir .\data\crawls\out_auto_vn
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country us -Limit 50 -OutDir .\data\crawls\out_auto_us
 ```
 
 ### One-time Partial Refresh
@@ -99,13 +99,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10
 새로 수집 후 바로 게시:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\run_partial_refresh_qoo10_th.ps1 -OutDir .\out_partial_qoo10_jp_th_20260406 -Limit 200
+powershell -ExecutionPolicy Bypass -File .\tools\run_partial_refresh_qoo10_th.ps1 -OutDir .\data\crawls\out_partial_qoo10_jp_th_20260406 -Limit 200
 ```
 
 이미 생성된 태국 결과만 게시:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\run_partial_refresh_qoo10_th.ps1 -PublishOnly -OutDir .\out_partial_qoo10_jp_th_20260406
+powershell -ExecutionPolicy Bypass -File .\tools\run_partial_refresh_qoo10_th.ps1 -PublishOnly -OutDir .\data\crawls\out_partial_qoo10_jp_th_20260406
 ```
 
 ### Full Refresh After This Batch
@@ -118,10 +118,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\run_partial_refresh_qoo10_th.ps
 예시:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country th -Limit 200 -OutDir .\out_auto_amazon_th
-powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country th -Limit 200 -OutDir .\out_auto_qoo10_th
-powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country kr -Limit 200 -OutDir .\out_auto_amazon_kr
-powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country kr -Limit 200 -OutDir .\out_auto_qoo10_kr
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country th -Limit 200 -OutDir .\data\crawls\out_auto_amazon_th
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country th -Limit 200 -OutDir .\data\crawls\out_auto_qoo10_th
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site amazon_jp -Country kr -Limit 200 -OutDir .\data\crawls\out_auto_amazon_kr
+powershell -ExecutionPolicy Bypass -File .\tools\run_and_publish.ps1 -Site qoo10_jp -Country kr -Limit 200 -OutDir .\data\crawls\out_auto_qoo10_kr
 ```
 
 게시 후 생성 구조 예시:

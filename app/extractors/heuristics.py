@@ -38,12 +38,42 @@ NETWORK_GENERATION_5G_PATTERNS = [
     re.compile(r"(?:5\s*G|５\s*G)\s*(?:support|supported|available|network|capable)", re.IGNORECASE),
     re.compile(r"(?:4\s*G|４\s*G)\s*/\s*(?:5\s*G|５\s*G)", re.IGNORECASE),
     re.compile(r"(?:5\s*G|５\s*G)\s*/\s*(?:4\s*G|４\s*G)", re.IGNORECASE),
+    re.compile(r"(?:5\s*G|５\s*G)[\s・,、／/]+(?:4\s*G|４\s*G|LTE|ＬＴＥ)", re.IGNORECASE),
+    re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)[\s・,、／/]+(?:5\s*G|５\s*G)", re.IGNORECASE),
 ]
 NETWORK_GENERATION_4G_PATTERNS = [
     re.compile(r"(?:4\s*G|４\s*G)\s*/\s*(?:LTE|ＬＴＥ)", re.IGNORECASE),
     re.compile(r"(?:LTE|ＬＴＥ)\s*/\s*(?:4\s*G|４\s*G)", re.IGNORECASE),
     re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)\s*(?:対応|利用可|利用可能|サポート|通信|回線)", re.IGNORECASE),
     re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)\s*(?:support|supported|available|network|capable)", re.IGNORECASE),
+]
+NETWORK_GENERATION_CELLULAR_5G_PATTERNS = [
+    re.compile(
+        r"(?:cellular\s+technology|セルラー(?:技術|方式)?|通信(?:方式|規格)|対応通信規格)"
+        r"\s*[:：]?\s*(?:5\s*G|５\s*G)",
+        re.IGNORECASE,
+    ),
+]
+NETWORK_GENERATION_CELLULAR_4G_PATTERNS = [
+    re.compile(
+        r"(?:cellular\s+technology|セルラー(?:技術|方式)?|通信(?:方式|規格)|対応通信規格)"
+        r"\s*[:：]?\s*(?:LTE|ＬＴＥ|4\s*G|４\s*G)",
+        re.IGNORECASE,
+    ),
+]
+NETWORK_GENERATION_TRANSMISSION_5G_PATTERNS = [
+    re.compile(
+        r"(?:transmission\s+speed|通信速度|伝送速度|通信スピード)"
+        r"\s*[:：]?\s*(?:5\s*G|５\s*G|(?:4\s*G|４\s*G)\s*/\s*(?:5\s*G|５\s*G)|(?:5\s*G|５\s*G)\s*/\s*(?:4\s*G|４\s*G))",
+        re.IGNORECASE,
+    ),
+]
+NETWORK_GENERATION_TRANSMISSION_4G_PATTERNS = [
+    re.compile(
+        r"(?:transmission\s+speed|通信速度|伝送速度|通信スピード)"
+        r"\s*[:：]?\s*(?:LTE|ＬＴＥ|4\s*G|４\s*G)",
+        re.IGNORECASE,
+    ),
 ]
 NETWORK_GENERATION_5G_NEGATIVE_PATTERNS = [
     re.compile(r"(?:5\s*G|５\s*G)\s*(?:非対応|不可|未対応|なし|無し)", re.IGNORECASE),
@@ -442,18 +472,46 @@ def extract_network_generation(
     strong_texts: list[str],
     fallback_texts: list[str] | None = None,
 ) -> tuple[NetworkGeneration, list[str]]:
-    strong_5g_hits = _collect_network_generation_hits(
-        strong_texts,
+    cellular_texts = _filter_network_generation_source(strong_texts, ("product_info_cellular",))
+    transmission_texts = _filter_network_generation_source(strong_texts, ("product_info_transmission",))
+    title_texts = _filter_network_generation_source(strong_texts, ("title",))
+    other_strong_texts = [
+        text
+        for text in strong_texts
+        if text not in cellular_texts and text not in transmission_texts and text not in title_texts
+    ]
+
+    cellular = _classify_network_generation_tier(
+        cellular_texts,
+        NETWORK_GENERATION_CELLULAR_5G_PATTERNS + NETWORK_GENERATION_5G_PATTERNS,
+        NETWORK_GENERATION_CELLULAR_4G_PATTERNS + NETWORK_GENERATION_4G_PATTERNS,
+        "product_info_cellular",
+    )
+    if cellular is not None:
+        return cellular
+
+    transmission = _classify_network_generation_tier(
+        transmission_texts,
+        NETWORK_GENERATION_TRANSMISSION_5G_PATTERNS + NETWORK_GENERATION_5G_PATTERNS,
+        NETWORK_GENERATION_TRANSMISSION_4G_PATTERNS + NETWORK_GENERATION_4G_PATTERNS,
+        "product_info_transmission",
+    )
+    if transmission is not None:
+        return transmission
+
+    title = _classify_network_generation_tier(
+        title_texts,
         NETWORK_GENERATION_5G_PATTERNS,
-        "strong_5g",
-    )
-    strong_4g_hits = _collect_network_generation_hits(
-        strong_texts,
         NETWORK_GENERATION_4G_PATTERNS,
-        "strong_4g_lte",
+        "title",
     )
+    if title is not None:
+        return title
+
+    strong_5g_hits = _collect_network_generation_hits(other_strong_texts, NETWORK_GENERATION_5G_PATTERNS, "strong_5g")
+    strong_4g_hits = _collect_network_generation_hits(other_strong_texts, NETWORK_GENERATION_4G_PATTERNS, "strong_4g_lte")
     negative_5g_hits = _collect_network_generation_hits(
-        strong_texts,
+        other_strong_texts,
         NETWORK_GENERATION_5G_NEGATIVE_PATTERNS,
         "strong_5g_negative",
     )
@@ -502,6 +560,43 @@ def extract_network_generation(
         )
 
     return NetworkGeneration.unknown, ["no_lte_4g_or_5g_keyword_matched"]
+
+
+def _filter_network_generation_source(texts: list[str], source_tokens: tuple[str, ...]) -> list[str]:
+    filtered: list[str] = []
+    for raw in texts:
+        normalized = normalize_text(raw)
+        lower = normalized.lower()
+        if any(f"source:{token}" in lower for token in source_tokens):
+            filtered.append(raw)
+    return filtered
+
+
+def _classify_network_generation_tier(
+    texts: list[str],
+    five_g_patterns: list[re.Pattern[str]],
+    four_g_patterns: list[re.Pattern[str]],
+    label: str,
+) -> tuple[NetworkGeneration, list[str]] | None:
+    if not texts:
+        return None
+
+    five_g_hits = _collect_network_generation_hits(texts, five_g_patterns, f"{label}_5g")
+    four_g_hits = _collect_network_generation_hits(texts, four_g_patterns, f"{label}_4g_lte")
+    negative_5g_hits = _collect_network_generation_hits(texts, NETWORK_GENERATION_5G_NEGATIVE_PATTERNS, f"{label}_5g_negative")
+
+    if five_g_hits and negative_5g_hits:
+        return NetworkGeneration.unknown, five_g_hits[:1] + negative_5g_hits[:1] + [f"conflicting_{label}_network_generation_signals"]
+    if negative_5g_hits:
+        return NetworkGeneration.lte_4g_only, negative_5g_hits[:2]
+    if five_g_hits:
+        evidence = five_g_hits[:2]
+        if four_g_hits:
+            evidence.append(f"{label}_4g_lte_signal_present_but_5g_capable_takes_precedence")
+        return NetworkGeneration.five_g_capable, evidence
+    if four_g_hits:
+        return NetworkGeneration.lte_4g_only, four_g_hits[:2]
+    return None
 
 
 def _collect_network_generation_hits(

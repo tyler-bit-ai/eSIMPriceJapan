@@ -6,7 +6,7 @@ param(
   [int]$Concurrency = 2,
   [int]$MinDelay = 1,
   [int]$MaxDelay = 2,
-  [string]$OutDir = '.\out_auto',
+  [string]$OutDir = '.\data\crawls\out_auto',
   [string]$RepoRoot = '',
   [string]$DataDir = 'dashboard\data',
   [switch]$SkipPush

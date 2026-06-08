@@ -8,7 +8,7 @@ Input data checked for the first pass:
 
 - `dashboard/data/sites/<site>/<country>/latest.jsonl`
 - `dashboard/data/runs/*.jsonl`
-- `out_refresh_*` can be inspected later if a run-specific audit is needed.
+- `data/crawls/out_refresh_*` can be inspected later if a run-specific audit is needed.
 
 ## Current Data Shape
 
