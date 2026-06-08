@@ -474,11 +474,20 @@ def extract_network_generation(
 ) -> tuple[NetworkGeneration, list[str]]:
     cellular_texts = _filter_network_generation_source(strong_texts, ("product_info_cellular",))
     transmission_texts = _filter_network_generation_source(strong_texts, ("product_info_transmission",))
+    detail_texts = _filter_network_generation_source(
+        strong_texts,
+        ("feature_bullets", "product_description", "product_details", "detail_bullets"),
+    )
     title_texts = _filter_network_generation_source(strong_texts, ("title",))
     other_strong_texts = [
         text
         for text in strong_texts
-        if text not in cellular_texts and text not in transmission_texts and text not in title_texts
+        if (
+            text not in cellular_texts
+            and text not in transmission_texts
+            and text not in detail_texts
+            and text not in title_texts
+        )
     ]
 
     cellular = _classify_network_generation_tier(
@@ -498,6 +507,15 @@ def extract_network_generation(
     )
     if transmission is not None:
         return transmission
+
+    detail = _classify_network_generation_tier(
+        detail_texts,
+        NETWORK_GENERATION_5G_PATTERNS,
+        NETWORK_GENERATION_4G_PATTERNS,
+        "product_detail",
+    )
+    if detail is not None:
+        return detail
 
     title = _classify_network_generation_tier(
         title_texts,

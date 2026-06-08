@@ -104,7 +104,7 @@ def test_amazon_collect_network_generation_texts_uses_source_prefixes():
     generation, evidence = extract_network_generation(strong, fallback)
 
     assert generation == NetworkGeneration.five_g_capable
-    assert any(item.startswith("strong_5g: source:feature_bullets") for item in evidence)
+    assert any(item.startswith("product_detail_5g: source:feature_bullets") for item in evidence)
 
 
 def test_amazon_collect_network_generation_texts_prioritizes_product_information():
@@ -127,6 +127,26 @@ def test_amazon_collect_network_generation_texts_prioritizes_product_information
 
     assert generation == NetworkGeneration.lte_4g_only
     assert any(item.startswith("product_info_cellular_4g_lte") for item in evidence)
+
+
+def test_amazon_collect_network_generation_texts_product_detail_lte_overrides_title_5g():
+    html = """
+    <html>
+      <body>
+        <span id="productTitle">韓国eSIM 3日間 5G/4G-LTE simフリー端末のみ対応</span>
+        <div id="productDescription">詳細説明 LTE通信のみ対応しています</div>
+      </body>
+    </html>
+    """
+    adapter = object.__new__(AmazonJPAdapter)
+    soup = BeautifulSoup(html, "lxml")
+
+    title = adapter._extract_text_selectors(soup, ["#productTitle"])
+    strong, fallback = adapter._collect_network_generation_texts(soup, title)
+    generation, evidence = extract_network_generation(strong, fallback)
+
+    assert generation == NetworkGeneration.lte_4g_only
+    assert any(item.startswith("product_detail_4g_lte") for item in evidence)
 
 
 def test_amazon_collect_network_generation_texts_reads_transmission_speed():

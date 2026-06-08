@@ -184,6 +184,18 @@ def test_extract_network_generation_cellular_technology_lte_overrides_title_5g()
     assert any("product_info_cellular_4g_lte" in item for item in evidence)
 
 
+def test_extract_network_generation_product_detail_lte_overrides_title_5g():
+    gen, evidence = extract_network_generation(
+        [
+            "source:title: 韓国eSIM 5G/4G-LTE simフリー端末のみ対応",
+            "source:product_description: 詳細説明 LTE通信のみ対応しています",
+        ],
+        [],
+    )
+    assert gen == NetworkGeneration.lte_4g_only
+    assert any("product_detail_4g_lte" in item for item in evidence)
+
+
 def test_extract_network_generation_cellular_priority_over_transmission_speed():
     gen, evidence = extract_network_generation(
         [
