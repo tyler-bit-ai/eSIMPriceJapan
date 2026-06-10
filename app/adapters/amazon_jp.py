@@ -413,6 +413,7 @@ class AmazonJPAdapter(MarketplaceAdapter):
         ]
         cellular_labels = (
             "cellular technology",
+            "携帯電話技術",
             "セルラー",
             "通信方式",
             "通信規格",

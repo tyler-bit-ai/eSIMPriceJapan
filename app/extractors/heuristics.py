@@ -46,17 +46,18 @@ NETWORK_GENERATION_4G_PATTERNS = [
     re.compile(r"(?:LTE|ＬＴＥ)\s*/\s*(?:4\s*G|４\s*G)", re.IGNORECASE),
     re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)\s*(?:対応|利用可|利用可能|サポート|通信|回線)", re.IGNORECASE),
     re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)\s*(?:support|supported|available|network|capable)", re.IGNORECASE),
+    re.compile(r"(?:4\s*G|４\s*G|LTE|ＬＴＥ)(?:\s*/\s*(?:LTE|ＬＴＥ))?\s*(?:のみ|だけ|専用)", re.IGNORECASE),
 ]
 NETWORK_GENERATION_CELLULAR_5G_PATTERNS = [
     re.compile(
-        r"(?:cellular\s+technology|セルラー(?:技術|方式)?|通信(?:方式|規格)|対応通信規格)"
+        r"(?:cellular\s+technology|携帯電話技術|セルラー(?:技術|方式)?|通信(?:方式|規格)|対応通信規格)"
         r"\s*[:：]?\s*(?:5\s*G|５\s*G)",
         re.IGNORECASE,
     ),
 ]
 NETWORK_GENERATION_CELLULAR_4G_PATTERNS = [
     re.compile(
-        r"(?:cellular\s+technology|セルラー(?:技術|方式)?|通信(?:方式|規格)|対応通信規格)"
+        r"(?:cellular\s+technology|携帯電話技術|セルラー(?:技術|方式)?|通信(?:方式|規格)|対応通信規格)"
         r"\s*[:：]?\s*(?:LTE|ＬＴＥ|4\s*G|４\s*G)",
         re.IGNORECASE,
     ),

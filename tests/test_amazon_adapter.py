@@ -129,6 +129,29 @@ def test_amazon_collect_network_generation_texts_prioritizes_product_information
     assert any(item.startswith("product_info_cellular_4g_lte") for item in evidence)
 
 
+def test_amazon_collect_network_generation_texts_reads_japanese_cellular_label():
+    html = """
+    <html>
+      <body>
+        <span id="productTitle">韓国 eSIM 3日間 5G/4G-LTE simフリー端末のみ対応</span>
+        <table id="productOverview_feature_div">
+          <tr><th>携帯電話技術</th><td>LTE</td></tr>
+        </table>
+      </body>
+    </html>
+    """
+    adapter = object.__new__(AmazonJPAdapter)
+    soup = BeautifulSoup(html, "lxml")
+
+    title = adapter._extract_text_selectors(soup, ["#productTitle"])
+    strong, fallback = adapter._collect_network_generation_texts(soup, title)
+    generation, evidence = extract_network_generation(strong, fallback)
+
+    assert any("source:product_info_cellular" in item for item in strong)
+    assert generation == NetworkGeneration.lte_4g_only
+    assert any(item.startswith("product_info_cellular_4g_lte") for item in evidence)
+
+
 def test_amazon_collect_network_generation_texts_product_detail_lte_overrides_title_5g():
     html = """
     <html>

@@ -184,11 +184,35 @@ def test_extract_network_generation_cellular_technology_lte_overrides_title_5g()
     assert any("product_info_cellular_4g_lte" in item for item in evidence)
 
 
+def test_extract_network_generation_japanese_cellular_lte_overrides_title_5g():
+    gen, evidence = extract_network_generation(
+        [
+            "source:title: 韓国 eSIM 3日間 5G/4G-LTE simフリー端末のみ対応",
+            "source:product_info_cellular: 携帯電話技術 LTE",
+        ],
+        [],
+    )
+    assert gen == NetworkGeneration.lte_4g_only
+    assert any("product_info_cellular_4g_lte" in item for item in evidence)
+
+
 def test_extract_network_generation_product_detail_lte_overrides_title_5g():
     gen, evidence = extract_network_generation(
         [
             "source:title: 韓国eSIM 5G/4G-LTE simフリー端末のみ対応",
             "source:product_description: 詳細説明 LTE通信のみ対応しています",
+        ],
+        [],
+    )
+    assert gen == NetworkGeneration.lte_4g_only
+    assert any("product_detail_4g_lte" in item for item in evidence)
+
+
+def test_extract_network_generation_lte_only_detail_overrides_title_5g():
+    gen, evidence = extract_network_generation(
+        [
+            "source:title: 韓国eSIM 5G/4G-LTE simフリー端末のみ対応",
+            "source:feature_bullets: このプランはLTEのみ利用可能です",
         ],
         [],
     )
