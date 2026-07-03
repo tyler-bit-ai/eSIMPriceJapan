@@ -483,12 +483,11 @@ function closeHelpModal() {
   document.body.style.overflow = '';
 }
 
-function formatDatasetLabel(entry) {
-  const crawled = entry && entry.crawled_at ? isoToLocal(entry.crawled_at) : '-';
-  const count = Number.isFinite(Number(entry && entry.item_count)) ? Number(entry.item_count).toLocaleString('ko-KR') : '-';
-  const source = (entry && entry.source) ? String(entry.source).split(/[\\/]/).pop() : (entry && entry.id ? entry.id : 'dataset');
-  const country = entry && entry.country ? countryLabel(entry.country) : countryLabel(state.selectedCountry);
-  return `${crawled} | ${country} | ${source} | ${count}개`;
+function formatDatasetGroupLabel(group) {
+  const crawled = group && group.crawledAt ? isoToLocal(group.crawledAt) : (group && group.date ? group.date : '-');
+  const count = Number.isFinite(group && group.itemCount) ? group.itemCount.toLocaleString('ko-KR') : '-';
+  const countryCount = group && group.countries ? group.countries.size : 0;
+  return `${crawled} | ${countryCount}개국 · ${count}개`;
 }
 
 function populateSiteOptions(indexData) {
@@ -532,15 +531,36 @@ function populateDatasetOptions(datasets) {
     return;
   }
   el.datasetSelect.innerHTML = ['<option value="">latest</option>']
-    .concat(datasets.map((d) => `<option value="${safe(String(d.id || ''))}">${safe(formatDatasetLabel(d))}</option>`))
+    .concat(datasets.map((d) => `<option value="${safe(String(d.id || ''))}">${safe(formatDatasetGroupLabel(d))}</option>`))
     .join('');
   el.datasetSelect.value = state.selectedDatasetId || '';
 }
 
-function getDatasetsForSelectedSite() {
-  return state.datasets.filter(
-    (entry) => (entry.site || 'amazon_jp') === state.selectedSite && (state.selectedCountry === 'all' || (entry.country || 'kr') === state.selectedCountry),
-  );
+function dateKeyFromCrawledAt(value) {
+  if (!value) return 'unknown';
+  const str = String(value);
+  // Some legacy publish runs stored crawled_at as MM/DD/YYYY instead of ISO 8601;
+  // convert those directly to avoid a UTC-conversion day shift via Date parsing.
+  const mdy = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (mdy) return `${mdy[3]}-${mdy[1]}-${mdy[2]}`;
+  return str.slice(0, 10);
+}
+
+function getGroupedDatasetsForSelectedSite() {
+  const bySite = state.datasets.filter((entry) => (entry.site || 'amazon_jp') === state.selectedSite);
+  const groups = new Map();
+  for (const entry of bySite) {
+    const dateKey = dateKeyFromCrawledAt(entry.crawled_at);
+    if (!groups.has(dateKey)) {
+      groups.set(dateKey, { id: dateKey, date: dateKey, site: state.selectedSite, entries: [], countries: new Set(), itemCount: 0, crawledAt: entry.crawled_at || null });
+    }
+    const group = groups.get(dateKey);
+    group.entries.push(entry);
+    group.countries.add(entry.country || 'kr');
+    group.itemCount += Number.isFinite(Number(entry.item_count)) ? Number(entry.item_count) : 0;
+    if (entry.crawled_at && (!group.crawledAt || entry.crawled_at > group.crawledAt)) group.crawledAt = entry.crawled_at;
+  }
+  return [...groups.values()].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 }
 
 function yen(n) {
@@ -1603,17 +1623,41 @@ async function loadDataStaticFromRecord(record) {
   renderLocalView();
 }
 
+async function loadDataFromDatasetGroup(group) {
+  const loads = group.entries.map((entry) => {
+    const country = entry.country || 'kr';
+    const site = entry.site || group.site;
+    const jsonlPath = resolveDataPath(entry.jsonl, `./data/sites/${site}/${country}/latest.jsonl`);
+    return fetch(jsonlPath, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.text() : ''))
+      .then((text) => parseJsonl(text).map(normalizeItem).filter(keepDashboardItem))
+      .catch(() => []);
+  });
+
+  const allItems = (await Promise.all(loads)).flat();
+  state.exchangeRate = await resolveExchangeRateMeta(null);
+  state.items = FX.attachKrwPrices(allItems, state.exchangeRate);
+  state.totalBeforeFilter = allItems.length;
+  state.file = `${group.date} 데이터셋 (${group.countries.size}개국)`;
+  state.generatedAt = group.crawledAt;
+  el.metaText.textContent = `사이트: ${siteLabel(group.site)} | 데이터셋: ${group.date} | ${group.countries.size}개국 통합 | 추출: ${isoToLocal(group.crawledAt)} | 원본 ${state.totalBeforeFilter.toLocaleString('ko-KR')}개`;
+  renderExchangeRateMeta();
+  renderSiteStructure();
+  renderFilterOptions(state.items);
+  renderLocalView();
+}
+
 async function loadDataStatic() {
   const index = await loadIndexData();
   state.datasets = Array.isArray(index.runs) ? index.runs : [];
   populateSiteOptions(index);
   populateCountryOptions(index);
-  const datasets = getDatasetsForSelectedSite();
+  const datasets = getGroupedDatasetsForSelectedSite();
   if (state.selectedDatasetId && !datasets.some((d) => String(d.id) === String(state.selectedDatasetId))) state.selectedDatasetId = null;
   populateDatasetOptions(datasets);
   if (state.selectedDatasetId) {
     const selected = datasets.find((d) => String(d.id) === String(state.selectedDatasetId));
-    if (selected) return loadDataStaticFromRecord(selected);
+    if (selected) return loadDataFromDatasetGroup(selected);
   }
 
   if (state.selectedCountry === 'all') {
@@ -1669,7 +1713,7 @@ async function loadData() {
   state.datasets = Array.isArray(index.runs) ? index.runs : [];
   populateSiteOptions(index);
   populateCountryOptions(index);
-  const datasets = getDatasetsForSelectedSite();
+  const datasets = getGroupedDatasetsForSelectedSite();
   if (state.selectedDatasetId && !datasets.some((d) => String(d.id) === String(state.selectedDatasetId))) state.selectedDatasetId = null;
   populateDatasetOptions(datasets);
   const qs = toQuery();
