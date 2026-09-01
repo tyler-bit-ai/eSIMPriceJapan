@@ -64,10 +64,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "[2/3] Publish static dashboard data"
 $publishScript = Join-Path $repo 'tools\publish.ps1'
-& powershell -ExecutionPolicy Bypass -File $publishScript -OutDir $outPath -DataDir $dataPath -Site $Site -Country $Country -Query $Query -Limit $Limit
-if ($LASTEXITCODE -ne 0) {
-  throw "publish.ps1 실패 (exit=$LASTEXITCODE)"
-}
+& $publishScript -OutDir $outPath -DataDir $dataPath -Site $Site -Country $Country -Query $Query -Limit $Limit
 
 Write-Host "[3/3] Git commit/push"
 git add dashboard/data/index.json dashboard/data/sites dashboard/data/runs tools/publish.ps1 tools/run_and_publish.ps1 README.md

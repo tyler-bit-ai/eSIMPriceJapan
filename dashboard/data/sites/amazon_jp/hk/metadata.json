@@ -2,9 +2,9 @@
     "site":  "amazon_jp",
     "country":  "hk",
     "query":  "",
-    "limit":  200,
-    "source":  ".\\data\\crawls\\out_refresh_amazon_jp_hk_20260610_200\\results.jsonl",
-    "crawled_at":  "2026-06-10T02:38:37.8033778Z",
-    "published_at":  "2026-06-10T02:39:11.7782079Z",
-    "item_count":  200
+    "limit":  100,
+    "source":  ".\\data\\crawls\\out_refresh_amazon_jp_hk_20260901_100\\results.jsonl",
+    "crawled_at":  "2026-09-01T02:07:31.2255277Z",
+    "published_at":  "2026-09-01T02:45:00.0474495Z",
+    "item_count":  100
 }

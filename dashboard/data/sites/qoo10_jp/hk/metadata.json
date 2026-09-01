@@ -1,10 +1,10 @@
-{
-  "site": "qoo10_jp",
-  "country": "hk",
-  "query": "",
-  "limit": 200,
-  "source": "data/crawls/out_refresh_qoo10_jp_hk_20260428_200/results.jsonl",
-  "crawled_at": "2026-04-28T08:04:13.2828639Z",
-  "published_at": "2026-04-28T08:04:14.8503455Z",
-  "item_count": 75
+﻿{
+    "site":  "qoo10_jp",
+    "country":  "hk",
+    "query":  "",
+    "limit":  100,
+    "source":  ".\\data\\crawls\\out_refresh_qoo10_jp_hk_20260901_100\\results.jsonl",
+    "crawled_at":  "2026-09-01T02:36:18.1217050Z",
+    "published_at":  "2026-09-01T02:45:00.9522800Z",
+    "item_count":  74
 }

@@ -1,10 +1,10 @@
-{
-  "site": "qoo10_jp",
-  "country": "mo",
-  "query": "",
-  "limit": 200,
-  "source": "data/crawls/out_refresh_qoo10_jp_mo_20260428_200/results.jsonl",
-  "crawled_at": "2026-04-28T08:12:25.3744336Z",
-  "published_at": "2026-04-28T08:12:25.8521248Z",
-  "item_count": 99
+﻿{
+    "site":  "qoo10_jp",
+    "country":  "mo",
+    "query":  "",
+    "limit":  100,
+    "source":  ".\\data\\crawls\\out_refresh_qoo10_jp_mo_20260901_100\\results.jsonl",
+    "crawled_at":  "2026-09-01T02:39:55.8623778Z",
+    "published_at":  "2026-09-01T02:45:01.0919854Z",
+    "item_count":  72
 }

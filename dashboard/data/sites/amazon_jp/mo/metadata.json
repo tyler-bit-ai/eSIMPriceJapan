@@ -2,9 +2,9 @@
     "site":  "amazon_jp",
     "country":  "mo",
     "query":  "",
-    "limit":  200,
-    "source":  ".\\data\\crawls\\out_refresh_amazon_jp_mo_20260610_200\\results.jsonl",
-    "crawled_at":  "2026-06-10T02:47:00.3980198Z",
-    "published_at":  "2026-06-10T02:47:12.6709548Z",
-    "item_count":  200
+    "limit":  100,
+    "source":  ".\\data\\crawls\\out_refresh_amazon_jp_mo_20260901_100\\results.jsonl",
+    "crawled_at":  "2026-09-01T02:12:12.8483171Z",
+    "published_at":  "2026-09-01T02:45:00.1623515Z",
+    "item_count":  100
 }
