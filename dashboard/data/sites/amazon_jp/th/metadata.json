@@ -3,8 +3,8 @@
     "country":  "th",
     "query":  "",
     "limit":  100,
-    "source":  ".\\data\\crawls\\out_refresh_amazon_jp_th_20260901_100\\results.jsonl",
-    "crawled_at":  "2026-09-01T01:55:35.9255426Z",
-    "published_at":  "2026-09-01T02:44:59.7960171Z",
+    "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\data\\crawls\\out_amazon_jp_th_100\\results.jsonl",
+    "crawled_at":  "2026-10-06T05:11:13.5178584Z",
+    "published_at":  "2026-10-06T05:11:14.3450182Z",
     "item_count":  100
 }

@@ -3,8 +3,8 @@
     "country":  "vn",
     "query":  "",
     "limit":  100,
-    "source":  ".\\data\\crawls\\out_refresh_qoo10_jp_vn_20260901_100\\results.jsonl",
-    "crawled_at":  "2026-09-01T02:25:20.4627425Z",
-    "published_at":  "2026-09-01T02:45:00.5399669Z",
-    "item_count":  73
+    "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\data\\crawls\\out_qoo10_jp_vn_100\\results.jsonl",
+    "crawled_at":  "2026-10-06T05:37:19.3068547Z",
+    "published_at":  "2026-10-06T05:37:19.8282820Z",
+    "item_count":  100
 }
