@@ -4,6 +4,7 @@ const http = require('http');
 const url = require('url');
 const xlsx = require('xlsx');
 const FX = require('./dashboard/exchange-rate');
+const TravelFilter = require('./dashboard/travel-filter');
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4173;
 const ROOT = __dirname;
@@ -226,7 +227,7 @@ function buildNetworkGenerationCounts(items, field = 'network_generation') {
 }
 
 function keepDashboardItem(item) {
-  return Number.isFinite(item.price_jpy) && item.price_jpy > 0;
+  return Number.isFinite(item.price_jpy) && item.price_jpy > 0 && TravelFilter.isTravelProduct(item.title);
 }
 
 function getLatestResultsFile() {
@@ -788,6 +789,7 @@ module.exports = {
   parseJsonl,
   summarize,
   normalizeItem,
+  keepDashboardItem,
   normalizeIndexShape,
   readLatestData,
   readLatestDataWithExchangeRate,

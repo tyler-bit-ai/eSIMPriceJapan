@@ -1,9 +1,37 @@
 from __future__ import annotations
 
+import re
+
 from app.models import InvalidItem, ProductDetail, ProductStub
+
+# Keep in sync with dashboard/travel-filter.js (tests/test_travel_filter.py checks parity).
+# "日本国内" is deliberately NOT listed: legit travel eSIMs use it ("日本国内500MB付き").
+_DOMESTIC_PLAN = re.compile(
+    r"UQ\s*mobile|ウェルカムパッケージ|エントリーパッケージ|事務手数料"
+    r"|ahamo|povo|LINEMO|楽天モバイル|mineo|IIJmio|ワイモバイル|Y!mobile",
+    re.IGNORECASE,
+)
+_SIM_WORD = re.compile(r"sim|シム|ローミング|roaming|データ通信|data", re.IGNORECASE)
+
+
+def non_travel_reason(title: str | None) -> str | None:
+    """Why this listing is not a travel eSIM/SIM product, or None if it looks like one."""
+    if not title:
+        return None
+    m = _DOMESTIC_PLAN.search(title)
+    if m:
+        return f"domestic_carrier_plan:{m.group(0)}"
+    if not _SIM_WORD.search(title):
+        return "no_sim_keyword_in_title"
+    return None
 
 
 def validate_product(detail: ProductDetail, stub: ProductStub) -> InvalidItem | None:
+    reason = non_travel_reason(detail.title)
+    if reason:
+        invalid = _to_invalid(detail, stub, reason="non_travel_product")
+        invalid.evidence = {**invalid.evidence, "non_travel": [reason]}
+        return invalid
     price = detail.price_jpy
     if price is None:
         return _to_invalid(
