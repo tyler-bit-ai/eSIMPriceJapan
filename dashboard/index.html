@@ -1,242 +1,156 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Japan eSIM Dashboard</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>일본 마켓 eSIM 가격 비교</title>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Apply theme before first paint (stored choice, else system preference).
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('esim.dashboard.theme'); } catch (_) {}
+      if (t !== 'light' && t !== 'dark') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <main class="layout">
 
-    <!-- ═══ Hero Section ═══ -->
-    <header class="hero">
-      <div class="heroTop">
-        <div class="heroCopy">
-          <p class="kicker">Japan Marketplace Research Board</p>
-          <h1>일본 시장 eSIM 가격 비교</h1>
-          <p class="heroLead">Amazon JP · Qoo10 JP에서 수집한 국가별 eSIM 상품 데이터를 한눈에 비교합니다.</p>
-        </div>
-        <div class="heroRight">
-          <div class="datasetSelector">
-            <span class="datasetLabel">데이터셋 선택</span>
-            <select id="datasetSelect" class="datasetSelect">
-              <option value="">로딩 중...</option>
-            </select>
-          </div>
-          <div class="heroActions">
-            <button id="helpBtn" class="btn ghost">도움말</button>
-            <button id="refreshBtn" class="btn">새로고침</button>
-          </div>
-        </div>
-      </div>
-      <section class="heroMeta">
-        <div class="metaStack">
-          <div class="metaCard">
-            <span class="metaLabel">데이터 상태</span>
-            <strong id="metaText" class="metaValue">데이터를 불러오는 중...</strong>
-            <span id="fxText" class="metaSubValue">환율을 불러오는 중...</span>
-          </div>
-        </div>
-      </section>
-    </header>
-
-    <!-- ═══ Filter Chips ═══ -->
-    <section class="filter-section">
-      <div class="filter-bar" id="filterBar">
-        <!-- JS에서 동적 생성 -->
-      </div>
-      <div class="advanced-filters">
-        <div class="toolbar">
-          <label class="field fieldWide">
-            <span class="filterLabel">검색</span>
-            <input id="searchInput" type="text" placeholder="상품명/셀러/브랜드 검색" />
-          </label>
-          <label class="field">
-            <span class="filterLabel">네트워크</span>
-            <select id="networkFilter"><option value="">네트워크 전체</option></select>
-          </label>
-          <label class="field">
-            <span class="filterLabel">망 세대</span>
-            <select id="generationFilter">
-              <option value="">망 세대 전체</option>
-              <option value="5g_capable">5G 지원</option>
-              <option value="lte_4g_only">LTE/4G 전용</option>
-              <option value="unknown">미확인</option>
-            </select>
-          </label>
-          <label class="field">
-            <span class="filterLabel">데이터</span>
-            <select id="dataFilter"><option value="">데이터 전체</option></select>
-          </label>
-          <label class="field">
-            <span class="filterLabel">사용기간</span>
-            <select id="usageFilter"><option value="">사용기간 전체</option></select>
-          </label>
-          <label class="field">
-            <span class="filterLabel">통신사</span>
-            <select id="carrierFilter">
-              <option value="">통신사 전체</option>
-              <option value="any">통신사 명시 상품</option>
-            </select>
-          </label>
-          <label class="field">
-            <span class="filterLabel">최소 가격</span>
-            <input id="minPrice" type="number" min="0" step="1" placeholder="최소 (JPY)" />
-          </label>
-          <label class="field">
-            <span class="filterLabel">최대 가격</span>
-            <input id="maxPrice" type="number" min="0" step="1" placeholder="최대 (JPY)" />
-          </label>
-          <label class="field">
-            <span class="filterLabel">정렬</span>
-            <select id="sortKey"></select>
-          </label>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ Summary KPI Cards ═══ -->
-    <section id="summaryGrid" class="summary-grid">
-      <!-- JS에서 동적 생성 -->
-    </section>
-
-    <!-- ═══ Market Analysis Charts ═══ -->
-    <section class="section-card">
-      <div class="section-header">
-        <div>
-          <p class="section-kicker">시장 분석</p>
-          <h2>시장 구조 분포</h2>
-        </div>
-      </div>
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div class="chart-title">네트워크 타입 분포</div>
-          <div id="networkChart" class="bar-chart"></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">통신사별 상품 수</div>
-          <div id="carrierChart" class="bar-chart"></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">가격대 분포 (KRW)</div>
-          <div id="priceChart" class="bar-chart"></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">셀러 배지 분포</div>
-          <div id="badgeChart" class="bar-chart"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ Price Heatmap ═══ -->
-    <section class="section-card">
-      <div class="section-header">
-        <div>
-          <p class="section-kicker">가격 히트맵</p>
-          <h2 id="heatmapTitle">국가별 · 기간별 최저가 (1일당, KRW)</h2>
-        </div>
-        <div class="heatmap-mode-chips">
-          <div class="filter-chip active" id="heatmapModeMin" data-mode="min"><span>최저가</span></div>
-          <div class="filter-chip" id="heatmapModeAvg" data-mode="avg"><span>평균가</span></div>
-        </div>
-      </div>
-      <div class="heatmap-wrap">
-        <table class="heatmap-table">
-          <thead id="heatmapHead"></thead>
-          <tbody id="heatmapBody"></tbody>
-        </table>
-      </div>
-      <div class="heatmap-legend">
-        <span>색상 기준:</span>
-        <div class="heatmap-legend-item">
-          <span class="heatmap-legend-swatch" style="background:rgba(47,125,77,0.25);"></span>
-          <span>저렴</span>
-        </div>
-        <div class="heatmap-legend-item">
-          <span class="heatmap-legend-swatch" style="background:rgba(184,134,11,0.12);"></span>
-          <span>보통</span>
-        </div>
-        <div class="heatmap-legend-item">
-          <span class="heatmap-legend-swatch" style="background:rgba(196,67,50,0.16);"></span>
-          <span>비쌈</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ Platform Comparison ═══ -->
-    <section class="section-card">
-      <div class="section-header">
-        <div>
-          <p class="section-kicker">플랫폼 비교</p>
-          <h2>Amazon JP vs Qoo10 JP</h2>
-        </div>
-      </div>
-      <div id="platformGrid" class="platform-grid">
-        <!-- JS에서 동적 생성 -->
-      </div>
-    </section>
-
-    <!-- ═══ Value Ranking TOP 10 ═══ -->
-    <section class="section-card">
-      <div class="section-header">
-        <div>
-          <p class="section-kicker">가성비 분석</p>
-          <h2>1일당 가격 TOP 10</h2>
-        </div>
-      </div>
-      <div id="rankingList" class="ranking-list">
-        <!-- JS에서 동적 생성 -->
-      </div>
-    </section>
-
-
-
-    <!-- ═══ Detail Data Table ═══ -->
-    <section class="section-card">
-      <div class="section-header detailHead">
-        <div>
-          <p class="section-kicker">상세 데이터</p>
-          <h2>전체 상품 목록</h2>
-        </div>
-        <div class="download-actions">
-          <button id="downloadExcelBtn" class="btn ghost">엑셀 다운로드 1</button>
-          <button id="downloadExcelBtn2" class="btn">엑셀 다운로드 2</button>
-        </div>
-      </div>
-      <div class="tableWrap">
-        <table>
-          <thead id="tableHead"></thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-      <div class="pagination">
-        <button id="prevPage" class="btn ghost">이전</button>
-        <span id="pageInfo" class="paginationStatus"></span>
-        <button id="nextPage" class="btn ghost">다음</button>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ═══ Help Modal ═══ -->
-  <div id="helpOverlay" class="modalOverlay" hidden>
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
-      <div class="modalHead">
-        <div>
-          <p class="modalKicker">HELP</p>
-          <h2 id="helpTitle">도움말</h2>
-        </div>
-        <button id="helpCloseBtn" class="btn ghost">닫기</button>
-      </div>
-      <div id="helpBody" class="modalBody"></div>
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><rect x="9" y="11" width="6" height="6" rx="1"/></svg></div>
+    <div>
+      <h1>일본 마켓 eSIM 가격 비교</h1>
+      <p><span id="kpi-countries">-</span>개국 · <span id="kpi-sites">-</span>개 플랫폼 · 전체 <span id="kpi-total">-</span>개 상품</p>
     </div>
   </div>
+  <div class="top-right">
+    <span class="fresh"><i></i>수집 <strong id="crawled-at">-</strong></span>
+    <select id="dataset" class="dsel" aria-label="데이터셋 선택"><option value="latest">불러오는 중...</option></select>
+    <span class="fx" id="fx" title="">환율 <b>-</b></span>
+    <button class="btn" type="button" id="refresh-btn">새로고침</button>
+    <button class="btn icon-btn" type="button" id="theme-btn" aria-label="다크 모드 전환" title="다크 모드 전환">
+      <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <button class="btn" type="button" id="help-btn">도움말</button>
+  </div>
+</header>
 
-  <script src="./exchange-rate.js"></script>
-  <script src="./app.js"></script>
+<div class="app">
+  <aside class="side" id="side" aria-label="필터">
+    <div class="side-head"><h2>필터</h2><button class="link" id="reset" type="button">초기화</button></div>
+    <div class="fgroup first"><h3>국가</h3><div class="opt-list" id="f-country"></div></div>
+    <div class="fgroup"><h3>플랫폼</h3><div class="opt-list" id="f-site"></div></div>
+    <div class="fgroup"><h3>사용 기간 (일)</h3><div class="chipgrid" id="f-days"></div></div>
+    <div class="fgroup"><h3>네트워크</h3><div class="seg" id="f-net"></div></div>
+    <div class="fgroup"><h3>망 세대</h3><div class="seg" id="f-gen"></div></div>
+    <div class="fgroup"><h3>데이터</h3><select id="f-data" class="sel" aria-label="데이터"></select></div>
+    <div class="fgroup"><h3>통신사</h3><select id="f-carrier" class="sel" aria-label="통신사"></select></div>
+    <div class="fgroup"><h3>가격 범위 (JPY)</h3><div class="range"><input id="pmin" class="inp" type="number" min="0" placeholder="최소" aria-label="최소 가격"><span>~</span><input id="pmax" class="inp" type="number" min="0" placeholder="최대" aria-label="최대 가격"></div></div>
+    <div class="fgroup"><h3>데이터 품질</h3><button class="opt" type="button" data-k="guard" id="f-guard" aria-pressed="true"><span class="opt-l"><span class="check"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5.2l2 2L8 3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>이상치 제외 (¥100 미만)</span></button></div>
+    <div class="fgroup"><h3>검색</h3><input id="q" class="inp" type="search" placeholder="상품명 / 셀러 / 브랜드" aria-label="상품명, 셀러, 브랜드 검색"></div>
+    <div class="fgroup"><h3>정렬 (상세 표)</h3><select id="sort" class="sel" aria-label="정렬"></select></div>
+  </aside>
+
+  <main class="main">
+    <div><button class="btn mobile-filter" id="mfilter" type="button" aria-expanded="false" aria-controls="side"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>필터 <span id="mcount"></span></button></div>
+    <div class="notice" id="notice" role="status" hidden></div>
+    <div class="active-bar" id="active"></div>
+
+    <section class="hero" aria-label="핵심 요약">
+      <div class="best" id="best"><div class="what">데이터를 불러오는 중...</div></div>
+      <div class="ccards" id="ccards"></div>
+    </section>
+
+    <section class="grid2">
+      <div class="card">
+        <div class="card-h">
+          <div><h2>가격 추이</h2><p>수집 시점별 상품 중앙가 (JPY) · 국가별</p></div>
+          <div class="seg" id="t-site" style="min-width:210px"></div>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div id="trend"></div>
+        <div class="insight" id="trend-insight"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div><h2>플랫폼 경쟁력</h2><p>국가 × 기간 칸 중 1일당 최저가 보유 수</p></div><span class="pill">현재 필터 기준</span></div>
+        <ol class="vend" id="vend"></ol>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <div><h2>국가 × 사용기간 1일당 가격</h2><p>같은 기간 안에서 색이 연할수록(다크: 어두울수록) 저렴 · 셀을 누르면 필터가 적용됩니다</p></div>
+        <div class="seg" id="hm-mode" style="min-width:170px"></div>
+      </div>
+      <div class="tw"><table class="hm" id="hm"><thead id="hm-head"></thead><tbody id="hm-body"></tbody></table></div>
+      <div class="hm-foot"><span>저렴</span><div class="ramp"></div><span>비쌈</span><span style="margin-left:12px"><i class="wdot"></i>기간별 전체 최저가</span><span>· 칸 아래 A/Q는 해당 값을 가진 플랫폼</span></div>
+    </section>
+
+    <section class="grid2 rev">
+      <div class="card">
+        <div class="card-h"><div><h2>Local vs Roaming</h2><p>국가별 1일당 중앙가 차이 (표본 3개 이상)</p></div></div>
+        <div class="prem" id="prem"></div>
+        <div class="insight" id="prem-insight"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div><h2>망 세대 구성</h2><p>5G 지원 · LTE/4G 전용 · 미확인 비율</p></div></div>
+        <div class="gen" id="gen"></div>
+        <div class="key"><span><i style="background:var(--stack-5g)"></i>5G 지원</span><span><i style="background:var(--stack-lte)"></i>LTE/4G 전용</span><span><i style="background:var(--stack-unk)"></i>미확인</span></div>
+        <div class="insight" id="gen-insight"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <div><h2>시점별 변경 상품</h2><p id="diff-meta">비교할 이전 수집 시점이 없습니다.</p></div>
+        <div class="diff-ctl">
+          <label class="diff-lbl" for="diff-base">비교 기준</label>
+          <select id="diff-base" class="dsel" aria-label="비교할 이전 수집 시점"></select>
+        </div>
+      </div>
+      <div class="seg" id="diff-tabs" style="max-width:520px;margin-bottom:12px"></div>
+      <div class="diffs" id="diff-list" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><div><h2>가성비 Top 10</h2><p>1일당 가격(KRW)이 낮을수록 우수 · 현재 필터 기준</p></div></div>
+      <div class="tw bd"><table class="t"><thead><tr><th style="width:48px">#</th><th>상품</th><th>국가</th><th>플랫폼</th><th>기간</th><th>데이터</th><th>네트워크</th><th class="r">가격</th><th class="r">1일당 (KRW)</th></tr></thead><tbody id="value-body"></tbody></table></div>
+    </section>
+
+    <section class="card detail">
+      <div class="card-h">
+        <button id="detail-toggle" class="dtoggle open" type="button" aria-expanded="true" aria-controls="detail-body">
+          <span><span class="h2">전체 상품 목록</span><span class="sub">필터 결과 <strong id="detail-count">-</strong>개 · 정렬 <strong id="detail-sort">-</strong></span></span>
+          <svg class="arrow" width="12" height="8" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button id="csv" class="btn primary" type="button">CSV 다운로드</button>
+      </div>
+      <div id="detail-body">
+        <div class="tw bd"><table class="t"><thead><tr><th>국가</th><th>플랫폼</th><th>상품명</th><th class="r">가격 (JPY)</th><th class="r">가격 (KRW)</th><th class="r">1일당</th><th>기간</th><th>데이터</th><th>네트워크</th><th>망 세대</th><th>통신사</th><th>리뷰 / 판매</th></tr></thead><tbody id="rows"></tbody></table></div>
+        <div class="table-pagination" id="pager"></div>
+      </div>
+    </section>
+    <div class="foot">eSIM Price Collector Japan</div>
+  </main>
+</div>
+
+<div id="help-modal" class="modal-shell" hidden>
+  <div class="modal-overlay" data-close></div>
+  <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="modal-header"><div><p class="kicker">Guide</p><h2 id="help-title">대시보드 도움말</h2></div><button class="btn" type="button" data-close>닫기</button></div>
+    <div class="modal-body" id="help-body"></div>
+  </section>
+</div>
+
+<script src="./exchange-rate.js"></script>
+<script src="./travel-filter.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>
