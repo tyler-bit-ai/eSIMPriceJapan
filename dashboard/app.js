@@ -17,6 +17,7 @@ const SITE = {
   qoo10_jp: { n: 'Qoo10 JP', l: 'Q', bar: '#EF4444' },
 };
 const PER = [['1일', 1, 1], ['2일', 2, 2], ['3일', 3, 3], ['4일', 4, 4], ['5일', 5, 5], ['7일', 6, 7], ['8일+', 8, 999]];
+const CMP = [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 7], [8, 10], [11, 15], [16, 30]]; // Local vs Roaming trip-length buckets
 const NET = { local: 'Local', roaming: 'Roaming', unknown: '미확인' };
 const GEN = { '5g_capable': ['5G', 'g5'], lte_4g_only: ['LTE', 'lte'], unknown: ['미확인', 'unknown'] };
 const CARRIER_CONFIG = {
@@ -49,7 +50,8 @@ const SORTS = {
 const HELP = {
   blocks: [
     ['필터', '좌측 필터는 모든 섹션에 공통 적용됩니다. 국가·플랫폼·사용기간은 여러 개를 동시에 선택할 수 있고, 상단 칩의 × 로 하나씩 해제합니다. 국가 카드나 히트맵 셀을 눌러도 필터가 적용됩니다.'],
-    ['1일당 가격', 'JPY 가격을 실시간 환율(Frankfurter, ECB 기준)로 KRW 환산한 뒤 사용기간(일)으로 나눈 값입니다. 사용기간을 알 수 없는 상품은 1일당 비교에서 제외됩니다. 환율 조회에 실패하면 최근 성공 환율 캐시를 쓰고, 캐시도 없으면 KRW 환산이 비활성화됩니다.'],
+    ['기간권 최저가', '상단 최저가 카드는 같은 기간권(예: 3일권)끼리 총액(KRW)을 비교합니다. 기간 필터를 선택하지 않으면 3일권, 하나 이상 선택하면 가장 짧은 선택 기간 기준입니다. 7일권은 6~7일, 8일+는 8일 이상 상품을 묶습니다.'],
+    ['1일당 가격','JPY 가격을 실시간 환율(Frankfurter, ECB 기준)로 KRW 환산한 뒤 사용기간(일)으로 나눈 값입니다. 사용기간을 알 수 없는 상품은 1일당 비교에서 제외됩니다. 환율 조회에 실패하면 최근 성공 환율 캐시를 쓰고, 캐시도 없으면 KRW 환산이 비활성화됩니다.'],
     ['제외되는 상품', '일본 국내 통신사 가입 패키지(UQ mobile 등)나 SIM과 무관한 상품은 크롤링 단계에서 제외되며, 이미 수집된 과거 데이터도 대시보드에서 숨깁니다. “이상치 제외”는 ¥100 미만의 비정상 가격을 숨기는 토글입니다.'],
     ['시점별 변경 상품', '“비교 기준”에서 이전 수집 시점을 고르면 같은 국가·플랫폼 시리즈에서 가격이 달라졌거나(JPY 기준), 검색 결과에 새로 나타났거나(신규 노출) 사라진(노출 종료) 상품을 보여줍니다. ‘노출 종료’는 판매 종료가 아니라 수집 범위 밖으로 밀린 경우도 포함하며, 수집 개수 제한이 다르면 안내 문구가 표시됩니다. 한쪽 시점에 없는 국가·플랫폼은 비교에서 제외됩니다.'],
     ['가격 추이', '수집 시점별 상품 중앙가(JPY)입니다. 표본이 ' + MIN_TREND_N + '개 미만인 수집분은 제외합니다. 범례를 눌러 국가를 켜고 끌 수 있습니다.'],
@@ -59,7 +61,7 @@ const HELP = {
   terms: [
     ['usage_validity', '실제 사용 가능 기간입니다.'],
     ['activation_validity', '구매 후 개통해야 하는 기한입니다.'],
-    ['network_type', 'local / roaming / unknown. 현지 회선·현지 번호·로밍 문구로 분류합니다.'],
+    ['network_type', 'local / roaming / unknown. 현지 회선·현지 번호·로밍 문구로 분류합니다. 여러 나라 상품에서 해당 국가가 첫 목적지가 아니면 "현지 회선" 문구가 다른 나라 회선을 뜻하므로 미확인으로 둡니다.'],
     ['network_generation', '5G 지원 / LTE·4G 전용 / 미확인.'],
     ['monthly_sold_count', 'Amazon 최근 1개월 판매량 신호(공개된 경우만).'],
     ['seller_badge', 'Qoo10 셀러 등급(Power / Good / General seller).'],
@@ -134,7 +136,7 @@ function normalizeItem(raw, rec) {
     carrier_support_local: carrier, ca: Object.keys(carrier).filter((k) => carrier[k]), days: daysOf(usage),
   };
 }
-const keepItem = (it) => it.price_jpy != null && TF.isTravelProduct(it.title);
+const keepItem = (it) => it.price_jpy != null && TF.isTravelProduct(it.title, it.country);
 function decorate(items) {
   return FX.attachKrwPrices(items, S.fx).map((r) => ({
     ...r,
@@ -150,6 +152,7 @@ const S = {
   fx: FX.buildExchangeRateMeta({ unavailable: true, stale: true }),
   groups: [], datasetId: 'latest', cur: null, items: [], F: F0(),
   trend: {}, trendLoading: false, trendSite: 'amazon_jp', off: new Set(), hm: 'min',
+  premOpen: '',
   diffBaseId: '', diffBase: null, diffTab: 'all', diffLimit: DIFF_STEP,
   page: 1, open: true,
 };
@@ -275,23 +278,26 @@ function snapDelta(c, site) {
   const a = t[d.at(-2)][0], b = t[d.at(-1)][0];
   return { pct: (b - a) / a * 100 };
 }
-const deltaChip = (x) => !x ? '<span class="delta flat" title="비교할 이전 수집분 없음">–</span>' : Math.abs(x.pct) < 0.5 ? '<span class="delta flat">0.0%</span>' : x.pct < 0 ? `<span class="delta down">▼ ${Math.abs(x.pct).toFixed(1)}%</span>` : `<span class="delta up">▲ ${x.pct.toFixed(1)}%</span>`;
+const deltaChip = (x) => !x ? '<span class="delta flat" title="비교할 이전 수집분 없음">–</span>' : Math.abs(x.pct) < 0.5 ? '<span class="delta flat" title="직전 수집 대비 1일당 최저가 변동">0.0%</span>' : x.pct < 0 ? `<span class="delta down" title="직전 수집 대비 1일당 최저가 변동">▼ ${Math.abs(x.pct).toFixed(1)}%</span>` : `<span class="delta up" title="직전 수집 대비 1일당 최저가 변동">▲ ${x.pct.toFixed(1)}%</span>`;
+// hero/country cards compare one ticket length: first selected period chip, else 3일권
+const heroPer = () => PER.map(([l]) => l).find((l) => S.F.per.has(l)) || '3일';
 function renderHero(rs) {
-  const b = minBy(rs, 'unit');
+  const p = heroPer(), pr = rs.filter((r) => r.per === p && r.price_krw != null);
+  const b = minBy(pr, 'price_krw');
   const g5 = rs.length ? Math.round(rs.filter((r) => r.network_generation === '5g_capable').length / rs.length * 100) : 0;
-  const m = med(rs.map((r) => r.unit).filter((v) => v != null));
+  const m = med(pr.map((r) => r.price_krw));
   const link = (r) => (href(r.product_url) ? `<a href="${href(r.product_url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>` : esc(r.title));
-  $('best').innerHTML = b ? `<div><div class="eyebrow">현재 필터 기준 1일 최저가</div><div class="big">${won(b.unit)}<small>/일</small></div><div class="what">${link(b)}</div>
+  $('best').innerHTML = b ? `<div><div class="eyebrow">현재 필터 기준 ${p}권 최저가</div><div class="big">${won(b.price_krw)}<small>${won(b.unit)}/일</small></div><div class="what">${link(b)}</div>
     <div class="meta"><span>${cn(b.country)}</span><span>${SITE[b.site].n}</span><span>${b.days}일</span><span>${esc(b.data_amount || '데이터 미확인')}</span><span>${NET[b.network_type]}</span></div></div>
-    <div class="kpis"><div><b>${rs.length.toLocaleString('ko-KR')}</b><span>상품 수</span></div><div><b>${m ? won(m) : '-'}</b><span>1일당 중앙값</span></div><div><b>${g5}%</b><span>5G 지원</span></div></div>`
-    : `<div class="what">${S.items.length ? (S.fx.unavailable ? 'KRW 환산이 불가능해 1일 최저가를 계산할 수 없습니다.' : '조건에 맞는 상품이 없습니다.') : '데이터를 불러오는 중...'}</div>`;
+    <div class="kpis"><div><b>${rs.length.toLocaleString('ko-KR')}</b><span>상품 수</span></div><div><b>${m ? won(m) : '-'}</b><span>${p}권 중앙값</span></div><div><b>${g5}%</b><span>5G 지원</span></div></div>`
+    : `<div class="what">${S.items.length ? (S.fx.unavailable ? 'KRW 환산이 불가능해 최저가를 계산할 수 없습니다.' : rs.length ? `${p}권 상품이 없습니다. 기간 필터에서 다른 기간을 선택해 보세요.` : '조건에 맞는 상품이 없습니다.') : '데이터를 불러오는 중...'}</div>`;
   const base = rows('country'), site = S.F.site.size === 1 ? [...S.F.site][0] : 'amazon_jp';
   $('ccards').innerHTML = COUNTRIES.map((c) => {
-    const cr = base.filter((r) => r.country === c), mn = minBy(cr, 'unit'), on = !S.F.country.size || S.F.country.has(c);
+    const cr = base.filter((r) => r.country === c && r.per === p), mn = minBy(cr, 'price_krw'), on = !S.F.country.size || S.F.country.has(c);
     return `<button class="ccard${on ? '' : ' dim'}" type="button" data-k="country" data-v="${c}" aria-pressed="${S.F.country.has(c)}">
       <div class="row"><span class="nm">${dot(c)}${cn(c)}</span>${deltaChip(snapDelta(c, site))}</div>
-      <div class="px">${mn ? won(mn.unit) : '-'}<small>/일</small></div>
-      <div class="sub"><span>상품 ${cr.length}개</span><span>${mn ? SITE[mn.site].n : ''}</span></div></button>`;
+      <div class="px">${mn ? won(mn.price_krw) : '-'}<small>${p}권</small></div>
+      <div class="sub"><span>${p}권 상품 ${cr.length}개</span><span>${mn ? SITE[mn.site].n : ''}</span></div></button>`;
   }).join('');
   $('kpi-countries').textContent = new Set(S.items.map((r) => r.country)).size;
   $('kpi-sites').textContent = new Set(S.items.map((r) => r.site)).size;
@@ -370,22 +376,50 @@ function renderHeat() {
 /* ── premium + generation ── */
 function renderMarket(rs) {
   const cs = COUNTRIES.filter((c) => !S.F.country.size || S.F.country.has(c));
+  // Compare like with like: a 90-day plan's per-day price says nothing about a 3-day trip.
+  // Per trip-length bucket with both sides present, then weighted by the smaller side's count.
   const pr = cs.map((c) => {
-    const L = rs.filter((r) => r.country === c && r.network_type === 'local' && r.unit), Ro = rs.filter((r) => r.country === c && r.network_type === 'roaming' && r.unit);
-    if (L.length < 3 || Ro.length < 3) return { c, na: true, nl: L.length, nr: Ro.length };
-    const a = med(L.map((r) => r.unit)), b = med(Ro.map((r) => r.unit));
-    return { c, pct: (b - a) / a * 100, a, b };
+    const pick = (net) => rs.filter((r) => r.country === c && r.network_type === net && r.unit && r.days <= 30).sort((x, y) => x.unit - y.unit);
+    const L = pick('local'), Ro = pick('roaming');
+    const bk = CMP.map(([lo, hi]) => {
+      const inb = (r) => r.days >= lo && r.days <= hi, l = L.filter(inb), r = Ro.filter(inb);
+      if (!l.length || !r.length) return null;
+      const a = med(l.map((x) => x.unit)), b = med(r.map((x) => x.unit));
+      return { label: lo === hi ? `${lo}일` : `${lo}~${hi}일`, l, r, a, b, pct: (b - a) / a * 100, w: Math.min(l.length, r.length) };
+    }).filter(Boolean);
+    const nL = bk.reduce((s, x) => s + x.l.length, 0), nR = bk.reduce((s, x) => s + x.r.length, 0), W = bk.reduce((s, x) => s + x.w, 0);
+    const base = { c, bk, nL, nR, mL: L.filter((r) => bk.some((x) => x.l.includes(r))), mR: Ro.filter((r) => bk.some((x) => x.r.includes(r))) };
+    if (nR < 3 || nL < 3) return { ...base, na: true, tL: L.length, tR: Ro.length };
+    return { ...base, pct: bk.reduce((s, x) => s + x.pct * x.w, 0) / W };
   });
   const mx = Math.max(30, ...pr.filter((p) => !p.na).map((p) => Math.abs(p.pct)));
-  $('prem').innerHTML = pr.map((p) => (p.na
-    ? `<div class="prem-row"><span class="nm">${dot(p.c)}${cn(p.c)}</span><div class="axis"></div><div class="v na">표본 부족<small>Local ${p.nl} · Roaming ${p.nr}</small></div></div>`
-    : `<div class="prem-row"><span class="nm">${dot(p.c)}${cn(p.c)}</span><div class="axis"><i class="${p.pct >= 0 ? 'pos' : 'neg'}" style="${p.pct >= 0 ? 'left' : 'right'}:50%;width:${Math.min(50, Math.abs(p.pct) / mx * 50)}%"></i></div>
-      <div class="v ${p.pct >= 0 ? 'pos' : 'neg'}">${p.pct >= 0 ? '+' : ''}${p.pct.toFixed(0)}%<small>${won(p.a)} → ${won(p.b)}</small></div></div>`)).join('') +
-    '<div class="axis-l"><span></span><div><span>◀ 저렴</span><span>Roaming 비쌈 ▶</span></div><span></span></div>';
-  const ok = pr.filter((p) => !p.na);
-  $('prem-insight').textContent = ok.length ? `Roaming이 Local보다 비싼 국가 ${ok.filter((p) => p.pct > 0).length}/${ok.length}곳 · 가장 큰 차이는 ${cn([...ok].sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct))[0].c)}입니다.` : '';
+  const side = (label, a) => `<div><h4>${label} <span>저렴한 순 ${Math.min(3, a.length)}개</span></h4>${a.length ? `<ol>${a.slice(0, 3).map((r) =>
+    `<li>${pfTag(r.site)}${href(r.product_url) ? `<a href="${href(r.product_url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>` : esc(r.title)}<b>${won(r.unit)}/일 · ${r.days}일 ${won(r.price_krw)}</b></li>`).join('')}</ol>` : '<p>표본 없음</p>'}</div>`;
+  const table = (p) => p.bk.length ? `<table class="prem-tbl"><thead><tr><th>기간</th><th>Local 1일당 (n)</th><th>Roaming 1일당 (n)</th><th>차이</th></tr></thead><tbody>${p.bk.map((x) =>
+    `<tr><td>${x.label}</td><td>${won(x.a)} (${x.l.length})</td><td>${won(x.b)} (${x.r.length})</td><td class="${x.pct >= 0 ? 'pos' : 'neg'}">${x.pct >= 0 ? '+' : ''}${x.pct.toFixed(0)}%</td></tr>`).join('')}</tbody></table>`
+    : '<p>Local과 Roaming이 같은 기간권에 함께 있는 경우가 없습니다.</p>';
+  $('prem').innerHTML = pr.map((p) => {
+    const open = S.premOpen === p.c;
+    const v = p.na
+      ? `<div class="v na">표본 부족<small>${p.tR && p.tL ? `같은 기간 L ${p.nL} · R ${p.nR}` : `Local ${p.tL} · Roaming ${p.tR}`}</small></div>`
+      : `<div class="v ${p.pct >= 0 ? 'pos' : 'neg'}">${p.pct >= 0 ? '+' : ''}${p.pct.toFixed(0)}%<small>${p.bk.length}개 기간 · L ${p.nL} · R ${p.nR}</small></div>`;
+    const bar = p.na ? '' : `<i class="${p.pct >= 0 ? 'pos' : 'neg'}" style="${p.pct >= 0 ? 'left' : 'right'}:50%;width:${Math.min(50, Math.abs(p.pct) / mx * 50)}%"></i>`;
+    return `<button class="prem-row" type="button" data-prem="${p.c}" aria-expanded="${open}"><span class="nm">${dot(p.c)}${cn(p.c)}</span><div class="axis">${bar}</div>${v}</button>` +
+      (open ? `<div class="prem-detail">${table(p)}${side('Local', p.mL)}${side('Roaming', p.mR)}<p class="note">같은 기간권끼리 1일당 중앙값 비교 · 30일 초과 상품 제외 · 기간별 차이를 표본 수로 가중평균${p.na ? ` · 전체 Local ${p.tL}개 · Roaming ${p.tR}개` : ''}</p></div>` : '');
+  }).join('') +
+    '<div class="axis-l"><span></span><div><span>◀ Roaming 저렴</span><span>Roaming 비쌈 ▶</span></div><span></span></div>';
+  const ok = pr.filter((p) => !p.na), top = [...ok].sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct))[0];
+  $('prem-insight').textContent = top
+    ? `같은 기간권끼리 비교했을 때 Roaming이 Local보다 비싼 국가 ${ok.filter((p) => p.pct > 0).length}/${ok.length}곳. 차이가 가장 큰 ${cn(top.c)}${(cn(top.c).at(-1).charCodeAt(0) - 0xac00) % 28 ? '은' : '는'} Roaming이 ${Math.abs(top.pct).toFixed(0)}% ${top.pct < 0 ? '저렴' : '비쌈'} (${top.bk.length}개 기간 · Local ${top.nL}개 · Roaming ${top.nR}개). 국가를 누르면 기간별 근거를 볼 수 있습니다.`
+    : '같은 기간권에서 Local과 Roaming을 함께 비교할 수 있는 국가가 없습니다.';
   const gr = cs.map((c) => { const a = rs.filter((r) => r.country === c), g = (k) => a.filter((r) => r.network_generation === k).length; return { c, n: a.length, f: g('5g_capable'), l: g('lte_4g_only'), u: g('unknown') }; });
-  $('gen').innerHTML = gr.map((r) => { const n = r.n || 1; return `<div class="gen-row"><span class="nm">${dot(r.c)}${cn(r.c)}</span><div class="stack" role="img" aria-label="${cn(r.c)} 5G ${r.f}개, LTE ${r.l}개, 미확인 ${r.u}개"><i style="width:${r.f / n * 100}%;background:var(--stack-5g)"></i><i style="width:${r.l / n * 100}%;background:var(--stack-lte)"></i><i style="width:${r.u / n * 100}%;background:var(--stack-unk)"></i></div><span class="v">${Math.round(r.f / n * 100)}%</span></div>`; }).join('');
+  const segs = [['f', '5G', 'stack-5g'], ['l', 'LTE', 'stack-lte'], ['u', '미확인', 'stack-unk']];
+  $('gen').innerHTML = gr.map((r) => {
+    const n = r.n || 1, pc = (k) => Math.round(r[k] / n * 100);
+    return `<div class="gen-row"><span class="nm">${dot(r.c)}${cn(r.c)}</span><div class="stack" role="img" aria-label="${cn(r.c)} ${segs.map(([k, l]) => `${l} ${pc(k)}% (${r[k]}개)`).join(', ')}">${segs.map(([k, l, v]) =>
+      `<i class="${k}" style="width:${r[k] / n * 100}%;background:var(--${v})" title="${l} ${pc(k)}% (${r[k]}개)">${pc(k) >= 10 ? `<span>${pc(k)}%</span>` : ''}</i>`).join('')}</div>
+      <span class="v">${segs.map(([k, l]) => `<em class="${k}">${l} ${pc(k)}%</em>`).join(' · ')}</span></div>`;
+  }).join('');
   const tot = gr.reduce((a, r) => a + r.n, 0), k = gr.reduce((a, r) => a + r.f + r.l, 0);
   $('gen-insight').textContent = tot ? `망 세대 확인 상품은 ${Math.round(k / tot * 100)}%이며, 나머지는 근거 부족으로 미확인 처리됩니다.` : '';
 }
@@ -515,7 +549,8 @@ document.addEventListener('click', (e) => {
   } else if (d.hmC) {
     const on = F.country.size === 1 && F.country.has(d.hmC) && F.per.size === 1 && F.per.has(d.hmP);
     F.country = new Set(on ? [] : [d.hmC]); F.per = new Set(on ? [] : [d.hmP]);
-  } else if (d.k === 'guard') F.guard = !F.guard;
+  } else if (d.prem) { S.premOpen = S.premOpen === d.prem ? '' : d.prem; renderMarket(rows()); return; }
+  else if (d.k === 'guard') F.guard = !F.guard;
   else if (['country', 'site', 'per'].includes(d.k)) toggle(d.k, d.v);
   else if (['net', 'gen'].includes(d.k)) F[d.k] = d.v;
   else if (['trendSite', 'hm', 'diffTab'].includes(d.k)) { S[d.k] = d.v; if (d.k === 'diffTab') S.diffLimit = DIFF_STEP; }
