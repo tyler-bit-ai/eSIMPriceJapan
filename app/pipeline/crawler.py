@@ -8,7 +8,7 @@ from tenacity import AsyncRetrying, RetryError, stop_after_attempt, wait_exponen
 
 from app.adapters.base import MarketplaceAdapter
 from app.models import CrawlError, CrawlResult, InvalidItem, ProductDetail, ProductStub
-from app.pipeline.validation import validate_product
+from app.pipeline.validation import scope_network_type, validate_product
 from app.utils.delay import random_delay
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class CrawlPipeline:
                         logger.info("invalid item for %s: %s", stub.product_url, invalid.invalid_reason)
                         invalid_items.append(invalid)
                     else:
-                        items.append(item)
+                        items.append(scope_network_type(item))
                 except Exception as exc:
                     logger.warning("failed for %s: %s", stub.product_url, exc)
                     screenshot = self._extract_screenshot_path(str(exc))

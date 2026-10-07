@@ -341,3 +341,20 @@ def test_extract_review_count_amazon_en():
 def test_extract_review_count_ignores_star_rating():
     res = extract_review_count(["4.5 5つ星のうち4.5"])
     assert res.value is None
+
+
+def test_extract_validity_split_title_variant_beats_activation_window():
+    res = extract_validity_split(["【香港 eSIM】当日利用可能&90日間有効 24時間オンラインサポート way2esim (1日間)"])
+    assert res.usage_validity == "1일"
+    assert res.activation_validity == "90일"
+
+
+def test_extract_validity_split_later_block_does_not_override_title():
+    res = extract_validity_split(
+        [
+            "韓国 eSIM 6日間 (144時間) 無制限データ (6日間)",
+            "【有効期限】QRコードは90日以内に有効です。プランの日数は、24時間を1日としてカウントされます。",
+            "【SKTelecom公式認証】 韓国eSIM 3日間 (72時間) 有効期限／ご購入日より120日以内",
+        ]
+    )
+    assert res.usage_validity == "6일"

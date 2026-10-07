@@ -250,6 +250,7 @@ def extract_validity_split(texts: list[str]) -> ValidityExtraction:
     activation_validity: str | None = None
     usage_evidence: list[str] = []
     activation_evidence: list[str] = []
+    usage_from_title = False
 
     for idx, raw in enumerate(texts):
         text = normalize_text(raw)
@@ -273,9 +274,16 @@ def extract_validity_split(texts: list[str]) -> ValidityExtraction:
         if duration_hits:
             # Title is usually the strongest signal for actual usage duration.
             if idx == 0 and not usage_validity:
-                usage_validity = f"{duration_hits[0]}일"
-                usage_evidence.append(text[:180])
-                if has_activation_context and len(duration_hits) >= 2 and not activation_validity:
+                title_days = _title_usage_days(text) or (normalized_day_hits[0] if normalized_day_hits else None)
+                if title_days:
+                    usage_validity = f"{title_days}일"
+                    usage_evidence.append(text[:180])
+                    usage_from_title = True
+                window = _title_activation_days(text)
+                if window and not activation_validity:
+                    activation_validity = f"{window}일"
+                    activation_evidence.append(text[:180])
+                elif has_activation_context and len(duration_hits) >= 2 and not activation_validity:
                     activation_validity = f"{duration_hits[-1]}일"
                     activation_evidence.append(text[:180])
             elif has_usage_context and has_activation_context and len(duration_hits) >= 2:
@@ -325,7 +333,11 @@ def extract_validity_split(texts: list[str]) -> ValidityExtraction:
 
     usage_num = _extract_korean_days(usage_validity)
     activation_num = _extract_korean_days(activation_validity)
-    if usage_num is not None and activation_num is not None and activation_num < usage_num:
+    # A later block's smaller number ("24時間＝1日", a related product's "3日間") must not
+    # override the duration the title names.
+    if usage_from_title and usage_num is not None and activation_num is not None and activation_num < usage_num:
+        activation_validity, activation_evidence = None, []
+    elif usage_num is not None and activation_num is not None and activation_num < usage_num:
         usage_validity, activation_validity = activation_validity, usage_validity
         usage_evidence, activation_evidence = activation_evidence, usage_evidence
 
@@ -335,6 +347,29 @@ def extract_validity_split(texts: list[str]) -> ValidityExtraction:
         usage_evidence=usage_evidence,
         activation_evidence=activation_evidence,
     )
+
+
+_TITLE_DAYS = r"(?<!\d)(\d{1,4})(?:\s*[-~〜]\s*\d{1,4})?\s?(?:日間|日(?!間))"
+# Activation windows in a title: "有効期限 90日", "購入日より180日", "90日間有効", "180日以内".
+_TITLE_WINDOW = re.compile(
+    r"(?:有効期限|有効期間|購入日より|受信後)[^\d\n]{0,10}" + _TITLE_DAYS
+    + "|" + _TITLE_DAYS + r"(?=\s*(?:有効|以内|まで))"
+)
+
+
+def _title_usage_days(text: str) -> str | None:
+    """Usage days a title names: the trailing variant "(4日間)" wins, then the first
+    duration outside an activation window."""
+    m = re.search(r"[（(][^()（）]*?" + _TITLE_DAYS + r"[^()（）]*[)）]\s*$", text)
+    if m:
+        return m.group(1)
+    m = re.search(_TITLE_DAYS, _TITLE_WINDOW.sub(" ", text))
+    return m.group(1) if m else None
+
+
+def _title_activation_days(text: str) -> str | None:
+    m = _TITLE_WINDOW.search(text)
+    return (m.group(1) or m.group(2)) if m else None
 
 
 def _extract_korean_days(value: str | None) -> int | None:

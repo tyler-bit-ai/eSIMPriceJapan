@@ -227,7 +227,7 @@ function buildNetworkGenerationCounts(items, field = 'network_generation') {
 }
 
 function keepDashboardItem(item) {
-  return Number.isFinite(item.price_jpy) && item.price_jpy > 0 && TravelFilter.isTravelProduct(item.title);
+  return Number.isFinite(item.price_jpy) && item.price_jpy > 0 && TravelFilter.isTravelProduct(item.title, item.country);
 }
 
 function getLatestResultsFile() {

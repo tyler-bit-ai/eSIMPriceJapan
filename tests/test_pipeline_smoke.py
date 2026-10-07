@@ -18,7 +18,7 @@ class FakeAdapter(MarketplaceAdapter):
             raise RuntimeError("detail parsing failed: boom; screenshot=out/screenshots/detail_error_B000000003.png")
         if stub.asin == "B000000004":
             return ProductDetail(
-                title="invalid price esim",
+                title="韓国 invalid price esim",
                 price_jpy=0,
                 monthly_sold_count=100,
                 is_bestseller=False,
@@ -34,7 +34,7 @@ class FakeAdapter(MarketplaceAdapter):
                 evidence={"price_jpy": ["0円 placeholder"]},
             )
         return ProductDetail(
-            title="sample esim",
+            title="韓国 sample esim",
             price_jpy=1200,
             monthly_sold_count=300,
             is_bestseller=True,
@@ -47,7 +47,7 @@ class FakeAdapter(MarketplaceAdapter):
             asin=stub.asin,
             seller="sample seller",
             brand="sample brand",
-            evidence={"title": ["sample esim"]},
+            evidence={"title": ["韓国 sample esim"]},
         )
 
     async def close(self) -> None:
