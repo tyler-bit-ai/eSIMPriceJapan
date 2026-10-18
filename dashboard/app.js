@@ -208,8 +208,15 @@ function loadGroup(g) {
   return groupCache.get(g.id);
 }
 
+async function loadHistory() {
+  try { const res = await fetch('./data/history.json', { cache: 'no-store' }); if (res.ok) return await res.json(); } catch (_) { /* fall back to runs */ }
+  return null;
+}
 async function loadTrend() {
   S.trendLoading = true;
+  // history.json is precomputed at publish time (tools/publish.py build_history) with the same rules as below.
+  const history = await loadHistory();
+  if (history) { S.trend = history; S.trendLoading = false; render(); return; }
   for (const g of S.groups.filter((x) => x.id !== 'latest')) {
     const items = await loadGroup(g), by = {};
     items.forEach((r) => { (by[`${r.site}|${r.country}`] ??= []).push(r.price_jpy); });

@@ -67,7 +67,7 @@ $publishScript = Join-Path $repo 'tools\publish.ps1'
 & $publishScript -OutDir $outPath -DataDir $dataPath -Site $Site -Country $Country -Query $Query -Limit $Limit
 
 Write-Host "[3/3] Git commit/push"
-git add dashboard/data/index.json dashboard/data/sites dashboard/data/runs tools/publish.ps1 tools/run_and_publish.ps1 README.md
+git add dashboard/data tools/publish.ps1 tools/publish.py tools/run_and_publish.ps1 README.md
 
 $hasChanges = (git status --porcelain).Length -gt 0
 if (-not $hasChanges) {

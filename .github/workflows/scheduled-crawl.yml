@@ -1,0 +1,144 @@
+name: Scheduled Crawl
+
+# - Runs on the Mac mini self-hosted runner: Amazon/Qoo10 are crawled from a residential IP
+#   (GitHub-hosted datacenter IPs get CAPTCHA/blocked, and AGENTS.md forbids bypassing them).
+# - Every 2 weeks: cron fires weekly and the gate job only passes on odd epoch weeks
+#   (floor(unix_time / 604800) % 2 == 1), which stays exactly 14 days apart across year ends.
+# - Never add pull_request triggers: a public repo must not run fork code on a self-hosted runner.
+# - Each run commits data/automation/last_run.json, so the schedule never hits the 60-day auto-disable.
+on:
+  schedule:
+    - cron: "17 18 * * 0" # Mon 03:17 KST
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Items per site × country"
+        default: "100"
+      only:
+        description: "Space-separated site:country targets (empty = all)"
+        default: ""
+      publish:
+        description: "Publish to the dashboard (off = crawl test, commits only last_run.json)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: scheduled-crawl
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.week.outputs.run }}
+    steps:
+      - id: week
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          week=$(( $(date -u +%s) / 604800 ))
+          if [ $(( week % 2 )) -eq 1 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "Off week ($week), skipping."; fi
+
+  crawl:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: [self-hosted, esim-jp]
+    timeout-minutes: 300
+    steps:
+      - name: Record start time
+        id: start
+        run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        id: install
+        run: |
+          /opt/homebrew/bin/python3.14 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
+          .venv/bin/python -m playwright install chromium
+          npm ci
+
+      - name: Crawl and publish
+        id: crawl
+        env:
+          LIMIT: ${{ inputs.limit || '100' }}
+          ONLY: ${{ inputs.only }}
+          PUBLISH: ${{ inputs.publish != false }}
+        run: |
+          set +e
+          args=(--limit "$LIMIT")
+          [ "$PUBLISH" = "true" ] || args+=(--no-publish)
+          for t in $ONLY; do args+=(--only "$t"); done
+          .venv/bin/python -m tools.scheduled_crawl "${args[@]}"
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          # Always continue: 2 (partial) still publishes what worked, and on 1 the job fails
+          # at the last step, after last_run.json is committed and Telegram is notified.
+          exit 0
+
+      - name: Run tests
+        id: tests
+        run: .venv/bin/python -m pytest -q
+
+      - name: Commit collected data
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dashboard/data data/automation
+          if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
+          msg=$(.venv/bin/python -c "import json; s=json.load(open('data/automation/last_run.json')); print(f\"chore(data): scheduled crawl {s['started_at'][:10]} ({s['published']}/{s['total']} published)\")")
+          git commit -m "$msg"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      # Pushes made with GITHUB_TOKEN may not start the legacy Pages build, so request it explicitly.
+      - name: Request Pages build
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" --jq .status
+
+      - name: Upload crawl logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-logs
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            data/automation/last_run.json
+            data/crawls/scheduled_*/*/failed.jsonl
+            data/crawls/scheduled_*/*/invalid.jsonl
+            data/crawls/scheduled_*/*/screenshots
+
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          py=.venv/bin/python; [ -x "$py" ] || py=python3
+          "$py" -m tools.notify_telegram \
+            --title "eSIMPriceJapan 격주 수집" \
+            --since "${{ steps.start.outputs.at }}" \
+            --step "install=${{ steps.install.outcome }}" \
+            --step "tests=${{ steps.tests.outcome }}" \
+            --step "commit=${{ steps.commit.outcome }}" \
+            --step "pages=${{ steps.pages.outcome }}" \
+            --dashboard-url "https://tyler-bit-ai.github.io/eSIMPriceJapan/dashboard/" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Fail when nothing was published
+        if: steps.crawl.outputs.exit_code == '1'
+        run: |
+          echo "::error::No site × country was published (see data/automation/last_run.json)"
+          exit 1

@@ -77,6 +77,51 @@ python -m app crawl --site amazon_jp --country kr --limit 5 --concurrency 2 --mi
 python -m app crawl --site qoo10_jp --country vn --limit 5 --concurrency 2 --min-delay 1 --max-delay 2 --out .\data\crawls\out_smoke_qoo10_vn
 ```
 
+## 자동 수집 (격주, `.github/workflows/scheduled-crawl.yml`)
+
+2주마다 월요일 03:17 KST에 전체 사이트 × 국가(`amazon_jp`, `qoo10_jp` × 7개국, limit 100)를 수집해 대시보드에 게시하고 `main`에 커밋합니다. 결과는 텔레그램으로 받습니다.
+
+흐름:
+1. `gate` job (GitHub 서버): cron은 매주 돌고, epoch 주차 `floor(unix/604800) % 2 == 1`인 주만 통과 → 정확히 14일 간격 (수동 실행은 항상 통과)
+2. `crawl` job (**맥미니 self-hosted runner**, label `esim-jp`): venv 설치 → `python -m tools.scheduled_crawl` → `pytest` → `dashboard/data`, `data/automation` 커밋/push → Pages 빌드 요청 → 텔레그램 알림
+   - Amazon/Qoo10은 데이터센터 IP에서 CAPTCHA/차단이 나므로 가정용 IP인 맥미니에서 실행합니다 (우회는 하지 않음).
+   - fork PR이 runner에서 코드를 실행하지 못하도록 이 workflow에는 `pull_request` 트리거를 넣지 않습니다.
+
+게시 품질 게이트: site × country별 결과가 `ceil(min(직전 게시 개수, limit) × 0.3)`개보다 적으면 게시하지 않고 기존 latest를 유지합니다 (차단/빈 검색 결과로 대시보드가 깨지는 것 방지). 결과는 `data/automation/last_run.json`에 남고 실행마다 `data/automation/history.jsonl`에 한 줄 추가됩니다.
+매 실행이 커밋을 남기므로 GitHub의 "60일 무활동 시 schedule 비활성화"에 걸리지 않습니다.
+
+대시보드 이력: 모든 수집은 `dashboard/data/runs/<run_id>.jsonl`로 계속 쌓이고, 추이 차트용 요약은 게시할 때 `dashboard/data/history.json`에 미리 계산됩니다 (대시보드가 과거 run을 전부 내려받지 않음). 날짜별 데이터셋 선택·시점별 비교는 고른 run만 불러옵니다.
+
+수동 실행/점검:
+```bash
+gh workflow run scheduled-crawl.yml                                          # 전체 수집 + 게시
+gh workflow run scheduled-crawl.yml -f limit=5 -f only="amazon_jp:kr" -f publish=false   # 테스트 (게시 안 함)
+gh run list --workflow scheduled-crawl.yml
+cd ~/actions-runner-esim-jp && ./svc.sh status                               # runner 상태
+```
+
+로컬 실행 (macOS):
+```bash
+python3.14 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt && .venv/bin/playwright install chromium
+.venv/bin/python -m tools.scheduled_crawl --limit 5 --only amazon_jp:kr --no-publish   # 스모크
+.venv/bin/python -m tools.publish --out-dir data/crawls/x --site amazon_jp --country kr --limit 100
+.venv/bin/python -m tools.publish --history-only                                       # history.json 재생성
+```
+
+텔레그램 설정 (저장소 secrets `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, 없으면 알림만 생략):
+```bash
+gh secret set TELEGRAM_BOT_TOKEN -R tyler-bit-ai/eSIMPriceJapan
+gh secret set TELEGRAM_CHAT_ID   -R tyler-bit-ai/eSIMPriceJapan
+TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=... .venv/bin/python -m tools.notify_telegram --test
+```
+
+`last_run.json` 예시:
+```json
+{"started_at": "2026-10-18T18:17:02Z", "finished_at": "2026-10-18T19:20:41Z", "status": "partial_success", "published": 13, "total": 14, "limit": 100,
+ "results": [{"site": "amazon_jp", "country": "kr", "status": "published", "item_count": 100, "failed_count": 0, "reason": "", "previous_count": 100, "duration_s": 290},
+             {"site": "qoo10_jp", "country": "th", "status": "skipped_low_count", "item_count": 3, "failed_count": 12, "reason": "3 < 30 (previous 100)", "previous_count": 100, "duration_s": 75}]}
+```
+
 ## Publish Workflow
 
 ### Publish Only
