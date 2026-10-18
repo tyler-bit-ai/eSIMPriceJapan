@@ -1,10 +1,10 @@
-﻿{
-    "site":  "qoo10_jp",
-    "country":  "tw",
-    "query":  "",
-    "limit":  100,
-    "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\data\\crawls\\out_qoo10_jp_tw_100\\results.jsonl",
-    "crawled_at":  "2026-10-06T05:44:44.1399635Z",
-    "published_at":  "2026-10-06T05:44:44.7568423Z",
-    "item_count":  100
+{
+  "site": "qoo10_jp",
+  "country": "tw",
+  "query": "",
+  "limit": 100,
+  "source": "data/crawls/scheduled_2026-10-18/qoo10_jp_tw/results.jsonl",
+  "crawled_at": "2026-10-18T08:53:18.634479Z",
+  "published_at": "2026-10-18T08:53:18.736453Z",
+  "item_count": 79
 }

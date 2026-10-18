@@ -1,20 +1,150 @@
 {
-  "started_at": "2026-10-18T07:54:06Z",
-  "finished_at": "2026-10-18T07:54:18Z",
+  "started_at": "2026-10-18T08:13:40Z",
+  "finished_at": "2026-10-18T09:01:35Z",
   "status": "success",
-  "published": 1,
-  "total": 1,
-  "limit": 3,
+  "published": 14,
+  "total": 14,
+  "limit": 100,
   "results": [
     {
       "site": "amazon_jp",
       "country": "kr",
-      "status": "crawled",
-      "item_count": 3,
+      "status": "published",
+      "item_count": 90,
       "failed_count": 0,
       "reason": "",
       "previous_count": 100,
-      "duration_s": 13
+      "duration_s": 250
+    },
+    {
+      "site": "amazon_jp",
+      "country": "vn",
+      "status": "published",
+      "item_count": 88,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 99,
+      "duration_s": 246
+    },
+    {
+      "site": "amazon_jp",
+      "country": "th",
+      "status": "published",
+      "item_count": 88,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 244
+    },
+    {
+      "site": "amazon_jp",
+      "country": "tw",
+      "status": "published",
+      "item_count": 87,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 243
+    },
+    {
+      "site": "amazon_jp",
+      "country": "hk",
+      "status": "published",
+      "item_count": 89,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 245
+    },
+    {
+      "site": "amazon_jp",
+      "country": "mo",
+      "status": "published",
+      "item_count": 88,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 240
+    },
+    {
+      "site": "amazon_jp",
+      "country": "us",
+      "status": "published",
+      "item_count": 98,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 241
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "kr",
+      "status": "published",
+      "item_count": 100,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 169
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "vn",
+      "status": "published",
+      "item_count": 89,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 166
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "th",
+      "status": "published",
+      "item_count": 100,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 165
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "tw",
+      "status": "published",
+      "item_count": 79,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 169
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "hk",
+      "status": "published",
+      "item_count": 88,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 163
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "mo",
+      "status": "published",
+      "item_count": 89,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 167
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "us",
+      "status": "published",
+      "item_count": 100,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 167
     }
   ]
 }

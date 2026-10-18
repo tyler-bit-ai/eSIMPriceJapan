@@ -1,10 +1,10 @@
-﻿{
-    "site":  "amazon_jp",
-    "country":  "mo",
-    "query":  "",
-    "limit":  100,
-    "source":  "C:\\Codex\\eSIMPriceCollector_Japan\\data\\crawls\\out_amazon_jp_mo_100\\results.jsonl",
-    "crawled_at":  "2026-10-06T05:25:44.7783570Z",
-    "published_at":  "2026-10-06T05:25:45.2669862Z",
-    "item_count":  100
+{
+  "site": "amazon_jp",
+  "country": "mo",
+  "query": "",
+  "limit": 100,
+  "source": "data/crawls/scheduled_2026-10-18/amazon_jp_mo/results.jsonl",
+  "crawled_at": "2026-10-18T08:38:07.889049Z",
+  "published_at": "2026-10-18T08:38:07.999672Z",
+  "item_count": 88
 }
