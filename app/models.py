@@ -96,6 +96,7 @@ class CrawlResult(BaseModel):
     items: list[ProductDetail]
     invalid_items: list[InvalidItem]
     failures: list[CrawlError]
+    blocked: str | None = None
 
 
 def model_to_row(model: BaseModel) -> dict[str, Any]:

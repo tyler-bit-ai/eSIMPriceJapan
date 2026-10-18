@@ -55,13 +55,21 @@ def build_message(
         )
         by_site: dict[str, list[str]] = {}
         problems = []
+        skipped: dict[str, list[str]] = {}
         for r in summary.get("results", []):
             ok = r["status"] in ("published", "crawled")
-            by_site.setdefault(r["site"], []).append(f"{r['country']} {r['item_count']}" + ("" if ok else "⚠️"))
-            if not ok:
+            mark = "" if ok else "🚫" if r["status"] in ("blocked", "skipped_site_blocked") else "⚠️"
+            by_site.setdefault(r["site"], []).append(f"{r['country']} {r['item_count']}{mark}")
+            if r["status"] == "skipped_site_blocked":
+                skipped.setdefault(r["site"], []).append(r["country"])
+            elif not ok:
                 problems.append(f"• {r['site']}/{r['country']} {r['status']}: {r.get('reason') or '-'}")
         lines.append("")
         lines += [f"<b>{esc(site)}</b>: {esc(' · '.join(parts))}" for site, parts in by_site.items()]
+        for site in summary.get("blocked_sites", []):
+            rest = ", ".join(skipped.get(site, []))
+            lines += ["", f"🚫 <b>{esc(site)} 차단 감지</b> (봇 확인/접속 제한 페이지) — "
+                          + (f"남은 국가 수집 중단: {esc(rest)}" if rest else "이후 수집 중단") + ". 기존 대시보드 데이터는 유지됩니다."]
         if problems:
             lines += ["", *map(esc, problems)]
     else:

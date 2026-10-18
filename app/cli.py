@@ -7,6 +7,7 @@ from typing import Optional
 
 import typer
 
+from app.adapters.base import BLOCKED_EXIT_CODE
 from app.adapters.factory import create_adapter, get_supported_sites
 from app.countries import get_default_query, get_supported_countries
 from app.output.writers import (
@@ -123,6 +124,10 @@ async def _run_crawl(
     logger.info("saved %s failures to %s", len(result.failures), failed_jsonl)
     logger.info("saved %s invalid items to %s", len(result.invalid_items), invalid_jsonl)
     logger.info("saved %s invalid items to %s", len(result.invalid_items), invalid_csv)
+
+    if result.blocked:
+        logger.error("site blocked the crawl (exit %s): %s", BLOCKED_EXIT_CODE, result.blocked)
+        raise typer.Exit(code=BLOCKED_EXIT_CODE)
 
 
 if __name__ == "__main__":

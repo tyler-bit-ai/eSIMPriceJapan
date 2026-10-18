@@ -8,7 +8,7 @@ from urllib.parse import quote_plus
 from bs4 import BeautifulSoup
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
-from app.adapters.base import MarketplaceAdapter
+from app.adapters.base import AMAZON_BLOCK_MARKERS, MarketplaceAdapter, SiteBlockedError, block_reason
 from app.extractors.heuristics import (
     extract_asin,
     extract_bestseller_badge,
@@ -76,6 +76,11 @@ class AmazonJPAdapter(MarketplaceAdapter):
         page.set_default_timeout(25_000)
         return page
 
+    def _raise_if_blocked(self, response, html: str, url: str) -> None:
+        reason = block_reason(response.status if response else None, html, AMAZON_BLOCK_MARKERS)
+        if reason:
+            raise SiteBlockedError(f"{self.name} blocked: {reason} at {url}")
+
     async def search(self, query: str, limit: int) -> list[ProductStub]:
         page = await self._new_page()
         try:
@@ -87,10 +92,11 @@ class AmazonJPAdapter(MarketplaceAdapter):
             max_pages = max(2, min(10, (limit // 20) + 3))
             for page_no in range(1, max_pages + 1):
                 search_url = f"https://www.amazon.co.jp/s?k={encoded}&page={page_no}"
-                await page.goto(search_url, wait_until="domcontentloaded")
+                response = await page.goto(search_url, wait_until="domcontentloaded")
                 await page.wait_for_timeout(1200)
 
                 html = await page.content()
+                self._raise_if_blocked(response, html, search_url)
                 soup = BeautifulSoup(html, "lxml")
 
                 for card in soup.select("div[data-component-type='s-search-result']"):
@@ -202,10 +208,11 @@ class AmazonJPAdapter(MarketplaceAdapter):
         page = await self._new_page()
         evidence: dict[str, list[str]] = {}
         try:
-            await page.goto(str(stub.product_url), wait_until="domcontentloaded")
+            response = await page.goto(str(stub.product_url), wait_until="domcontentloaded")
             await page.wait_for_timeout(900)
 
             html = await page.content()
+            self._raise_if_blocked(response, html, str(stub.product_url))
             soup = BeautifulSoup(html, "lxml")
 
             title = self._extract_text_selectors(
@@ -332,6 +339,8 @@ class AmazonJPAdapter(MarketplaceAdapter):
                 brand=brand,
                 evidence=evidence,
             )
+        except SiteBlockedError:
+            raise
         except Exception as exc:
             shot = self.screenshot_dir / f"detail_error_{stub.asin or 'unknown'}.png"
             await page.screenshot(path=str(shot), full_page=True)

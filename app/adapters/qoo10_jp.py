@@ -10,7 +10,7 @@ from urllib.parse import quote_plus, urlparse
 from bs4 import BeautifulSoup
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
-from app.adapters.base import MarketplaceAdapter
+from app.adapters.base import MarketplaceAdapter, SiteBlockedError, block_reason
 from app.extractors.heuristics import (
     ExtractedValue,
     extract_carrier_support_for_country,
@@ -86,13 +86,19 @@ class Qoo10JPAdapter(MarketplaceAdapter):
         page.set_default_timeout(25_000)
         return page
 
+    def _raise_if_blocked(self, response, html: str, url: str) -> None:
+        reason = block_reason(response.status if response else None, html)
+        if reason:
+            raise SiteBlockedError(f"{self.name} blocked: {reason} at {url}")
+
     async def search(self, query: str, limit: int) -> list[ProductStub]:
         page = await self._new_page()
         try:
             encoded = quote_plus(query)
             url = f"https://www.qoo10.jp/s/ESIM?keyword={encoded}"
-            await page.goto(url, wait_until="domcontentloaded")
+            response = await page.goto(url, wait_until="domcontentloaded")
             await page.wait_for_timeout(2500)
+            self._raise_if_blocked(response, await page.content(), url)
 
             unique: list[ProductStub] = []
             seen_ids: set[str] = set()
@@ -170,10 +176,11 @@ class Qoo10JPAdapter(MarketplaceAdapter):
         page = await self._new_page()
         evidence: dict[str, list[str]] = {}
         try:
-            await page.goto(str(stub.product_url), wait_until="domcontentloaded")
+            response = await page.goto(str(stub.product_url), wait_until="domcontentloaded")
             await page.wait_for_timeout(1200)
 
             html = await page.content()
+            self._raise_if_blocked(response, html, str(stub.product_url))
             soup = BeautifulSoup(html, "lxml")
 
             title = self._extract_title(soup)
@@ -318,6 +325,8 @@ class Qoo10JPAdapter(MarketplaceAdapter):
                 evidence=evidence,
             )
             return detail
+        except SiteBlockedError:
+            raise
         except Exception as exc:
             shot = self.screenshot_dir / f"detail_error_{stub.site_product_id or 'unknown'}.png"
             await page.screenshot(path=str(shot), full_page=True)

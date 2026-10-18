@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from app.adapters.base import BLOCKED_EXIT_CODE
 from app.adapters.factory import get_supported_sites
 from app.countries import COUNTRY_REGISTRY
 from tools.publish import REPO_ROOT, publish, read_index
@@ -77,6 +78,37 @@ def crawl_one(site: str, country: str, out_dir: Path, args: argparse.Namespace) 
     return 0, ""
 
 
+def first_blocked_message(failed_jsonl: Path) -> str:
+    if failed_jsonl.exists():
+        for line in failed_jsonl.read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("error_type") == "SiteBlockedError":
+                return row.get("error_message") or "bot check / throttle page"
+    return "bot check / throttle page"
+
+
+def run_targets(targets: list[tuple[str, str]], work_dir: Path, args: argparse.Namespace) -> list[dict]:
+    """Run targets in order; once a site blocks us, skip its remaining countries (retrying prolongs the block)."""
+    results: list[dict] = []
+    blocked_sites: set[str] = set()
+    for site, country in targets:
+        if site in blocked_sites:
+            logger.warning("%s/%s -> skipped: %s blocked earlier in this run", site, country, site)
+            results.append({
+                "site": site, "country": country, "status": "skipped_site_blocked", "item_count": 0,
+                "failed_count": 0, "reason": f"{site} blocked earlier in this run", "duration_s": 0,
+            })
+            continue
+        result = run_target(site, country, work_dir, args)
+        if result["status"] == "blocked":
+            blocked_sites.add(site)
+        results.append(result)
+    return results
+
+
 def run_target(site: str, country: str, work_dir: Path, args: argparse.Namespace) -> dict:
     started = time.monotonic()
     out_dir = work_dir / f"{site}_{country}"
@@ -89,7 +121,10 @@ def run_target(site: str, country: str, work_dir: Path, args: argparse.Namespace
     result["previous_count"] = previous
     min_items = args.min_items or min_items_for(previous, args.limit)
 
-    if code != 0:
+    if code == BLOCKED_EXIT_CODE:
+        result["status"] = "blocked"
+        result["reason"] = first_blocked_message(out_dir / "failed.jsonl")
+    elif code != 0:
         result["reason"] = reason
     elif result["item_count"] < min_items:
         result["status"] = "skipped_low_count"
@@ -152,13 +187,14 @@ def main(argv: list[str] | None = None) -> int:
     work_dir = args.work_dir or REPO_ROOT / "data" / "crawls" / f"scheduled_{started_at[:10]}"
     logger.info("%s targets, limit=%s, work_dir=%s", len(targets), args.limit, work_dir)
 
-    results = [run_target(site, country, work_dir, args) for site, country in targets]
+    results = run_targets(targets, work_dir, args)
     summary = {
         "started_at": started_at,
         "finished_at": _now(),
         "status": overall_status(results),
         "published": sum(r["status"] in ("published", "crawled") for r in results),
         "total": len(results),
+        "blocked_sites": sorted({r["site"] for r in results if r["status"] == "blocked"}),
         "limit": args.limit,
         "results": results,
     }
