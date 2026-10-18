@@ -95,7 +95,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add dashboard/data data/automation
           if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
-          msg=$(.venv/bin/python -c "import json; s=json.load(open('data/automation/last_run.json')); print(f\"chore(data): scheduled crawl {s['started_at'][:10]} ({s['published']}/{s['total']} published)\")")
+          msg=$(.venv/bin/python -c "import json; s=json.load(open('data/automation/last_run.json')); print(f\"chore(data): scheduled crawl {s['started_at'][:10]} ({s['published']}/{s['total']} ok)\")")
           git commit -m "$msg"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
