@@ -87,3 +87,19 @@ def test_telegram_message_reports_block():
     text = build_message("t", summary, [])
     assert f"🚫 <b>{SITE} 차단 감지</b>" in text and "남은 국가 수집 중단: th" in text
     assert "vn 3🚫" in text and "skipped_site_blocked" not in text
+
+
+def test_pause_only_between_real_crawls(tmp_path, monkeypatch):
+    def crawl(site, country, out_dir, args):
+        if site == SITE and country == "vn":
+            out_dir.mkdir(parents=True, exist_ok=True)
+            return BLOCKED_EXIT_CODE, "crawl exit 3"
+        return _fake_crawl(50)(site, country, out_dir, args)
+
+    sleeps = []
+    monkeypatch.setattr(sc, "crawl_one", crawl)
+    monkeypatch.setattr(sc, "publish", lambda *a, **k: None)
+    monkeypatch.setattr(sc.time, "sleep", sleeps.append)
+    args = _args(tmp_path, target_pause_min=5, target_pause_max=5)
+    sc.run_targets([(SITE, "kr"), (SITE, "vn"), (SITE, "th"), (OTHER, "kr")], tmp_path / "w", args)
+    assert sleeps == [5, 5]  # before vn and before the other site; none for the skipped th

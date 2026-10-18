@@ -12,7 +12,8 @@ def _args(tmp_path: Path, **kw) -> argparse.Namespace:
     (data / "index.json").write_text(
         json.dumps({"latest": {"amazon_jp": {"kr": {"csv": "x", "jsonl": "y", "item_count": 100}}}}), encoding="utf-8"
     )
-    base = dict(limit=100, concurrency=2, min_delay=1, max_delay=2, min_items=0, data_dir=data, no_publish=False)
+    base = dict(limit=100, concurrency=2, min_delay=1, max_delay=2, min_items=0, data_dir=data, no_publish=False,
+                target_pause_min=0, target_pause_max=0)
     return argparse.Namespace(**{**base, **kw})
 
 
