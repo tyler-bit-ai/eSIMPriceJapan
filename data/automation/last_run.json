@@ -1,0 +1,30 @@
+{
+  "started_at": "2026-10-18T07:07:46Z",
+  "finished_at": "2026-10-18T07:08:09Z",
+  "status": "success",
+  "published": 2,
+  "total": 2,
+  "limit": 3,
+  "results": [
+    {
+      "site": "amazon_jp",
+      "country": "kr",
+      "status": "crawled",
+      "item_count": 3,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 13
+    },
+    {
+      "site": "qoo10_jp",
+      "country": "kr",
+      "status": "crawled",
+      "item_count": 3,
+      "failed_count": 0,
+      "reason": "",
+      "previous_count": 100,
+      "duration_s": 10
+    }
+  ]
+}
