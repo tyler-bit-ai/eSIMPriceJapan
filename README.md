@@ -97,7 +97,7 @@ python -m app crawl --site qoo10_jp --country vn --limit 5 --concurrency 2 --min
 gh workflow run scheduled-crawl.yml                                          # 전체 수집 + 게시
 gh workflow run scheduled-crawl.yml -f limit=5 -f only="amazon_jp:kr" -f publish=false   # 테스트 (게시 안 함)
 gh run list --workflow scheduled-crawl.yml
-cd ~/actions-runner-esim-jp && ./svc.sh status                               # runner 상태
+cd ~/Projects/actions-runner/eSIMPriceJapan && ./svc.sh status                               # runner 상태
 ```
 
 로컬 실행 (macOS):
