@@ -3,8 +3,8 @@
   "country": "mo",
   "query": "",
   "limit": 100,
-  "source": "data/crawls/scheduled_2026-10-18/amazon_jp_mo/results.jsonl",
-  "crawled_at": "2026-10-18T08:38:07.889049Z",
-  "published_at": "2026-10-18T08:38:07.999672Z",
-  "item_count": 88
+  "source": "data/crawls/scheduled_2026-10-18_recovered/amazon_jp_mo/results.jsonl",
+  "crawled_at": "2026-10-18T21:03:40.762036Z",
+  "published_at": "2026-10-19T14:04:47.791669Z",
+  "item_count": 89
 }

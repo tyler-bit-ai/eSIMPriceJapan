@@ -3,8 +3,8 @@
   "country": "th",
   "query": "",
   "limit": 100,
-  "source": "data/crawls/scheduled_2026-10-18/qoo10_jp_th/results.jsonl",
-  "crawled_at": "2026-10-18T08:50:29.684666Z",
-  "published_at": "2026-10-18T08:50:29.828339Z",
+  "source": "data/crawls/scheduled_2026-10-18_recovered/qoo10_jp_th/results.jsonl",
+  "crawled_at": "2026-10-18T21:15:58.026199Z",
+  "published_at": "2026-10-19T14:04:49.016604Z",
   "item_count": 100
 }

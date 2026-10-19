@@ -3,8 +3,8 @@
   "country": "th",
   "query": "",
   "limit": 100,
-  "source": "data/crawls/scheduled_2026-10-18/amazon_jp_th/results.jsonl",
-  "crawled_at": "2026-10-18T08:25:59.493435Z",
-  "published_at": "2026-10-18T08:25:59.680965Z",
+  "source": "data/crawls/scheduled_2026-10-18_recovered/amazon_jp_th/results.jsonl",
+  "crawled_at": "2026-10-18T20:51:37.727555Z",
+  "published_at": "2026-10-19T14:04:46.882542Z",
   "item_count": 88
 }
