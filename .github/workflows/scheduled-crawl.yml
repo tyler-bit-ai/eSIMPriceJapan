@@ -71,7 +71,8 @@ jobs:
         env:
           LIMIT: ${{ inputs.limit || '100' }}
           ONLY: ${{ inputs.only }}
-          PUBLISH: ${{ inputs.publish != false }}
+          # Schedule runs have no inputs (null == false in expressions), so only a dispatch can turn publishing off.
+          PUBLISH: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
         run: |
           set +e
           args=(--limit "$LIMIT")

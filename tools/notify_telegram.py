@@ -64,6 +64,8 @@ def build_message(
                 skipped.setdefault(r["site"], []).append(r["country"])
             elif not ok:
                 problems.append(f"• {r['site']}/{r['country']} {r['status']}: {r.get('reason') or '-'}")
+        if any(r["status"] == "crawled" for r in summary.get("results", [])):
+            lines.append("ℹ️ 테스트 실행: 대시보드에 게시하지 않았습니다.")
         lines.append("")
         lines += [f"<b>{esc(site)}</b>: {esc(' · '.join(parts))}" for site, parts in by_site.items()]
         for site in summary.get("blocked_sites", []):
